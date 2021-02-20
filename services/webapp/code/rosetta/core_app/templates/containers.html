@@ -13,9 +13,45 @@
       <h1><a href="/containers">Containers</a> <span style="font-size:18px"> / {{ data.container.name }}</span></h1>
       {% else %}
       <h1>Containers</h1>
+
+      <hr/>
+
+      
+      
+      <div class="form-filter" style="margin-bottom:20px">
+        <form action="" method="POST">
+          
+          <input type="text" class="form-control" id="search_text" name="search_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.search_text}}" autofocus>
+
+          <select class="form-control" id="search_type" name="search_type" style="width:120px; margin:0; display:inline">
+            
+            {% if data.search_type == 'All' %}
+            <option selected>All</option>
+            {% else %}
+            <option>All</option>            
+            {% endif %}
+            
+            {% if data.search_type == 'Docker' %}
+            <option selected>Docker</option>
+            {% else %}
+            <option>Docker</option>            
+            {% endif %}
+            
+            {% if data.search_type == 'Singularity' %}
+            <option selected>Singularity</option>
+            {% else %}
+            <option>Singularity</option>            
+            {% endif %}
+            
+          </select>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary">Go</button>
+        </form>
+      </div>
+      
+      
       {% endif %}
       
-      <hr/>
       <div class="row" style="padding:5px">
       {% if data.container %}
       {% include "components/container.html" with container=data.container details=True %}

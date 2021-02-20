@@ -305,11 +305,8 @@ def tasks(request):
     
             # Attach user config to computing
             task.computing.attach_user_conf_data(task.user)
-    
-            #----------------
-            #  Task actions
-            #----------------
 
+            #  Task actions
             if action=='delete':
                 if task.status not in [TaskStatuses.stopped, TaskStatuses.exited]:
                     try:
@@ -363,11 +360,7 @@ def tasks(request):
     # Do we have to list all the tasks?
     if not uuid or (uuid and not details):
 
-        #----------------
-        #  Task list
-        #----------------
-    
-        # Get all tasks
+        # Get all tasks for list
         try:
             tasks = Task.objects.filter(user=request.user).order_by('created') 
         except Exception as e:
@@ -600,6 +593,15 @@ def containers(request):
     uuid   = request.GET.get('uuid', None)
     action = request.GET.get('action', None)
 
+    # Get filter/search if any
+    search_text   = request.POST.get('search_text', '')
+    search_type = request.POST.get('search_type', 'All')
+
+    # Set bak to page data
+    data['search_type'] = search_type
+    data['search_text'] = search_text
+
+
     # Do we have to operate on a specific container?
     if uuid:
 
@@ -614,10 +616,7 @@ def containers(request):
                 raise ErrorMessage('Container does not exists or no access rights')
             data['container'] = container
 
-            #-------------------
             # Container actions
-            #-------------------
-
             if action and action=='delete':
 
                 # Delete
@@ -628,12 +627,26 @@ def containers(request):
             logger.error('Error in getting the container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
 
-    #----------------
-    # Container list
-    #----------------
 
-    # Get containers
-    data['containers'] = list(Container.objects.filter(user=None)) + list(Container.objects.filter(user=request.user))
+    # Get containers for list
+    if search_type and search_type != 'All':
+        if search_text:
+            user_containers = Container.objects.filter(user=None, type=search_type.lower(), name__icontains=search_text)
+            platform_containers = Container.objects.filter(user=request.user, type=search_type.lower(), name__icontains=search_text)
+        else:
+            user_containers = Container.objects.filter(user=None, type=search_type.lower())
+            platform_containers = Container.objects.filter(user=request.user, type=search_type.lower())
+                    
+    else:
+        if search_text:
+            user_containers = Container.objects.filter(user=None, name__icontains=search_text)
+            platform_containers = Container.objects.filter(user=request.user, name__icontains=search_text)        
+        else:
+            user_containers = Container.objects.filter(user=None)
+            platform_containers = Container.objects.filter(user=request.user)
+                    
+    
+    data['containers'] = list(user_containers) + list(platform_containers)
 
     return render(request, 'containers.html', {'data': data})
 
