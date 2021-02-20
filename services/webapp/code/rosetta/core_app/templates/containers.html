@@ -81,7 +81,17 @@
 
 {% include "footer.html" %}
 
+<script>
 
+$(document).ready(function() {
+	  
+    var search_text_input = $("#search_text");
+    var len = search_text_input.val().length;
+    search_text_input[0].focus();
+    search_text_input[0].setSelectionRange(len, len);
+
+});
+</script>
 
 
 
