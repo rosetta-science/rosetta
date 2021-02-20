@@ -26,9 +26,9 @@
       {% endif %}
       </div>
 
-      {% if not data.task %}
-      <div class="row" style="padding:10px; padding-left:15px">   
-      <a href="/create_task">Create new...</a>
+      {% if not data.task and not data.tasks %}
+      <div class="row" style="padding:10px; padding-left:15px">
+      <i>Nothing here. To create a new task, choose a container from the "containers" menu entry and run it by hitting the play button.</i>
       </div>
       {% endif %}
 
