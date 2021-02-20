@@ -13,6 +13,11 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+import os
+import django
+from django.conf import settings
+from django.conf.urls import include, url
 from django.contrib import admin
 from django.urls import include, path
 from django.conf.urls import url
@@ -69,6 +74,29 @@ urlpatterns = [
 
 ]
 
-# This message here is quite useful when developing in autoreload mode
-logger.info('Loaded URLs')
+
+#============================
+#  Serve static if required
+#============================
+
+# Get admin files location
+admin_files_path = '/'.join(django.__file__.split('/')[0:-1]) + '/contrib/admin/static/admin'
+ 
+if not settings.DEBUG:
+
+    # Admin files
+    urlpatterns.append(url(r'^static/admin/(?P<path>.*)$', django.views.static.serve, {'document_root': admin_files_path} ))
+
+    # Rosetta Core app files
+    document_root = 'rosetta/core_app/static'
+     
+    if os.path.isdir(document_root):
+        logger.info('Serving static files for app "core_app" from document root "{}"'.format(document_root))
+        # Static
+        urlpatterns.append(url(r'^static/(?P<path>.*)$', django.views.static.serve, {'document_root': document_root} ))
+    else:
+        logger.warning('Not static files to serve?!')
+else:
+    logger.info('Not serving static files at all as DEBUG=True (Django will do it automatically)')
+
 
