@@ -25,11 +25,7 @@ RUN apt-get install python3 python3-distutils -y
 
 # Install Python3 and Pip3 (ython3-distutils required for pip3)
 RUN apt-get install python3 python3-distutils -y 
-RUN python3 get-pip.py 'pip==10.0.1'
-
-# Install Python2 and Pip2
-RUN apt-get install python -y
-RUN python get-pip.py 'pip==10.0.1'
+RUN python3 get-pip.py 'pip==21.0.1'
 
 # Python 3 dev (for pycrypto)
 RUN apt-get install python3-dev -y
