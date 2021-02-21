@@ -1,13 +1,11 @@
 from .models import TaskStatuses, KeyPair, Task
 from .utils import os_shell
 from .exceptions import ErrorMessage, ConsistencyException
+from django.conf import settings
 
 # Setup logging
 import logging
 logger = logging.getLogger(__name__)
-
-# Conf
-TASK_DATA_DIR = "/data"
 
 
 class ComputingManager(object):
@@ -77,6 +75,9 @@ class LocalComputingManager(ComputingManager):
     
     def _start_task(self, task):
 
+        if task.container.type != 'docker':
+            raise ErrorMessage('Sorry, only Docker container are supported on this computing resource.')
+
         # Init run command #--cap-add=NET_ADMIN --cap-add=NET_RAW
         run_command  = 'sudo docker run  --network=rosetta_default --name rosetta-task-{}'.format( task.id)
 
@@ -84,8 +85,8 @@ class LocalComputingManager(ComputingManager):
         if task.auth_pass:
             run_command += ' -eAUTH_PASS={} '.format(task.auth_pass)
 
-        # Data volume
-        run_command += ' -v {}/task-{}:/data'.format(TASK_DATA_DIR, task.id)
+        # User data volume
+        run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Set registry string
         if task.container.registry == 'local':

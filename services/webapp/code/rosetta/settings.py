@@ -151,10 +151,6 @@ SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False
 }
 
-# Data path for resources etc.
-DATA_PATH  = '/data/'
-TMP_PATH   = '/tmp/'
-
 
 #===============================
 #  Email settings
@@ -226,6 +222,9 @@ LOGGING = {
     }
 }
 
+
+# Local user data dir
+LOCAL_USER_DATA_DIR = os.environ.get('LOCAL_USER_DATA_DIR', '/data')
 
 
 #===============================
