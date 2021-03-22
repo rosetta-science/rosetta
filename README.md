@@ -4,7 +4,7 @@
 _A container-centric Science Platform_
 
 
-Rosetta makes it easy to run interactive workloads on batch and remote computing systems using Docker and Singularity containers.
+Rosetta makes it easy to run graphical interactive workloads on batch and remote computing systems using Docker and Singularity containers.
 
 Rosetta licensed under the Apache License 2.0, unless otherwise specificed.
 
