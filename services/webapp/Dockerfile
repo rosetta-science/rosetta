@@ -78,6 +78,7 @@ COPY supervisord_dregistrytunnel.conf /etc/supervisor/conf.d/
 #------------------------------
 
 COPY prestartup_webapp.sh /prestartup/
+RUN touch -m /prestartup/prestartup_webapp.sh
 
 
 
