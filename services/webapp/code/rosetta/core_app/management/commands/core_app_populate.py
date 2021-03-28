@@ -211,7 +211,8 @@ class Command(BaseCommand):
                                                              supports_singularity = True)
     
             ComputingSysConf.objects.create(computing = demo_remote_auth_computing,
-                                            data      = {'host': 'slurmclusterworker-one'})
+                                            data      = {'host': 'slurmclusterworker-one',
+                                                         'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
 
             ComputingUserConf.objects.create(user      = testuser,
                                              computing = demo_remote_auth_computing,
@@ -232,7 +233,8 @@ class Command(BaseCommand):
     
             # Create demo slurm sys computing conf
             ComputingSysConf.objects.create(computing = demo_slurm_computing,
-                                            data      = {'master': 'slurmclustermaster-main', 'default_partition': 'partition1'})
+                                            data      = {'master': 'slurmclustermaster-main', 'default_partition': 'partition1',
+                                                         'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
 
             # Create demo slurm user computing conf
             ComputingUserConf.objects.create(user      = testuser,

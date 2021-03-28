@@ -68,6 +68,8 @@ urlpatterns = [
 
     # Custom APIs
     path('api/v1/base/agent/', core_app_api.agent_api.as_view(), name='agent_api'),
+    path('api/v1/filemanager/', core_app_api.FileManagerAPI.as_view(), name='filemanager_api'),
+
 
     # Open ID Connect Auth
     path('oidc/', include('mozilla_django_oidc.urls')),

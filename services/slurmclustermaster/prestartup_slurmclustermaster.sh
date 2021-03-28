@@ -6,3 +6,9 @@ mkdir -p /shared/rosetta && chown rosetta:rosetta /shared/rosetta
 
 # Shared home for slurmtestuser to simulate a shared home folders filesystem
 cp -a /home_slurmtestuser_vanilla /shared/home_slurmtestuser
+
+# Create shared "data" and "scratch" directories
+mkdir -p /shared/scratch
+chmod 777 /shared/scratch
+mkdir -p /shared/data/users/slurmtestuser
+chown slurmtestuser:slurmtestuser /shared/data/users/slurmtestuser
