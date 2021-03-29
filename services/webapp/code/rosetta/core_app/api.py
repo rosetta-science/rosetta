@@ -1,4 +1,7 @@
+import os
 import re
+import uuid
+import magic
 import logging
 from django.http import HttpResponse
 from django.utils import timezone
@@ -358,13 +361,44 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
     
     # The RichFilemanager has no CSRF support...
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
-    
 
-    def prepare_command(self, command, user, computing):
+
+    def scp_command(self, source, dest, user, computing, mode='get'):
 
         # Get user key
         user_keys = KeyPair.objects.get(user=user, default=True)
+       
+        # Get computing host
+        computing_host = computing.get_conf_param('host')
+        
+        # Trick for handling Slurm.. TODO: fix me!
+        if not computing_host:
+            computing_host = computing.get_conf_param('master')
+        
+        computing_user = computing.get_conf_param('user')
 
+        if not computing_host:
+            raise Exception('No computing host?!')
+
+        if not computing_user:
+            raise Exception('No computing user?!')
+
+        # Command
+        if mode=='get':
+            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(user_keys.private_key_file, computing_user, computing_host, source, dest)
+        elif mode == 'put':
+            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}: '.format(user_keys.private_key_file, computing_user, computing_host, source, dest)
+        else:
+            raise ValueError('Unknown mode "{}"'.format(mode))
+
+        return command
+
+    
+
+    def ssh_command(self, command, user, computing):
+
+        # Get user key
+        user_keys = KeyPair.objects.get(user=user, default=True)
        
         # Get computing host
         computing_host = computing.get_conf_param('host')
@@ -383,8 +417,15 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
         # Command
         command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} {}'.format(user_keys.private_key_file, computing_user, computing_host, command)
-        
+
         return command
+
+    @staticmethod
+    def clean_path(path):
+        cleaner = re.compile('(?:\/)+')
+        path = re.sub(cleaner,'/',path)
+        return path
+
 
     def get_computing(self, path, request):
         # Get the computing based on the folder name # TODO: this is very weak..
@@ -418,7 +459,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         data = []
         
         # Prepare command
-        command = self.prepare_command('ls -al /{}'.format(path), user, computing)
+        command = self.ssh_command('ls -al {}'.format(path), user, computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -431,7 +472,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         out_lines = out.stdout.split('\n')
         
         for line in out_lines:
-            
+
             # Skip total files summary line at the end
             if line.startswith('total'):
                 continue
@@ -440,8 +481,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             name = line.split(' ')[-1]
                      
             # Check against binds if set
+            
             if binds:
-                full_path = path + '/' + name
+                if not path == '/':
+                    full_path = path + '/' + name
+                else:
+                    full_path = '/' + name
+
                 show = False
                 for bind in binds:
                     if bind.startswith(full_path) or full_path.startswith(bind):
@@ -450,11 +496,16 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
             if not binds or (binds and show):
             
+                # Define and clean listing path:
+                listing_path = '/{}/{}/{}/'.format(computing.name, path, name)
+                listing_path = self.clean_path(listing_path)
+
+            
                 # File or directory?
                 if line.startswith('d'):
                     if line.split(' ')[-1] not in ['.', '..']:
                         data.append({
-                                     'id': '/{}/{}/{}/'.format(computing.name, path, name),
+                                     'id': listing_path,
                                      'type': 'folder',
                                      'attributes':{
                                           'created':  1616415170,
@@ -463,12 +514,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                           'readable': 1,
                                           'timestamp':   1616415170,
                                           'writable': 1,
-                                          'path': '/{}/{}/{}'.format(computing.name, path, name)                                 
+                                          'path': listing_path                                 
                                       }
                                      })
                 else:
                     data.append({
-                                 'id': '/{}/{}/{}'.format(computing.name, path, name),
+                                 'id': listing_path[:-1], # Remove trailing slash 
                                  'type': 'file',
                                  'attributes':{
                                       'created':  1616415170,
@@ -477,7 +528,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                       'readable': 1,
                                       'timestamp':   1616415170,
                                       'writable': 1,
-                                      'path': '/{}/{}/{}'.format(computing.name, path, name)                                
+                                      'path': listing_path[:-1] # Remove trailing slash                               
                                   }
                                  })                            
             
@@ -488,16 +539,24 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
     def cat(self, path, user, computing):
         
         # Prepare command
-        command = self.prepare_command('cat /{}'.format(path), user, computing)
+        command = self.ssh_command('cat {}'.format(path), user, computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
         if out.exit_code != 0:
             raise Exception(out.stderr)
-        
         return out.stdout
-                 
 
+
+    def scp(self, source_path, target_path, user, computing, mode='get'):
+    
+        # Prepare command
+        command = self.scp_command(source_path, target_path, user, computing, mode)
+
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            raise Exception(out.stderr)
 
 
     def _get(self, request):
@@ -509,9 +568,8 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         
         # Clean for some issues that happen sometimes
         if path:
-            cleaner = re.compile('(?:\/)+')
-            path = re.sub(cleaner,'/',path)
-
+            path = self.clean_path(path)
+        
         # Init
         if mode == 'initiate':
             data = json.loads('{"data":{"attributes":{"config":{"options":{"culture":"en"},"security":{"allowFolderDownload":true,"extensions":{"ignoreCase":true,"policy":"DISALLOW_LIST","restrictions":[]},"readOnly":false}}},"id":"/","type":"initiate"}}')
@@ -563,25 +621,63 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                         binds = [bind.split(':')[0] for bind in binds]
                     
                     # Ok, get directoris and files for this folder (always filtering by binds)
-                    ls_path = '/'.join(path.split('/')[2:])
+                    ls_path = '/'+'/'.join(path.split('/')[2:])
                     data = {'data': self.ls(ls_path, request.user, computing, binds)}
          
                 else:
                     # Ok, get directoris and files for this folder:                
-                    ls_path = '/'.join(path.split('/')[2:])
+                    ls_path = '/'+'/'.join(path.split('/')[2:])
                     data = {'data': self.ls(ls_path, request.user, computing)}
 
 
-        elif mode == 'download':
+        elif mode in ['download', 'getimage']:
             logger.debug('Downloading "{}"'.format(path))
-            data=''
+            
+            # TOOD: here we are not handling ajax request, Maybe they have been deperacted?
+            # The download process consists of 2 requests:
+            #  - Ajax GET request. Perform all checks and validation. Should return file/folder object in the response data to proceed.
+            #  - Regular GET request. Response headers should be properly configured to output contents to the browser and start download.
+            # See here: https://github.com/psolom/RichFilemanager/wiki/API
 
+            # Set support vars
+            computing = self.get_computing(path, request)
+            file_path = '/'+'/'.join(path.split('/')[2:])
+            target_path = '/tmp/{}'.format(uuid.uuid4())
+
+            # Get the file
+            self.scp(file_path, target_path, request.user, computing, mode='get') 
+
+            # Detect content type
+            try:
+                content_type =  str(magic.from_file(target_path, mime=True))
+            except:
+                content_type = None
+
+            # Read file data
+            with open(target_path, 'rb') as f:
+                data = f.read()
+            
+            # Remove file
+            os.remove(target_path)
+            
+            # Return file data
+            response = HttpResponse(data, status=status.HTTP_200_OK, content_type=content_type)
+            response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path.split('/')[-1])
+            return response
 
         elif mode == 'readfile':
             logger.debug('Reading "{}"'.format(path))
+            
+            # Set support vars
             computing = self.get_computing(path, request)
-            cat_path = '/'.join(path.split('/')[2:])
-            data = self.cat(cat_path, request.user, computing)
+            file_path = '/'+'/'.join(path.split('/')[2:])
+
+            # Get file contents
+            data = self.cat(file_path, request.user, computing)
+            
+            # Return file contents
+            return HttpResponse(data, status=status.HTTP_200_OK)
+
         
         else:
             return error400('Operation "{}" not supported'.format(mode))
