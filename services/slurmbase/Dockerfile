@@ -31,3 +31,4 @@ RUN chown -R slurmtestuser:slurmtestuser /home/slurmtestuser
 
 # Add prestartup
 COPY prestartup_slurmbase.sh /prestartup/
+RUN touch -m /prestartup/prestartup_slurmbase.sh

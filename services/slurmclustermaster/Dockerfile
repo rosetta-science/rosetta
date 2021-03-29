@@ -9,3 +9,4 @@ COPY test.sh /rosetta
 
 # Add prestartup
 COPY prestartup_slurmclustermaster.sh /prestartup/
+RUN touch -m /prestartup/prestartup_slurmclustermaster.sh

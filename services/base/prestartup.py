@@ -35,7 +35,6 @@ prestartup_scripts_path='/prestartup'
 def sorted_ls(path):
     mtime = lambda f: os.stat(os.path.join(path, f)).st_mtime
     file_list = list(sorted(os.listdir(path), key=mtime))
-    file_list.reverse()
     return file_list
 
 for item in sorted_ls(prestartup_scripts_path):

@@ -179,10 +179,11 @@ def register_view(request):
 
 
 
-
 @public_view
 def entrypoint(request):
     return HttpResponseRedirect('/main/')
+
+
 
 @public_view
 def main_view(request):
@@ -919,7 +920,15 @@ def sharable_link_handler(request, id):
     
 
 
+#=========================
+#  File manager
+#=========================
+@public_view
+def files_view(request):
 
+    # Set data & render
+    data = {}
+    return render(request, 'files.html', {'data': data})
 
 
 

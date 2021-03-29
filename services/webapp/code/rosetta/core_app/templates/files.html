@@ -1,0 +1,27 @@
+{% load static %} 
+{% include "header.html" %}
+{% include "navigation.html" with main_path='/main/' %}
+
+<br/>
+<br/>
+
+<div class="container" style="height:75%;">
+  <div class="dashboard" style="height:100%;">
+    <div class="span8 offset2" style="height:100%;">
+      
+
+      <h1>Files</h1>
+
+      <hr/>
+
+
+      <iframe src="/static/RichFilemanager/index.html" style="overflow:hidden;height:100%;width:100%; border: 1px solid #c0c0c0" height="100%" width="100%"></iframe>
+    
+    
+    </div>
+  </div>
+</div>
+
+{% include "footer.html" %}
+
+

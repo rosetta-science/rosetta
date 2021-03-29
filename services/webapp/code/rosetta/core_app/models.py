@@ -247,7 +247,7 @@ class ComputingSysConf(models.Model):
 
 
     def __str__(self):
-        return str('Computing sys conf for {} with id "{}"'.format(self.computing, self.id))
+        return 'Computing sys conf for {} with id "{}"'.format(self.computing, self.id)
 
 
 
@@ -258,10 +258,13 @@ class ComputingUserConf(models.Model):
     computing = models.ForeignKey(Computing, related_name='+', on_delete=models.CASCADE)
     data = JSONField(blank=True, null=True)
 
-
     @property
     def id(self):
-        return str('Computing user conf for {} with id "{}" of user "{}"'.format(self.computing, self.id, self.user))
+        return str(self.uuid).split('-')[0]
+
+    def __str__(self):
+        return 'Computing user conf for {} with id "{}" of user "{}"'.format(self.computing, self.id, self.user)
+
 
 
 
