@@ -54,6 +54,7 @@ urlpatterns = [
     url(r'^edit_computing_conf/$', core_app_views.edit_computing_conf),
     url(r'^containers/$', core_app_views.containers),
     url(r'^add_container/$', core_app_views.add_container),
+    url(r'^files/$', core_app_views.files_view),
 
     # Sharable link for tasks
     url(r'^t/(?P<id>\w{0,36})/$', core_app_views.sharable_link_handler),
