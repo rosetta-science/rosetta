@@ -345,11 +345,6 @@ print(port)
 # File manager APIs
 #==========================================
 
-
-
-
-
-
 class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
     """
     get:
@@ -365,6 +360,14 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
     def scp_command(self, source, dest, user, computing, mode='get'):
 
+        # Prepare paths for scp. They have been already made shell-ready, but we need to triple-escape
+        # spaces on remote source or destination: My\ Folder mut become My\\\ Folder.
+        
+        if mode=='get':
+            source = source.replace('\ ', '\\\\\\ ')
+        else:
+            dest = dest.replace('\ ', '\\\\\\ ')
+            
         # Get user key
         user_keys = KeyPair.objects.get(user=user, default=True)
        
@@ -387,7 +390,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         if mode=='get':
             command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(user_keys.private_key_file, computing_user, computing_host, source, dest)
         elif mode == 'put':
-            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}: '.format(user_keys.private_key_file, computing_user, computing_host, source, dest)
+            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(user_keys.private_key_file, source, computing_user, computing_host, dest)
         else:
             raise ValueError('Unknown mode "{}"'.format(mode))
 
@@ -713,6 +716,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         elif mode in ['download', 'getimage']:
             logger.debug('Downloading "{}"'.format(path))
             
+            if path.endswith('/'):
+                return error400('Downloading a folder is not supported')
+            
             # TOOD: here we are not handling ajax request, Maybe they have been deperacted?
             # The download process consists of 2 requests:
             #  - Ajax GET request. Perform all checks and validation. Should return file/folder object in the response data to proceed.
@@ -973,11 +979,47 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
         if mode == 'savefile':
-            #logger.debug('Reading "{}"'.format(path))
-            #computing = self.get_computing(path, request)
-            #cat_path = '/'.join(path.split('/')[2:])
-            #data = self.echo(cat_path, request.user, computing)
             return error400('Operation "{}" not supported'.format(mode))
+        
+        elif mode == 'upload':
+
+            # Set support vars
+            computing = self.get_computing(path, request)
+            path = '/'+'/'.join(path.split('/')[2:])
+
+            # Get the file upload
+            file_upload = request.FILES['files']
+            
+            # generate temporary UUID
+            file_uuid = uuid.uuid4()
+            
+            with open('/tmp/{}'.format(file_uuid), 'wb') as temp_file:
+                temp_file.write(file_upload.read())
+            
+            logger.debug('Wrote "/tmp/{}" for "{}"'.format(file_uuid, file_upload.name))
+
+            # Now copy with scp
+            self.scp('/tmp/{}'.format(file_uuid), path + file_upload.name , request.user, computing, mode='put')
+        
+            # Response data
+            data = { 'data': [{
+                            'id': '/{}{}{}'.format(computing.name, path, file_upload.name),
+                            'type': 'file',
+                            'attributes':{
+                                #'created':  1616415170,
+                                #'modified':   1616415170,
+                                'name': file_upload.name,
+                                'readable': 1,
+                                #'timestamp':   1616415170,
+                                'writable': 1,
+                                'path': '/{}{}{}'.format(computing.name, path, file_upload.name)                            
+                            }
+                        }]
+                    }      
+            
+            
+            # Return
+            return Response(data, status=status.HTTP_200_OK)
         
         else:
             return error400('Operation "{}" not supported'.format(mode))
