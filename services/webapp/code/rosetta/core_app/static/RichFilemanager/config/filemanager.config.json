@@ -10,7 +10,7 @@
         "quickSelect": false,
         "logger": false,
         "allowFolderDownload": true,
-        "allowChangeExtensions": false,
+        "allowChangeExtensions": true,
         "capabilities": [
             "select",
             "upload",
