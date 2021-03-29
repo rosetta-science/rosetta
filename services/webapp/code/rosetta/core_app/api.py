@@ -536,6 +536,18 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return data
 
 
+    def delete(self, path, user, computing):
+        
+        # Prepare command
+        command = self.ssh_command('rm -rf {}'.format(path), user, computing)
+        
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            raise Exception(out.stderr)
+        return out.stdout
+
+
     def cat(self, path, user, computing):
         
         # Prepare command
@@ -711,6 +723,43 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # Return file contents
             return HttpResponse(data, status=status.HTTP_200_OK)
 
+
+        elif mode == 'delete':
+            logger.debug('Deleting "{}"'.format(path))
+            
+            # Set support vars
+            computing = self.get_computing(path, request)
+            path = '/'+'/'.join(path.split('/')[2:])
+
+            # Is it a folder?
+            if path.endswith('/'):
+                is_folder=True
+            else:
+                is_folder=False
+
+            # Get file contents
+            data = self.delete(path, request.user, computing)
+
+            # Response data
+            data = { 'data': {
+                            'id': '/{}{}'.format(computing.name, path),
+                            'type': 'folder' if is_folder else 'file',
+                            'attributes':{
+                                #'created':  1616415170,
+                                #'modified':   1616415170,
+                                'name': path,
+                                'readable': 1,
+                                #'timestamp':   1616415170,
+                                'writable': 1,
+                                'path': '/{}{}'.format(computing.name, path)                            
+                            }
+                        }
+                    }      
+            
+            
+            # Return file contents
+            return Response(data, status=status.HTTP_200_OK)
+            
 
         elif mode == 'rename':
             logger.debug('Renaming "{}"'.format(path))
