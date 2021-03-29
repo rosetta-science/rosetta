@@ -508,11 +508,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                      'id': listing_path,
                                      'type': 'folder',
                                      'attributes':{
-                                          'created':  1616415170,
-                                          'modified':   1616415170,
+                                          #'created':  1616415170,
+                                          #'modified':   1616415170,
                                           'name': name,
                                           'readable': 1,
-                                          'timestamp':   1616415170,
+                                          #'timestamp':   1616415170,
                                           'writable': 1,
                                           'path': listing_path                                 
                                       }
@@ -522,11 +522,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                  'id': listing_path[:-1], # Remove trailing slash 
                                  'type': 'file',
                                  'attributes':{
-                                      'created':  1616415170,
-                                      'modified':   1616415170,
+                                      #'created':  1616415170,
+                                      #'modified':   1616415170,
                                       'name': name,
                                       'readable': 1,
-                                      'timestamp':   1616415170,
+                                      #'timestamp':   1616415170,
                                       'writable': 1,
                                       'path': listing_path[:-1] # Remove trailing slash                               
                                   }
@@ -548,7 +548,40 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
+    def rename(self, old, new, user, computing):
+        
+        old = old.replace(' ', '\ ')
+        new = new.replace(' ', '\ ')
+
+        
+        # Prepare command
+        command = self.ssh_command('mv \'{}\' \'{}\''.format(old, new), user, computing)
+        
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            raise Exception(out.stderr)
+        return out.stdout
+
+
+    def copy(self, source, target, user, computing):
+        source = source.replace(' ', '\ ')
+        target = target.replace(' ', '\ ')
+
+        # Prepare command
+        command = self.ssh_command('cp -a \'{}\' \'{}\''.format(source, target), user, computing)
+        
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            raise Exception(out.stderr)
+        return out.stdout
+
+
     def scp(self, source_path, target_path, user, computing, mode='get'):
+
+        source_path = source_path.replace(' ', '\ ')
+        target_path = target_path.replace(' ', '\ ')
     
         # Prepare command
         command = self.scp_command(source_path, target_path, user, computing, mode)
@@ -594,11 +627,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                          'id': '/{}/'.format(computing.name),
                                          'type': 'folder',
                                          'attributes':{
-                                              'created':  1616415170,
-                                              'modified':   1616415170,
+                                              #'created':  1616415170,
+                                              #'modified':   1616415170,
                                               'name': computing.name,
                                               'readable': 1,
-                                              'timestamp':   1616415170,
+                                              #'timestamp':   1616415170,
                                               'writable': 1,
                                               'path': '/{}/'.format(computing.name)                                   
                                           }
@@ -677,6 +710,129 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             
             # Return file contents
             return HttpResponse(data, status=status.HTTP_200_OK)
+
+
+        elif mode == 'rename':
+            logger.debug('Renaming "{}"'.format(path))
+            
+            # Get old file name with path
+            old_name_with_path = request.GET.get('old', None)
+            if not old_name_with_path:
+                raise Exception('Missing old name')            
+            
+            # Set support vars
+            computing = self.get_computing(old_name_with_path, request)
+            old_name_with_path = '/'+'/'.join(old_name_with_path.split('/')[2:])
+            
+            # Is it a folder?
+            if old_name_with_path.endswith('/'):
+                is_folder=True
+            else:
+                is_folder=False
+
+            # Get new name
+            new_name = request.GET.get('new', None)
+            if not new_name:
+                raise Exception('Missing new name')
+            
+            if is_folder:
+                new_name_with_path = '/'.join(old_name_with_path.split('/')[:-2]) + '/' +  new_name
+                old_name_with_path = old_name_with_path[:-1]
+
+            new_name_with_path = '/'.join(old_name_with_path.split('/')[:-1]) + '/' +  new_name
+
+            # Rename
+            self.rename(old_name_with_path, new_name_with_path, request.user, computing)
+            
+            # Add trailing slash for listing
+            if is_folder:
+                new_name_with_path = new_name_with_path+'/'
+            
+            # Response data
+            data = { 'data': {
+                            'id': '/{}{}'.format(computing.name, new_name_with_path),
+                            'type': 'folder' if is_folder else 'file',
+                            'attributes':{
+                                #'created':  1616415170,
+                                #'modified':   1616415170,
+                                'name': new_name,
+                                'readable': 1,
+                                #'timestamp':   1616415170,
+                                'writable': 1,
+                                'path': '/{}{}'.format(computing.name, new_name_with_path)                              
+                            }
+                        }
+                    }      
+            
+            
+            # Return file contents
+            return Response(data, status=status.HTTP_200_OK)
+
+
+        elif mode == 'copy':
+            logger.debug('Copying "{}"'.format(path))
+            
+            # Get source for copy
+            source_name_with_path = request.GET.get('source', None)
+            if not source_name_with_path:
+                raise Exception('Missing source for copy') 
+            
+            # Get target for copy
+            target_path = request.GET.get('target', None)
+            if not target_path:
+                raise Exception('Missing target for copy')
+            
+
+            if source_name_with_path.endswith('/'):
+                is_folder=True
+            else:
+                is_folder=False
+
+
+            # Set support vars
+            computing = self.get_computing(source_name_with_path, request)
+            
+            if is_folder:
+                source_name_with_path = '/'+'/'.join(source_name_with_path.split('/')[2:])[:-1]
+                target_name_with_path = '/'+'/'.join(target_path.split('/')[2:]) +  source_name_with_path.split('/')[-1]            
+            else:
+                source_name_with_path = '/'+'/'.join(source_name_with_path.split('/')[2:])
+                target_name_with_path = '/'+'/'.join(target_path.split('/')[2:]) +  source_name_with_path.split('/')[-1]
+
+
+            # Redefine target if copying in the same folder
+            if source_name_with_path == target_name_with_path:
+                target_name_with_path = target_name_with_path+'.copy'
+
+            #logger.debug('Copy source: "{}"'.format(source_name_with_path))
+            #logger.debug('Copy target: "{}"'.format(target_name_with_path))
+
+            # Rename
+            self.copy(source_name_with_path, target_name_with_path, request.user, computing)
+
+            # Add trailing slash for listing
+            if is_folder:
+                target_name_with_path = target_name_with_path + '/'
+            
+            # Response data
+            data = { 'data': {
+                            'id': '/{}{}'.format(computing.name, target_name_with_path),
+                            'type': 'folder' if is_folder else 'file',
+                            'attributes':{
+                                #'created':  1616415170,
+                                #'modified':   1616415170,
+                                'name': target_name_with_path.split('/')[-2] if is_folder else target_name_with_path.split('/')[-1],
+                                'readable': 1,
+                                #'timestamp':   1616415170,
+                                'writable': 1,
+                                'path': '/{}{}'.format(computing.name, target_name_with_path)                            
+                            }
+                        }
+                    }      
+            
+            
+            # Return file contents
+            return Response(data, status=status.HTTP_200_OK)
 
         
         else:
