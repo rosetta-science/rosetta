@@ -416,7 +416,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             raise Exception('No computing user?!')
 
         # Command
-        command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} {}'.format(user_keys.private_key_file, computing_user, computing_host, command)
+        command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(user_keys.private_key_file, computing_user, computing_host, command)
 
         return command
 
@@ -426,6 +426,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         path = re.sub(cleaner,'/',path)
         return path
 
+    @staticmethod
+    def sanitize_shell_path(path):
+        path = path.replace(' ', '\ ')
+        cleaner = re.compile('(?:\\\)+')
+        path = re.sub(cleaner,r"\\",path)
+        return path
 
     def get_computing(self, path, request):
         # Get the computing based on the folder name # TODO: this is very weak..
@@ -458,13 +464,22 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         # Data container 
         data = []
         
+        path = self.sanitize_shell_path(path)
+        
         # Prepare command
-        command = self.ssh_command('ls -al {}'.format(path), user, computing)
+        # https://askubuntu.com/questions/1116634/ls-command-show-time-only-in-iso-format
+        # https://www.howtogeek.com/451022/how-to-use-the-stat-command-on-linux/
+        command = self.ssh_command('cd {} && stat --printf=\'%F/%n/%s/%Y\\n\' * .*'.format(path), user, computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
         if out.exit_code != 0:
-            raise Exception(out.stderr)
+            
+            # Did we just get a "cannot stat - No such file or directory error?
+            if 'No such file or directory' in out.stderr:
+                pass
+            else:
+                raise Exception(out.stderr)
                             
         # Log        
         #logger.debug('Shell exec output: "{}"'.format(out))
@@ -472,16 +487,17 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         out_lines = out.stdout.split('\n')
         
         for line in out_lines:
+            
+            # Example line: directory/My folder/68/1617030350
 
-            # Skip total files summary line at the end
-            if line.startswith('total'):
-                continue
-            
             # Set name
-            name = line.split(' ')[-1]
+            line_pieces = line.split('/')
+            type = line_pieces[0]
+            name = line_pieces[1]
+            size = line_pieces[2]
+            timestamp = line_pieces[3]
                      
-            # Check against binds if set
-            
+            # Check against binds if set            
             if binds:
                 if not path == '/':
                     full_path = path + '/' + name
@@ -499,11 +515,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 # Define and clean listing path:
                 listing_path = '/{}/{}/{}/'.format(computing.name, path, name)
                 listing_path = self.clean_path(listing_path)
-
             
                 # File or directory?
-                if line.startswith('d'):
-                    if line.split(' ')[-1] not in ['.', '..']:
+                if type == 'directory':
+                    if name not in ['.', '..']:
                         data.append({
                                      'id': listing_path,
                                      'type': 'folder',
@@ -537,7 +552,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
     def delete(self, path, user, computing):
-        
+
+        path = self.sanitize_shell_path(path)
+
         # Prepare command
         command = self.ssh_command('rm -rf {}'.format(path), user, computing)
         
@@ -548,7 +565,23 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
+    def mkdir(self, path, user, computing):
+        
+        path = self.sanitize_shell_path(path)
+        
+        # Prepare command
+        command = self.ssh_command('mkdir {}'.format(path), user, computing)
+        
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            raise Exception(out.stderr)
+        return out.stdout
+
+
     def cat(self, path, user, computing):
+        
+        path = self.sanitize_shell_path(path)
         
         # Prepare command
         command = self.ssh_command('cat {}'.format(path), user, computing)
@@ -562,12 +595,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
     def rename(self, old, new, user, computing):
         
-        old = old.replace(' ', '\ ')
-        new = new.replace(' ', '\ ')
+        old = self.sanitize_shell_path(old)
+        new = self.sanitize_shell_path(new)
 
-        
         # Prepare command
-        command = self.ssh_command('mv \'{}\' \'{}\''.format(old, new), user, computing)
+        command = self.ssh_command('mv {} {}'.format(old, new), user, computing)
+
+        logger.critical(command)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -577,11 +611,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
     def copy(self, source, target, user, computing):
-        source = source.replace(' ', '\ ')
-        target = target.replace(' ', '\ ')
+
+        source = self.sanitize_shell_path(source)
+        target = self.sanitize_shell_path(target)
 
         # Prepare command
-        command = self.ssh_command('cp -a \'{}\' \'{}\''.format(source, target), user, computing)
+        command = self.ssh_command('cp -a {} {}'.format(source, target), user, computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -590,13 +625,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def scp(self, source_path, target_path, user, computing, mode='get'):
+    def scp(self, source, target, user, computing, mode='get'):
 
-        source_path = source_path.replace(' ', '\ ')
-        target_path = target_path.replace(' ', '\ ')
-    
+        source = self.sanitize_shell_path(source)
+        target = self.sanitize_shell_path(target)
+
         # Prepare command
-        command = self.scp_command(source_path, target_path, user, computing, mode)
+        command = self.scp_command(source, target, user, computing, mode)
 
         # Execute_command
         out = os_shell(command, capture=True)
@@ -760,6 +795,41 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # Return file contents
             return Response(data, status=status.HTTP_200_OK)
             
+
+        elif mode == 'addfolder':
+            logger.debug('Deleting "{}"'.format(path))
+            
+            name = request.GET.get('name', None)
+            if not name:
+                raise ValueError('No folder name set')
+            
+            # Set support vars
+            computing = self.get_computing(path, request)
+            path = '/'+'/'.join(path.split('/')[2:]) + name
+
+            # Get file contents
+            data = self.mkdir(path, request.user, computing)
+
+            # Response data
+            data = { 'data': {
+                            'id': '/{}{}'.format(computing.name, path),
+                            'type': 'folder',
+                            'attributes':{
+                                #'created':  1616415170,
+                                #'modified':   1616415170,
+                                'name': name,
+                                'readable': 1,
+                                #'timestamp':   1616415170,
+                                'writable': 1,
+                                'path': '/{}{}'.format(computing.name, path)                            
+                            }
+                        }
+                    }      
+            
+            
+            # Return file contents
+            return Response(data, status=status.HTTP_200_OK)
+
 
         elif mode == 'rename':
             logger.debug('Renaming "{}"'.format(path))
