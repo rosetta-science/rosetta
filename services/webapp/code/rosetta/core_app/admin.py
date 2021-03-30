@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Profile, LoginToken, Task, Container, Computing, ComputingSysConf, ComputingUserConf, KeyPair
+from .models import Profile, LoginToken, Task, Container, Computing, ComputingSysConf, ComputingUserConf, KeyPair, Text
 
 admin.site.register(Profile)
 admin.site.register(LoginToken)
@@ -10,3 +10,4 @@ admin.site.register(Computing)
 admin.site.register(ComputingSysConf)
 admin.site.register(ComputingUserConf)
 admin.site.register(KeyPair)
+admin.site.register(Text)

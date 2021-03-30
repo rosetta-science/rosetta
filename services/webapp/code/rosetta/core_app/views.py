@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingSysConf, ComputingUserConf
+from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingSysConf, ComputingUserConf, Text
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_tunnel_host, random_username, setup_tunnel, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
@@ -190,6 +190,14 @@ def main_view(request):
 
     # Set data & render
     data = {}
+    
+    # Get homepage text if any
+    try:
+        text = Text.objects.get(id='home')
+        data['home_text'] = text.content
+    except Text.DoesNotExist:
+        pass
+
     return render(request, 'main.html', {'data': data})
 
 

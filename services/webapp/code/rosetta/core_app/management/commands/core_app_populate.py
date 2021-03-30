@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from ...models import Profile, Container, Computing, ComputingSysConf, ComputingUserConf, KeyPair
+from ...models import Profile, Container, Computing, ComputingSysConf, ComputingUserConf, KeyPair, Text
 
 class Command(BaseCommand):
     help = 'Adds the admin superuser with \'a\' password.'
@@ -38,7 +38,30 @@ class Command(BaseCommand):
                                 default = True,
                                 private_key_file = '/rosetta/.ssh/id_rsa',
                                 public_key_file = '/rosetta/.ssh/id_rsa.pub')
-            
+
+        # Default homepage text
+        default_home_text_content = '''
+<div class="span8 offset2" style="margin: 30px auto; max-width:800px">
+  Welcome to Rosetta!
+  <br/><br/>
+  This is the default home text loaded after populating the platform with the default/demo data.
+  To change it, head to the <a href="/admin">admin</a> page and edit the <code>Text</code> model.
+  <br/><br/>
+  The default installation provides a test user register with email <code>testuser@rosetta.platform</code>
+  and password <code>testpass</code>, which you can use to login on the menu on the right or using the link
+  below and give Rosetta a try immediately. If you run with the default docker-compose file (i.e. you just
+  run <code>rosetta/setup</code>), then you will also have a few demo computing resources you can play with
+  out-of-the-box, including a small Slurm cluster. Otherwise, you will need to setup your own computing
+  resources either platform-wide or as user.
+</div>
+'''
+        home_text = Text.objects.filter(id='home')
+        if home_text:
+            print('Not creating default home text as already present')
+        else:
+            print('Creating default home text...')
+            Text.objects.create(id='home', content=default_home_text_content)
+
 
         # Public containers
         public_containers = Container.objects.filter(user=None)

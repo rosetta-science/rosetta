@@ -378,7 +378,18 @@ class KeyPair(models.Model):
 
 
 
+#=========================
+#  Texts 
+#=========================
 
+class Text(models.Model):
+    '''A model to store some text contents for the platform, like the home page text'''
+
+    id = models.CharField('Text id', max_length=16, primary_key=True)
+    content = models.TextField('Text content', blank=True, null=True)
+
+    def __str__(self):
+        return str('Text with id "{}"'.format(self.id))
 
 
 

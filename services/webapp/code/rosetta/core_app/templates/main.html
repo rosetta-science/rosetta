@@ -10,9 +10,30 @@
                 <h2 style="margin-top:10px; margin-left:25px; margin-right:25px; font-weight:100; line-height: 30px;"><i>A container-centric Science Platform<br></i></h2>
             </div>
         </div>
+        
+        <div class="container">
+            <div class="dashboard">
+                {% if data.home_text %}
+                {{ data.home_text | safe }}
+                {% else %}
+                <div class="span8 offset2" style="margin: 30px auto; max-width:800px">
+                <br/>
+                Welcome to Rosetta!
+                <br/><br/>
+                This is an empty installation. To load some demo data, run <code>rosetta/populate</code>.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <div style="display:table-row">
             <div class="text-vertical-bottom">
-                <a href="https://github.com/sarusso/Rosetta" class="btn btn-dark btn-lg">Find Out More</a>
+                {% if user.is_authenticated %}
+                <a href="/tasks" class="btn btn-dark btn-lg">Tasks</a>
+                <a href="/containers" class="btn btn-dark btn-lg">Containers</a>
+                {% else %}
+                <a href="/login" class="btn btn-dark btn-lg">Log In</a>
+                {% endif %}
             </div>
         </div>
     </header>
