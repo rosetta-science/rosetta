@@ -11,7 +11,7 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
-from .utils import format_exception, send_email, os_shell
+from .utils import format_exception, send_email, os_shell, now_t
 from .models import Profile, Task, TaskStatuses, Computing, KeyPair
 import json
  
@@ -472,7 +472,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         # Prepare command
         # https://askubuntu.com/questions/1116634/ls-command-show-time-only-in-iso-format
         # https://www.howtogeek.com/451022/how-to-use-the-stat-command-on-linux/
-        command = self.ssh_command('cd {} && stat --printf=\'%F/%n/%s/%Y\\n\' * .*'.format(path), user, computing)
+        command = self.ssh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(path), user, computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -496,9 +496,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # Set name
             line_pieces = line.split('/')
             type = line_pieces[0]
-            name = line_pieces[1]
-            size = line_pieces[2]
-            timestamp = line_pieces[3]
+            size = line_pieces[1]
+            timestamp = line_pieces[2]
+            name = line_pieces[3]
                      
             # Check against binds if set            
             if binds:
@@ -526,11 +526,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                      'id': listing_path,
                                      'type': 'folder',
                                      'attributes':{
-                                          #'created':  1616415170,
-                                          #'modified':   1616415170,
+                                          'modified': timestamp,
                                           'name': name,
                                           'readable': 1,
-                                          #'timestamp':   1616415170,
                                           'writable': 1,
                                           'path': listing_path                                 
                                       }
@@ -540,18 +538,61 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                  'id': listing_path[:-1], # Remove trailing slash 
                                  'type': 'file',
                                  'attributes':{
-                                      #'created':  1616415170,
-                                      #'modified':   1616415170,
+                                      'modified': timestamp,
                                       'name': name,
                                       'readable': 1,
-                                      #'timestamp':   1616415170,
                                       'writable': 1,
+                                      "size": size,
                                       'path': listing_path[:-1] # Remove trailing slash                               
                                   }
                                  })                            
             
             
         return data
+
+
+    def stat(self, path, user, computing):
+        
+        path = self.sanitize_shell_path(path)
+        
+        # Prepare command. See the ls function above for some more info
+        command = self.ssh_command('stat --printf=\'%F/%s/%Y/%n\\n\' {}'.format(path), user, computing)
+        
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            
+            # Did we just get a "cannot stat - No such file or directory error?
+            if 'No such file or directory' in out.stderr:
+                pass
+            else:
+                raise Exception(out.stderr)
+                            
+        # Log        
+        #logger.debug('Shell exec output: "{}"'.format(out))
+        
+        out_lines = out.stdout.split('\n')
+        if len(out_lines) > 1:
+            raise Exception('Internal error on stat: more than one ouput line')
+        out_line = out_lines[0]
+    
+        # Example output line: directory:My folder:68/1617030350
+        # In this context, we also might get the following output:
+        # directory/68/1617030350//My folder/
+        # ..so, use the clean path to remove all extra slashes.
+        # The only uncovered case is to rename the root folder...
+        
+        out_line = self.clean_path(out_line)
+
+        # Set names
+        line_pieces = out_line.split('/')
+        type = line_pieces[0]
+        size = line_pieces[1]
+        timestamp = line_pieces[2]
+        name = '/'.join(line_pieces[3:])
+        
+        return {'type': type, 'name': name, 'size': size, 'timestamp': timestamp}
+            
 
 
     def delete(self, path, user, computing):
@@ -677,11 +718,8 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                          'id': '/{}/'.format(computing.name),
                                          'type': 'folder',
                                          'attributes':{
-                                              #'created':  1616415170,
-                                              #'modified':   1616415170,
                                               'name': computing.name,
                                               'readable': 1,
-                                              #'timestamp':   1616415170,
                                               'writable': 1,
                                               'path': '/{}/'.format(computing.name)                                   
                                           }
@@ -786,11 +824,8 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                             'id': '/{}{}'.format(computing.name, path),
                             'type': 'folder' if is_folder else 'file',
                             'attributes':{
-                                #'created':  1616415170,
-                                #'modified':   1616415170,
                                 'name': path,
                                 'readable': 1,
-                                #'timestamp':   1616415170,
                                 'writable': 1,
                                 'path': '/{}{}'.format(computing.name, path)                            
                             }
@@ -821,11 +856,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                             'id': '/{}{}'.format(computing.name, path),
                             'type': 'folder',
                             'attributes':{
-                                #'created':  1616415170,
-                                #'modified':   1616415170,
+                                'modified': now_t(), # This is an approximation!
                                 'name': name,
                                 'readable': 1,
-                                #'timestamp':   1616415170,
                                 'writable': 1,
                                 'path': '/{}{}'.format(computing.name, path)                            
                             }
@@ -873,22 +906,25 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             if is_folder:
                 new_name_with_path = new_name_with_path+'/'
             
+            # Get new info
+            stat = self.stat(new_name_with_path, request.user, computing)
+
             # Response data
             data = { 'data': {
                             'id': '/{}{}'.format(computing.name, new_name_with_path),
                             'type': 'folder' if is_folder else 'file',
                             'attributes':{
-                                #'created':  1616415170,
-                                #'modified':   1616415170,
+                                'modified':   stat['timestamp'],
                                 'name': new_name,
                                 'readable': 1,
-                                #'timestamp':   1616415170,
                                 'writable': 1,
                                 'path': '/{}{}'.format(computing.name, new_name_with_path)                              
                             }
                         }
                     }      
             
+            # Add size if file
+            if not is_folder: data['data']['attributes']['size'] = stat['size']
             
             # Return file contents
             return Response(data, status=status.HTTP_200_OK)
@@ -938,23 +974,26 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # Add trailing slash for listing
             if is_folder:
                 target_name_with_path = target_name_with_path + '/'
-            
+
+            # Get new info
+            stat = self.stat(target_name_with_path, request.user, computing)
+ 
             # Response data
             data = { 'data': {
                             'id': '/{}{}'.format(computing.name, target_name_with_path),
                             'type': 'folder' if is_folder else 'file',
                             'attributes':{
-                                #'created':  1616415170,
-                                #'modified':   1616415170,
+                                'modified': stat['timestamp'],
                                 'name': target_name_with_path.split('/')[-2] if is_folder else target_name_with_path.split('/')[-1],
                                 'readable': 1,
-                                #'timestamp':   1616415170,
                                 'writable': 1,
                                 'path': '/{}{}'.format(computing.name, target_name_with_path)                            
                             }
                         }
-                    }      
-            
+                    }
+
+            # Add size if file
+            if not is_folder: data['data']['attributes']['size'] = stat['size']      
             
             # Return file contents
             return Response(data, status=status.HTTP_200_OK)
@@ -1006,18 +1045,19 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                             'id': '/{}{}{}'.format(computing.name, path, file_upload.name),
                             'type': 'file',
                             'attributes':{
-                                #'created':  1616415170,
-                                #'modified':   1616415170,
+                                'modified': now_t(),  # This is an approximation!
                                 'name': file_upload.name,
                                 'readable': 1,
-                                #'timestamp':   1616415170,
+                                'size': os.path.getsize('/tmp/{}'.format(file_uuid)), # This is kind of an approximation!
                                 'writable': 1,
                                 'path': '/{}{}{}'.format(computing.name, path, file_upload.name)                            
                             }
                         }]
-                    }      
+                    }
             
-            
+            # Remove file
+            os.remove('/tmp/{}'.format(file_uuid))
+                        
             # Return
             return Response(data, status=status.HTTP_200_OK)
         
