@@ -51,20 +51,14 @@
               </center>         
             </li>
             <center>
-            <div style="padding:10px">
-            <!--  <a href="/register" class="menulink">Register</a> <b>|</b>  -->
+            {% if OPENID_ENABLED %}
+            <div style="margin-top:15px;margin-bottom:10px"><font color="#a9a9a9"> — OR —</font></div>
+            <li style="padding-left:0; text-indent: 0"> <a href="{% url 'oidc_authentication_init' %}" style="padding-left:0; text-indent: 0">Login with OpenID Connect</a></li>
+            {% endif %}
+            <div style="padding:10px;">
             <font color="gray">Forgot password? Just leave it empty to get a login link by email.</font>
             </div>
             </center>
-            {% endif %}
-
-            {% if OPENID_ENABLED %}
-
-            <li>
-            {% if not user.is_authenticated %}
-                <a href="{% url 'oidc_authentication_init' %}">Login with OpenID Conn. &nbsp;</a>
-            {% endif %}
-            </li>
             {% endif %}
 
       

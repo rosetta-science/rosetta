@@ -17,6 +17,17 @@
         <br />
         <input type='submit' style="width:110px" class="btn btn-lg btn-success btn-block" value='Log in' />
         
+
+        <div style="margin-top:25px; margin-bottom:15px">
+        <font color="#a9a9a9"> — OR —</font>
+        </div>
+        
+        {% if OPENID_ENABLED %}
+        <a href="{% url 'oidc_authentication_init' %}">Login with OpenID Connect &nbsp;</a>
+        {% endif %}
+        
+        <br /><br />
+        
         {% if data.error %}
         <br/>
         <div class='centerbox-error'>
@@ -36,6 +47,7 @@
              
 
         </p>
+        
       </form>      
     </div>
     {% if not data.success %}
