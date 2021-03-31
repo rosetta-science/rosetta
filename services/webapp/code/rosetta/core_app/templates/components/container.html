@@ -106,11 +106,8 @@
         {% if container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
         </div>
         
-        <div style="padding:10px;">
-
-        <b>Image:</b> {{ container.image_name }}
-
-        <br/>
+        <div style="padding:10px; height: 64px; vertical-align: middle;">
+        <b>Image:</b> {{ container.image_name }}<br/>
         <b>Version:</b> {{ container.image_tag }}
         </div>
         
