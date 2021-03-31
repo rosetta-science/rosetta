@@ -152,8 +152,9 @@ def register_view(request):
             password = request.POST.get('password')
             invitation = request.POST.get('invitation')
             
-            if invitation != os.environ.get('INVITATION_CODE', 'Rosetta'):
-                raise ErrorMessage('Wrong invitation code')
+            if settings.INVITATION_CODE:
+                if invitation != settings.INVITATION_CODE:
+                    raise ErrorMessage('Wrong invitation code')
 
             if '@' not in email:
                 raise ErrorMessage('Detected invalid email address')

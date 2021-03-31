@@ -7,7 +7,7 @@
 
 <div class="container">
   <div class="dashboard">
-    <div class="span8 offset2" style="font-size:18px">
+    <div class="span8 offset2">
     
       <h1>Register</h1>
       <hr>
@@ -41,7 +41,13 @@
 
       <p><b>Welcome to Rosetta!</b></p>
       
-      <p>We are now in closed beta testing, which means that we can only accept invite-based new users. If you have an invitation code, you can sign up right now. Otherwise, please contact the support ot get one.
+      <p>
+      {% if INVITATION_CODE_ENABLED %}
+      We are now in closed beta testing, which means that we can only accept invite-based new users. If you have an invitation code, you can sign up right now. Otherwise, please contact the support to get one.
+      {% else %}
+      Enter your email address and choose a password to register on the platform.
+      {% endif %}
+      </p>
       
       <br/>
       <br/>
@@ -51,7 +57,9 @@
           {% csrf_token %}
           <input type="email" class="form-control" placeholder="Email" name='email' required autofocus>
           <input type="password" class="form-control" placeholder="Password" name='password' required>
+          {% if INVITATION_CODE_ENABLED %}
           <input type="text" class="form-control" placeholder="Invitation code" name='invitation' value='' required autofocus>
+          {% endif %}
           <input type='submit' class="btn btn-lg ha-btn-lg" value='Go' />
           </form>
       </div>

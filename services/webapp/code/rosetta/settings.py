@@ -226,6 +226,9 @@ LOGGING = {
 # Local user data dir
 LOCAL_USER_DATA_DIR = os.environ.get('LOCAL_USER_DATA_DIR', '/data')
 
+# Invitation code if any
+INVITATION_CODE = os.environ.get('INVITATION_CODE', None)
+
 
 #===============================
 #  Auth
