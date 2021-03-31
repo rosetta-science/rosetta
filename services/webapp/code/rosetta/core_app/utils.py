@@ -148,7 +148,7 @@ def finalize_user_creation(user):
         logger.error(out)
         raise ErrorMessage('Something went wrong in creating user keys folder. Please contact support')
         
-    command= "/bin/bash -c \"ssh-keygen -q -t rsa -N '' -f /data/resources/keys/{}_id_rsa 2>/dev/null <<< y >/dev/null\"".format(user.username)                        
+    command= "/bin/bash -c \"ssh-keygen -q -t rsa -N '' -C {}@rosetta -f /data/resources/keys/{}_id_rsa 2>/dev/null <<< y >/dev/null\"".format(user.email.split('@')[0], user.username)                        
     out = os_shell(command, capture=True)
     if not out.exit_code == 0:
         logger.error(out)
