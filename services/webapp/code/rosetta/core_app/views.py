@@ -314,7 +314,7 @@ def tasks(request):
             data['task'] = task
     
             # Attach user config to computing
-            task.computing.attach_user_conf_data(task.user)
+            task.computing.attach_user_conf(task.user)
 
             #  Task actions
             if action=='delete':
@@ -448,7 +448,8 @@ def create_task(request):
             try:
                 task_computing =  Computing.objects.get(uuid=task_computing_uuid, user=request.user)
             except Computing.DoesNotExist:
-                raise Exception('Consistency error, computing with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_computing_uuid, request.user.email))
+                raise Exception('Consistency error, computing with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_computing_uuid, request.user.email))        
+        task_computing.attach_user_conf(request.user)
         data['task_computing'] = task_computing
             
         # Handle step one/two
@@ -507,7 +508,7 @@ def create_task(request):
                 task.computing_options = computing_options
                         
             # Attach user config to computing
-            task.computing.attach_user_conf_data(task.user)
+            task.computing.attach_user_conf(task.user)
 
             # Set port if not dynamic ports
             if not task.container.supports_dynamic_ports:
@@ -569,8 +570,8 @@ def task_log(request):
     data['refresh'] = refresh
 
     # Attach user conf in any
-    task.computing.attach_user_conf_data(request.user) 
-
+    task.computing.attach_user_conf(request.user)
+    
     # Get the log
     try:
 
@@ -783,7 +784,7 @@ def computings(request):
             data['computing'] = Computing.objects.get(uuid=computing_uuid, user=None)
 
         # Attach user conf in any
-        data['computing'].attach_user_conf_data(request.user)
+        data['computing'].attach_user_conf(request.user)
             
     
     else:
@@ -791,7 +792,7 @@ def computings(request):
         
         # Attach user conf in any
         for computing in data['computings']:
-            computing.attach_user_conf_data(request.user)
+            computing.attach_user_conf(request.user)
 
     return render(request, 'computings.html', {'data': data})
 

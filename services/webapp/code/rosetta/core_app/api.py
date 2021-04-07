@@ -372,13 +372,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         user_keys = KeyPair.objects.get(user=user, default=True)
        
         # Get computing host
-        computing_host = computing.get_conf_param('host')
+        computing_host = computing.conf.get('host')
         
         # Trick for handling Slurm.. TODO: fix me!
         if not computing_host:
-            computing_host = computing.get_conf_param('master')
+            computing_host = computing.conf.get('master')
         
-        computing_user = computing.get_conf_param('user')
+        computing_user = computing.conf.get('user')
 
         if not computing_host:
             raise Exception('No computing host?!')
@@ -404,13 +404,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         user_keys = KeyPair.objects.get(user=user, default=True)
        
         # Get computing host
-        computing_host = computing.get_conf_param('host')
+        computing_host = computing.conf.get('host')
         
         # Trick for handling Slurm.. TODO: fix me!
         if not computing_host:
-            computing_host = computing.get_conf_param('master')
+            computing_host = computing.conf.get('master')
         
-        computing_user = computing.get_conf_param('user')
+        computing_user = computing.conf.get('user')
 
         if not computing_host:
             raise Exception('No computing host?!')
@@ -457,7 +457,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         computing = computing[0]
 
         # Attach user conf in any
-        computing.attach_user_conf_data(request.user)
+        computing.attach_user_conf(request.user)
         
         return computing
                 
@@ -712,7 +712,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 for computing in computings:
 
                     # Attach user conf in any
-                    computing.attach_user_conf_data(request.user)
+                    computing.attach_user_conf(request.user)
                     
                     data['data'].append({
                                          'id': '/{}/'.format(computing.name),
@@ -733,9 +733,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 # TODO: we can remove this and just always filter agains bind probably...
                 if len(path.split('/')) == 3:
                     if computing.user != request.user:
-                        binds = computing.get_conf_param('binds', from_sys_only=True )
+                        binds = computing.sys_conf.get('binds')
                     else:
-                        binds = computing.get_conf_param('binds')
+                        binds = computing.conf.get('binds')
                     
                     if binds:
                         binds = binds.split(',')

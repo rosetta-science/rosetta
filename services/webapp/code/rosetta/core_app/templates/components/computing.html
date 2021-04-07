@@ -48,12 +48,12 @@
 
        <tr>
         <td><b>Sys Conf</b></td>
-        <td>{{ data.computing.sys_conf_data_json }} {% if request.user.is_superuser %} &nbsp;[<a href="/edit_computing_conf?type=sys&computing_uuid={{ data.computing.uuid}}">Edit</a>] {% endif %}</td>
+        <td>{{ data.computing.sys_conf_as_json }} {% if request.user.is_superuser %} &nbsp;[<a href="/edit_computing_conf?type=sys&computing_uuid={{ data.computing.uuid}}">Edit</a>] {% endif %}</td>
        </tr>
 
        <tr>
         <td><b>User Conf</b></td>
-        <td>{{ data.computing.user_conf_data_json }} &nbsp;[<a href="/edit_computing_conf?type=user&computing_uuid={{ data.computing.uuid}}">Edit</a>]</td>
+        <td>{{ data.computing.user_conf_as_json }} &nbsp;[<a href="/edit_computing_conf?type=user&computing_uuid={{ data.computing.uuid}}">Edit</a>]</td>
        </tr>
 
        

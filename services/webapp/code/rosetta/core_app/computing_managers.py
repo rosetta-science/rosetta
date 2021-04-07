@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 
 class ComputingManager(object):
     
+    def __init__(self, computing):
+        self.computing = computing
+    
     def start_task(self, task, **kwargs):
         
         # Check for run task logic implementation
@@ -161,14 +164,14 @@ class LocalComputingManager(ComputingManager):
 class RemoteComputingManager(ComputingManager):
     
     def _start_task(self, task, **kwargs):
-        logger.debug('Starting a remote task "{}"'.format(task.computing))
+        logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get computing host
-        host = task.computing.get_conf_param('host')
-        user = task.computing.get_conf_param('user')
+        host = self.computing.conf.get('host')
+        user = self.computing.conf.get('user')
 
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
@@ -190,10 +193,10 @@ class RemoteComputingManager(ComputingManager):
                 authstring = ''
 
             # Set binds, only from sys config if the resource is not owned by the user
-            if task.computing.user != task.user:
-                binds = task.computing.get_conf_param('binds', from_sys_only=True )
+            if self.computing.user != task.user:
+                binds = self.computing.sys_conf.get('binds')
             else:
-                binds = task.computing.get_conf_param('binds')
+                binds = self.computing.conf.get('binds')
             if not binds:
                 binds = ''
             else:
@@ -253,14 +256,14 @@ class RemoteComputingManager(ComputingManager):
     def _stop_task(self, task, **kwargs):
 
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing host
-        host = task.computing.get_conf_param('host')
-        user = task.computing.get_conf_param('user')
+        host = self.computing.conf.get('host')
+        user = self.computing.conf.get('user')
 
         # Stop the task remotely
         stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "kill -9 {}"\''.format(user_keys.private_key_file, user, host, task.pid)
@@ -277,14 +280,14 @@ class RemoteComputingManager(ComputingManager):
     def _get_task_log(self, task, **kwargs):
         
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing host
-        host = task.computing.get_conf_param('host')
-        user = task.computing.get_conf_param('user')
+        host = self.computing.conf.get('host')
+        user = self.computing.conf.get('user')
 
         # View log remotely
         view_log_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "cat /tmp/{}_data/task.log"\''.format(user_keys.private_key_file, user, host, task.uuid)
@@ -300,14 +303,14 @@ class RemoteComputingManager(ComputingManager):
 class SlurmComputingManager(ComputingManager):
     
     def _start_task(self, task, **kwargs):
-        logger.debug('Starting a remote task "{}"'.format(task.computing))
+        logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get computing host
-        host = task.computing.get_conf_param('master')
-        user = task.computing.get_conf_param('user')
+        host = self.computing.conf.get('master')
+        user = self.computing.conf.get('user')
         
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
@@ -349,10 +352,10 @@ class SlurmComputingManager(ComputingManager):
                 authstring = ''
 
             # Set binds, only from sys config if the resource is not owned by the user
-            if task.computing.user != task.user:
-                binds = task.computing.get_conf_param('binds', from_sys_only=True )
+            if self.computing.user != task.user:
+                binds = self.computing.sys_conf.get('binds')
             else:
-                binds = task.computing.get_conf_param('binds')
+                binds = self.computing.conf.get('binds')
             if not binds:
                 binds = ''
             else:
@@ -422,14 +425,14 @@ class SlurmComputingManager(ComputingManager):
     def _stop_task(self, task, **kwargs):
         
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing host
-        host = task.computing.get_conf_param('master')
-        user = task.computing.get_conf_param('user')
+        host = self.computing.conf.get('master')
+        user = self.computing.conf.get('user')
 
         # Stop the task remotely
         stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(user_keys.private_key_file, user, host, task.pid)
@@ -445,14 +448,14 @@ class SlurmComputingManager(ComputingManager):
     def _get_task_log(self, task, **kwargs):
         
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing host
-        host = task.computing.get_conf_param('master')
-        user = task.computing.get_conf_param('user')
+        host = self.computing.conf.get('master')
+        user = self.computing.conf.get('user')
 
         # View log remotely
         view_log_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "cat \$HOME/{}.log"\''.format(user_keys.private_key_file, user, host, task.uuid)
@@ -468,20 +471,20 @@ class SlurmComputingManager(ComputingManager):
 class RemotehopComputingManager(ComputingManager):
     
     def _start_task(self, task, **kwargs):
-        logger.debug('Starting a remote task "{}"'.format(task.computing))
+        logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get computing params
-        first_host = task.computing.get_conf_param('first_host')
-        first_user = task.computing.get_conf_param('first_user')
-        second_host = task.computing.get_conf_param('second_host')
-        second_user = task.computing.get_conf_param('second_user')
-        setup_command = task.computing.get_conf_param('setup_command')
+        first_host = self.computing.conf.get('first_host')
+        first_user = self.computing.conf.get('first_user')
+        second_host = self.computing.conf.get('second_host')
+        second_user = self.computing.conf.get('second_user')
+        setup_command = self.computing.conf.get('setup_command')
 
         # TODO: De hard-code
         use_agent = False
 
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
@@ -503,10 +506,10 @@ class RemotehopComputingManager(ComputingManager):
                 authstring = ''
 
             # Set binds, only from sys config if the resource is not owned by the user
-            if task.computing.user != task.user:
-                binds = task.computing.get_conf_param('binds', from_sys_only=True )
+            if self.computing.user != task.user:
+                binds = self.computing.sys_conf.get('binds')
             else:
-                binds = task.computing.get_conf_param('binds')
+                binds = self.computing.conf.get('binds')
             if not binds:
                 binds = ''
             else:
@@ -581,16 +584,16 @@ class RemotehopComputingManager(ComputingManager):
     def _stop_task(self, task, **kwargs):
 
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing params
-        first_host = task.computing.get_conf_param('first_host')
-        first_user = task.computing.get_conf_param('first_user')
-        second_host = task.computing.get_conf_param('second_host')
-        second_user = task.computing.get_conf_param('second_user')
+        first_host = self.computing.conf.get('first_host')
+        first_user = self.computing.conf.get('first_user')
+        second_host = self.computing.conf.get('second_host')
+        second_user = self.computing.conf.get('second_user')
 
         # Stop the task remotely
         stop_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(user_keys.private_key_file, first_user, first_host)
@@ -610,16 +613,16 @@ class RemotehopComputingManager(ComputingManager):
     def _get_task_log(self, task, **kwargs):
         
         # Get user keys
-        if task.computing.requires_user_keys:
+        if self.computing.requires_user_keys:
             user_keys = KeyPair.objects.get(user=task.user, default=True)
         else:
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing params
-        first_host = task.computing.get_conf_param('first_host')
-        first_user = task.computing.get_conf_param('first_user')
-        second_host = task.computing.get_conf_param('second_host')
-        second_user = task.computing.get_conf_param('second_user')
+        first_host = self.computing.conf.get('first_host')
+        first_user = self.computing.conf.get('first_user')
+        second_host = self.computing.conf.get('second_host')
+        second_user = self.computing.conf.get('second_user')
 
         # View log remotely
         view_log_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(user_keys.private_key_file, first_user, first_host)

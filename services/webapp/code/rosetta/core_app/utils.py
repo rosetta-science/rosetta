@@ -564,12 +564,12 @@ def setup_tunnel(task):
         if task.computing.type == 'remotehop':           
             
             # Get computing params
-            first_host = task.computing.get_conf_param('first_host')
-            first_user = task.computing.get_conf_param('first_user')
-            #second_host = task.computing.get_conf_param('second_host')
-            #second_user = task.computing.get_conf_param('second_user')
-            #setup_command = task.computing.get_conf_param('setup_command')
-            #base_port = task.computing.get_conf_param('base_port')
+            first_host = task.computing.conf.get('first_host')
+            first_user = task.computing.conf.get('first_user')
+            #second_host = task.computing.conf.get('second_host')
+            #second_user = task.computing.conf.get('second_user')
+            #setup_command = task.computing.conf.get('setup_command')
+            #base_port = task.computing.conf.get('base_port')
                      
             tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tunnel_port, task.ip, task.port, first_user, first_host)
 
