@@ -20,7 +20,7 @@
 
       <br/>
 
-
+      {% if data.step != 'created' %}
       <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{data.task_container.color}} solid 10px; ">
         <a href="?uuid={{ container.uuid }}">{{ data.task_container.name }}</a>&nbsp; 
@@ -32,6 +32,7 @@
         <b>Version:</b> {{ data.task_container.image_tag }}
         </div>
       </div>
+      {% endif %}
 
       {% if data.step == 'two' %}
 
