@@ -48,9 +48,9 @@ class Command(BaseCommand):
   To change it, head to the <a href="/admin">admin</a> page and edit the <code>Text</code> model.
   <br/><br/>
   The default installation provides a test user register with email <code>testuser@rosetta.platform</code>
-  and password <code>testpass</code>, which you can use to login on the menu on the right or using the link
-  below and give Rosetta a try immediately. If you run with the default docker-compose file (i.e. you just
-  run <code>rosetta/setup</code>), then you will also have a few demo computing resources you can play with
+  and password <code>testpass</code>, which you can use to login on the menu on the rightand give Rosetta
+  a try immediately. If you run with the default docker-compose file (i.e. you just run 
+  <code>rosetta/setup</code>), then you will also have a few demo computing resources you can play with
   out-of-the-box, including a small Slurm cluster. Otherwise, you will need to setup your own computing
   resources either platform-wide or as user.
 </div>

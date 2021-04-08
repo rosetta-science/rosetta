@@ -12,15 +12,24 @@
       {% if data.container %}
       <h1><a href="/containers">Containers</a> <span style="font-size:18px"> / {{ data.container.name }}</span></h1>
       {% else %}
-      <h1>Containers</h1>
-
+      {% if data.mode == 'new_task' %}
+      <h1>New task</h1>
       <hr/>
+      <h3>Step 1: choose software container.</h3>
+      <br/> 
+      {% else %}
+      <h1>Containers</h1>
+      <hr/>
+      {% endif %}
+ 
 
       
       
       <div class="form-filter" style="margin-bottom:20px">
         <form action="" method="POST">
           
+          <input type="hidden" name="mode" value="{{data.mode}}">
+                    
           <input type="text" class="form-control" id="search_text" name="search_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.search_text}}" autofocus>
 
           <select class="form-control" id="search_type" name="search_type" style="width:120px; margin:0; display:inline">

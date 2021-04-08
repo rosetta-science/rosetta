@@ -24,18 +24,7 @@
                 </div>
                 {% endif %}
             </div>
-        </div>
-
-        <div style="display:table-row">
-            <div class="text-vertical-bottom">
-                {% if user.is_authenticated %}
-                <a href="/tasks" class="btn btn-dark btn-lg">Tasks</a>
-                <a href="/containers" class="btn btn-dark btn-lg">Containers</a>
-                {% else %}
-                <a href="/login" class="btn btn-dark btn-lg">Log In</a>
-                {% endif %}
-            </div>
-        </div>
+        </div>          
     </header>
 
 {% include "footer.html" %}
