@@ -209,11 +209,12 @@ class Command(BaseCommand):
             print('Creating demo computing resources containers...')
 
             #==============================
-            #  Local remote computing
+            #  Demo Internal computing
             #==============================
             Computing.objects.create(user = None,
-                                     name = 'Local',
-                                     type = 'local',
+                                     name = 'Demo Internal',
+                                     type = 'singlenode',
+                                     access_method = 'internal',
                                      requires_sys_conf  = False,
                                      requires_user_conf = False,
                                      requires_user_keys = False,
@@ -222,32 +223,34 @@ class Command(BaseCommand):
 
 
             #==============================
-            # Demo remote computing 
+            # Demo Single Node computing 
             #==============================    
-            demo_remote_auth_computing = Computing.objects.create(user = None,
-                                                             name = 'Demo remote',
-                                                             type = 'remote',
-                                                             requires_sys_conf  = True,
-                                                             requires_user_conf = True,
-                                                             requires_user_keys = True,
-                                                             supports_docker = True,
-                                                             supports_singularity = True)
+            demo_singlenode_computing = Computing.objects.create(user = None,
+                                                                 name = 'Demo Single Node',
+                                                                 type = 'singlenode',
+                                                                 access_method = 'ssh',
+                                                                 requires_sys_conf  = True,
+                                                                 requires_user_conf = True,
+                                                                 requires_user_keys = True,
+                                                                 supports_docker = True,
+                                                                 supports_singularity = True)
     
-            ComputingSysConf.objects.create(computing = demo_remote_auth_computing,
+            ComputingSysConf.objects.create(computing = demo_singlenode_computing,
                                             data      = {'host': 'slurmclusterworker-one',
                                                          'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
 
             ComputingUserConf.objects.create(user      = testuser,
-                                             computing = demo_remote_auth_computing,
+                                             computing = demo_singlenode_computing,
                                              data      = {'user': 'slurmtestuser'})
          
 
             #==============================
-            #  Demo Slurm computing
+            #  Demo Cluster computing
             #==============================
             demo_slurm_computing = Computing.objects.create(user = None,
-                                                            name = 'Demo Slurm',
-                                                            type = 'slurm',
+                                                            name = 'Demo Cluster',
+                                                            type = 'cluster',
+                                                            access_method = 'slurm+ssh',
                                                             requires_sys_conf  = True,
                                                             requires_user_conf = True,
                                                             requires_user_keys = True,

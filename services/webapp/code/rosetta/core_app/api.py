@@ -710,7 +710,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 computings = list(Computing.objects.filter(user=None)) + list(Computing.objects.filter(user=request.user))
                 
                 for computing in computings:
-
+                    
+                    # For now, we only support SSH-based computing resources
+                    if not 'ssh' in computing.access_method:
+                        continue
+                        
                     # Attach user conf in any
                     computing.attach_user_conf(request.user)
                     

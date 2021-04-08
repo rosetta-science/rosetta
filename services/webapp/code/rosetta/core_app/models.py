@@ -139,6 +139,7 @@ class Computing(models.Model):
     
     name = models.CharField('Computing Name', max_length=255, blank=False, null=False)
     type = models.CharField('Computing Type', max_length=255, blank=False, null=False)
+    access_method = models.CharField('Computing Access method', max_length=255, blank=False, null=False)
 
     requires_sys_conf  = models.BooleanField(default=False)
     requires_user_conf = models.BooleanField(default=False)
@@ -146,6 +147,24 @@ class Computing(models.Model):
 
     supports_docker  = models.BooleanField(default=False)
     supports_singularity  = models.BooleanField(default=False)
+
+    @property
+    def type_str(self):
+        # TODO: improve me?
+        if self.type == 'cluster':
+            return 'Cluster'
+        elif self.type == 'singlenode':
+            return 'Single Node'
+        else:
+            raise ConsistencyException('Unknown computing resource type "{}"'.format(self.type))
+
+    @property
+    def access_method_str(self):
+        # TODO: improve me?
+        access_method = self.access_method
+        access_method = access_method.replace('ssh', 'SSH')
+        access_method = access_method.replace('slurm', 'Slurm')
+        return access_method
 
     class Meta:
         ordering = ['name']
@@ -179,14 +198,14 @@ class Computing(models.Model):
         try:
             return self._manager
         except AttributeError:
-            if self.type == 'local':
-                self._manager = computing_managers.LocalComputingManager(self)
-            elif self.type == 'remote':
-                self._manager = computing_managers.RemoteComputingManager(self)            
-            elif self.type == 'slurm':
-                self._manager = computing_managers.SlurmComputingManager(self)
+            if self.type == 'cluster' and self.access_method == 'slurm+ssh':
+                self._manager = computing_managers.SlurmSSHClusterComputingManager(self)
+            elif self.type == 'singlenode' and self.access_method == 'ssh':
+                self._manager = computing_managers.SSHSingleNodeComputingManager(self)            
+            elif self.type == 'singlenode' and self.access_method == 'internal':
+                self._manager = computing_managers.InternalSingleNodeComputingManager(self)
             else:
-                raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}"'.format(self.type))
+                raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}" and access mode "{}"'.format(self.type, self.access_method))
             return self._manager
     
     

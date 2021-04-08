@@ -25,12 +25,17 @@
        </tr>
 
        <tr>
+        <td><b>Access method</b></td>
+        <td>{{ data.computing.access_method }}</td>
+       </tr>
+
+       <tr>
         <td><b>Owner</b></td>
         <td>{% if data.computing.user %}{{ data.computing.user }}{% else %}platform{% endif %}</td>
        </tr>
 
        <tr>
-        <td><b>Require</b></td>
+        <td><b>Requires</b></td>
         <td>
           Sys conf: {{ data.computing.requires_sys_conf }} <br/>
           User conf: {{ data.computing.requires_user_conf }} <br/>
@@ -76,8 +81,9 @@
         </div>
         
         <div style="padding:10px;">
-        <b>Type:</b> {{ computing.type.title }}<br/>
-        <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/>
+        <b>Type:</b> {{ computing.type_str }}<br/>
+        <b>Access:</b> {{ computing.access_method_str }}<br/>
+        <!-- <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/> -->
         <b>Supports:</b>
         {% if computing.supports_docker %}Docker <img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
         {% if computing.supports_singularity %}Singularity <img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
