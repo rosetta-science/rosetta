@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from .utils import os_shell, color_map, hash_string_to_int
+from .exceptions import ConsistencyException
 
 if 'sqlite' in settings.DATABASES['default']['ENGINE']:
     from .fields import JSONField
@@ -138,6 +139,7 @@ class Computing(models.Model):
     
     name = models.CharField('Computing Name', max_length=255, blank=False, null=False)
     type = models.CharField('Computing Type', max_length=255, blank=False, null=False)
+    access_method = models.CharField('Computing Access method', max_length=255, blank=False, null=False)
 
     requires_sys_conf  = models.BooleanField(default=False)
     requires_user_conf = models.BooleanField(default=False)
@@ -146,10 +148,26 @@ class Computing(models.Model):
     supports_docker  = models.BooleanField(default=False)
     supports_singularity  = models.BooleanField(default=False)
 
+    @property
+    def type_str(self):
+        # TODO: improve me?
+        if self.type == 'cluster':
+            return 'Cluster'
+        elif self.type == 'singlenode':
+            return 'Single Node'
+        else:
+            raise ConsistencyException('Unknown computing resource type "{}"'.format(self.type))
+
+    @property
+    def access_method_str(self):
+        # TODO: improve me?
+        access_method = self.access_method
+        access_method = access_method.replace('ssh', 'SSH')
+        access_method = access_method.replace('slurm', 'Slurm')
+        return access_method
 
     class Meta:
         ordering = ['name']
-
 
     def __str__(self):
         if self.user:
@@ -157,39 +175,45 @@ class Computing(models.Model):
         else:
             return str('Computing "{}"'.format(self.name))
 
-
     @property
     def id(self):
         return str(self.uuid).split('-')[0]
 
-
-    @property    
-    def sys_conf_data(self):
-        try:
-            return ComputingSysConf.objects.get(computing=self).data
-        except ComputingSysConf.DoesNotExist:
-            return None
+    @property
+    def color(self):
+        string_int_hash = hash_string_to_int(self.name)
+        color_map_index = string_int_hash % len(color_map)
+        return color_map[color_map_index]
 
 
-    @property    
-    def sys_conf_data_json(self):
-        return json.dumps(self.sys_conf_data)
-
+    #=======================
+    # Computing manager
+    #=======================
     
-    @property    
-    def user_conf_data(self):
+    @property
+    def manager(self):
+        from . import computing_managers
+        
+        # Instantiate the computing manager based on type (if not already done)
         try:
-            return self._user_conf_data
+            return self._manager
         except AttributeError:
-            raise AttributeError('User conf data is not yet attached, please attach it before accessing.')
-
-
-    @property    
-    def user_conf_data_json(self):
-        return json.dumps(self.user_conf_data)
-
+            if self.type == 'cluster' and self.access_method == 'slurm+ssh':
+                self._manager = computing_managers.SlurmSSHClusterComputingManager(self)
+            elif self.type == 'singlenode' and self.access_method == 'ssh':
+                self._manager = computing_managers.SSHSingleNodeComputingManager(self)            
+            elif self.type == 'singlenode' and self.access_method == 'internal':
+                self._manager = computing_managers.InternalSingleNodeComputingManager(self)
+            else:
+                raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}" and access mode "{}"'.format(self.type, self.access_method))
+            return self._manager
     
-    def attach_user_conf_data(self, user):
+    
+    #=======================
+    # Sys & user conf
+    #=======================
+
+    def attach_user_conf(self, user):
         if self.user and self.user != user:
             raise Exception('Cannot attach a conf data for another user (my user="{}", another user="{}"'.format(self.user, user)) 
         try:
@@ -197,47 +221,50 @@ class Computing(models.Model):
         except ComputingUserConf.DoesNotExist:
             self._user_conf_data = None
 
+    @property
+    def sys_conf(self):
+        return self.related_sys_conf.get().data
 
-    def get_conf_param(self, param, from_sys_only=False):
+    @property
+    def user_conf(self):
         try:
-            param_value = self.sys_conf_data[param]
-        except (TypeError, KeyError):
-            if not from_sys_only:
-                try:
-                    param_value = self.user_conf_data[param]
-                except (TypeError, KeyError):
-                    return None
-            else:
-                return None
-        return param_value
+            return self._user_conf_data
+        except AttributeError:
+            raise ConsistencyException('User conf has to been attached, cannot proceed.')
+
+    @property    
+    def sys_conf_as_json(self):
+        return json.dumps(self.sys_conf)
+    
+    @property    
+    def user_conf_as_json(self):
+        return json.dumps(self.user_conf)
 
     @property
-    def conf_params(self):
-        class ConfParams():
-            def __init__(self, computing):
-                self.computing = computing
-            def __getitem__(self, key):
-                return self.computing.get_conf_param(key)
-        return ConfParams(self)
+    def conf(self):
+    
+        if not self.requires_user_conf:  
+            conf_tmp = self.sys_conf
+        else:
+            try:
+                # Copy the conf or the original user conf will be affected by the overwrite below
+                conf_tmp = {key:value for key, value in self._user_conf_data.items()}
+            except AttributeError:
+                raise ConsistencyException('User conf has not been attached, cannot proceed.')
+            
+            # Now add (overwrite) with the sys conf
+            sys_conf = self.sys_conf
+            for key in sys_conf:
+                conf_tmp[key] = sys_conf[key]
 
-    @property
-    def manager(self):
-        from . import computing_managers
-        ComputingManager = getattr(computing_managers, '{}ComputingManager'.format(self.type.title()))
-        return ComputingManager()
-
-    @ property
-    def color(self):
-        string_int_hash = hash_string_to_int(self.name)
-        color_map_index = string_int_hash % len(color_map)
-        return color_map[color_map_index]
+        return conf_tmp
 
 
-
+            
 class ComputingSysConf(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    computing = models.ForeignKey(Computing, related_name='+', on_delete=models.CASCADE)
+    computing = models.ForeignKey(Computing, related_name='related_sys_conf', on_delete=models.CASCADE)
     data = JSONField(blank=True, null=True)
 
 
@@ -255,7 +282,7 @@ class ComputingUserConf(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, null=True)
-    computing = models.ForeignKey(Computing, related_name='+', on_delete=models.CASCADE)
+    computing = models.ForeignKey(Computing, related_name='related_user_conf', on_delete=models.CASCADE)
     data = JSONField(blank=True, null=True)
 
     @property
