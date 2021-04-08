@@ -373,11 +373,6 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
        
         # Get computing host
         computing_host = computing.conf.get('host')
-        
-        # Trick for handling Slurm.. TODO: fix me!
-        if not computing_host:
-            computing_host = computing.conf.get('master')
-        
         computing_user = computing.conf.get('user')
 
         if not computing_host:
@@ -405,11 +400,6 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
        
         # Get computing host
         computing_host = computing.conf.get('host')
-        
-        # Trick for handling Slurm.. TODO: fix me!
-        if not computing_host:
-            computing_host = computing.conf.get('master')
-        
         computing_user = computing.conf.get('user')
 
         if not computing_host:

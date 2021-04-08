@@ -323,7 +323,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get computing host
-        host = self.computing.conf.get('master')
+        host = self.computing.conf.get('host')
         user = self.computing.conf.get('user')
         
         # Get user keys
@@ -448,7 +448,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing host
-        host = self.computing.conf.get('master')
+        host = self.computing.conf.get('host')
         user = self.computing.conf.get('user')
 
         # Stop the task remotely
@@ -471,7 +471,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             raise NotImplementedError('Remote tasks not requiring keys are not yet supported')
 
         # Get computing host
-        host = self.computing.conf.get('master')
+        host = self.computing.conf.get('host')
         user = self.computing.conf.get('user')
 
         # View log remotely
