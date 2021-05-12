@@ -68,10 +68,10 @@
             {% endif %}
                         
             <!-- View log -->
-            {% if task.status == "created" %}
-            <a href="" class="btn btn-disabled">Logs</a>  
+            {% if task.status == "running" %}
+            <a href="/task_log/?uuid={{task.uuid}}&action=viewlog" class="btn btn-action">Logs</a> 
             {% else %}
-            <a href="/task_log/?uuid={{task.uuid}}&action=viewlog" class="btn btn-action">Logs</a>        
+            <a href="" class="btn btn-disabled">Logs</a> 
             {% endif %}
             </div>    
           
