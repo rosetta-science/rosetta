@@ -113,11 +113,13 @@ ENV GOROOT=/usr/local/go
 ENV GOPATH=/root/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
+COPY singularity-3.4.1.tar.gz /tmp
+
 # Install Singularity
 RUN mkdir -p /usr/local/var/singularity/mnt && \
     mkdir -p $GOPATH/src/github.com/sylabs && \
     cd $GOPATH/src/github.com/sylabs && \
-    wget https://github.com/sylabs/singularity/releases/download/v3.4.1/singularity-3.4.1.tar.gz && \
+    mv /tmp/singularity-3.4.1.tar.gz ./ && \
     tar -xzvf singularity-3.4.1.tar.gz
 RUN cd $GOPATH/src/github.com/sylabs/singularity && \
     ./mconfig -p /usr/local && \
