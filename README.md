@@ -1,4 +1,4 @@
-# Rosetta 🛰️
+ubuntu@rosetta# Rosetta 🛰️
 
 
 _A container-centric Science Platform_
@@ -58,6 +58,11 @@ Example Webapp configuraion
       - DJANGO_EMAIL_APIKEY=
       - DJANGO_EMAIL_FROM="Rosetta <notifications@rosetta.local>"
       - DJANGO_PUBLIC_HTTP_HOST=http://localhost # Public facing, with http or https
+      - OIDC_RP_CLIENT_ID=""
+      - OIDC_RP_CLIENT_SECRET=""
+      - OIDC_OP_AUTHORIZATION_ENDPOINT=""
+      - OIDC_OP_TOKEN_ENDPOINT=""
+      - OIDC_OP_JWKS_ENDPOINT=""
 
 
 ### Extras
