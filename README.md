@@ -119,13 +119,3 @@ Run Web App unit tests (with Rosetta running)
     SINGULARITY_TMPDIR=/...
     .singularity in user home with limited space
 
-
-## Testing
-
-Rosetta test are still in great need of expansion, however basic functionalitis and container builds are already automatically tested on Travis on each codebase push. [Check status on Travis](https://travis-ci.org/sarusso/Rosetta/)
-
-![](https://travis-ci.org/sarusso/Rosetta.svg?branch=master) 
-
-
-
-
