@@ -30,11 +30,12 @@ Run
 	$ rosetta/run
 
 
-Play
+Populate demo data
 
-    rosetta/populate
-    # You can now point your browser to http://localhost:8080.
-    # To run Slurm jobs use partition "partition1"
+    $ rosetta/populate
+    # You can now point your browser to http://localhost:8080
+    # Log in using "testuser@rosetta.platform""and password "testpass"
+    # To run Slurm jobs, use partition name "partition1"
 
 Clean
 
