@@ -64,6 +64,14 @@ RUN mkdir /var/log/webapp/ && chown rosetta:rosetta /var/log/webapp/
 
 
 #------------------------------
+# Viz
+#------------------------------
+RUN apt install python-pygraphviz graphviz-dev -y
+RUN pip3 install django-extensions pygraphviz
+# Example usage: rosetta/shell webapp "cd /opt/code && python3 manage.py graph_models core_app --exclude-models LoginToken,Text -o ORM.png"
+
+
+#------------------------------
 # Supervisord
 #------------------------------
 
@@ -79,10 +87,5 @@ COPY supervisord_dregistrytunnel.conf /etc/supervisor/conf.d/
 
 COPY prestartup_webapp.sh /prestartup/
 RUN touch -m /prestartup/prestartup_webapp.sh
-
-
-
-
-
 
 
