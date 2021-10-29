@@ -322,7 +322,7 @@ print(port)
             logger.info('Setting task "{}" to ip "{}" and port "{}"'.format(task.uuid, task_ip, task_port))
             task.status = TaskStatuses.running
             task.ip     = task_ip
-            if task.container.supports_dynamic_ports:
+            if task.container.supports_custom_interface_port:
                 task.port = int(task_port)
             task.save()
                     

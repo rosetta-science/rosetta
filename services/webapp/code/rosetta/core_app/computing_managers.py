@@ -41,13 +41,13 @@ class ComputingManager(object):
         task.save()
         
         # Check if the tunnel is active and if so kill it
-        logger.debug('Checking if task "{}" has a running tunnel'.format(task.tid))
-        check_command = 'ps -ef | grep ":'+str(task.tunnel_port)+':'+str(task.ip)+':'+str(task.port)+'" | grep -v grep | awk \'{print $2}\''
+        logger.debug('Checking if task "{}" has a running tunnel'.format(task.uuid))
+        check_command = 'ps -ef | grep ":'+str(task.tcp_tunnel_port)+':'+str(task.interface_ip)+':'+str(task.interface_port)+'" | grep -v grep | awk \'{print $2}\''
         logger.debug(check_command)
         out = os_shell(check_command, capture=True)
         logger.debug(out)
         if out.exit_code == 0:
-            logger.debug('Task "{}" has a running tunnel, killing it'.format(task.tid))
+            logger.debug('Task "{}" has a running tunnel, killing it'.format(task.uuid))
             tunnel_pid = out.stdout
             # Kill Tunnel command
             kill_tunnel_command= 'kill -9 {}'.format(tunnel_pid)
@@ -91,15 +91,12 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
     
     def _start_task(self, task):
 
-        if task.container.type != 'docker':
-            raise ErrorMessage('Sorry, only Docker container are supported on this computing resource.')
-
         # Init run command #--cap-add=NET_ADMIN --cap-add=NET_RAW
-        run_command  = 'sudo docker run  --network=rosetta_default --name rosetta-task-{}'.format( task.id)
+        run_command  = 'sudo docker run  --network=rosetta_default --name {}'.format(task.uuid)
 
         # Pass if any
-        if task.auth_pass:
-            run_command += ' -eAUTH_PASS={} '.format(task.auth_pass)
+        if task.password:
+            run_command += ' -eAUTH_PASS={} '.format(task.password)
 
         # User data volume
         run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
@@ -108,10 +105,10 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         if task.container.registry == 'local':
             registry_string = 'localhost:5000/'
         else:
-            registry_string  = ''
+            registry_string  = 'docker.io/'
 
         # Host name, image entry command
-        run_command += ' -h task-{} -d -t {}{}'.format(task.id, registry_string, task.container.image)
+        run_command += ' -h task-{} -d -t {}{}'.format(task.uuid, registry_string, task.container.image)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -121,20 +118,20 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         if out.exit_code != 0:
             raise Exception(out.stderr)
         else:
-            task_tid = out.stdout
-            logger.debug('Created task with id: "{}"'.format(task_tid))
+            tid = out.stdout
+            logger.debug('Created task with id: "{}"'.format(tid))
 
             # Get task IP address
-            out = os_shell('sudo docker inspect --format \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' ' + task_tid + ' | tail -n1', capture=True)
+            out = os_shell('sudo docker inspect --format \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' ' + tid + ' | tail -n1', capture=True)
             if out.exit_code != 0:
                 raise Exception('Error: ' + out.stderr)
             task_ip = out.stdout
 
             # Set fields
-            task.tid    = task_tid
+            task.id = tid
             task.status = TaskStatuses.running
-            task.ip     = task_ip
-            task.port   = int(task.container.ports.split(',')[0])
+            task.interface_ip = task_ip
+            task.interface_port = task.container.interface_port
 
             # Save
             task.save()
@@ -145,9 +142,9 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         # Delete the Docker container
         standby_supported = False
         if standby_supported:
-            stop_command = 'sudo docker stop {}'.format(task.tid)
+            stop_command = 'sudo docker stop {}'.format(task.id)
         else:
-            stop_command = 'sudo docker stop {} && sudo docker rm {}'.format(task.tid,task.tid)
+            stop_command = 'sudo docker stop {} && sudo docker rm {}'.format(task.id,task.id)
     
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
@@ -164,7 +161,7 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
     def _get_task_log(self, task, **kwargs):
 
         # View the Docker container log (attach)
-        view_log_command = 'sudo docker logs {}'.format(task.tid,)
+        view_log_command = 'sudo docker logs {}'.format(task.id,)
         logger.debug(view_log_command)
         out = os_shell(view_log_command, capture=True)
         if out.exit_code != 0:
@@ -200,8 +197,6 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         # Run the container on the host (non blocking)
         if task.container.type == 'singularity':
 
-            task.tid    = task.uuid
-            task.save()
 
             # Set pass if any
             if task.auth_pass:
@@ -260,12 +255,8 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         task = Task.objects.get(uuid=task_uuid)
 
         # Save pid echoed by the command above
-        task_pid = out.stdout
+        task.id = out.stdout
 
-        # Set fields
-        #task.status = TaskStatuses.running
-        task.pid = task_pid
- 
         # Save
         task.save()
 
@@ -359,7 +350,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         # Submit the job
         if task.container.type == 'singularity':
 
-            #if not task.container.supports_dynamic_ports:
+            #if not task.container.supports_custom_interface_port:
             #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
 
             # Set pass if any

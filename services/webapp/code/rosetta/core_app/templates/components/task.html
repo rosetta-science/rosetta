@@ -59,9 +59,9 @@
             {% endif %}
             
             <!-- Connect -->
-            {% if task.port %}
+            {% if task.interface_port %}
             {% if task.status == "running" %}
-            <a href="?uuid={{task.uuid}}&action=connect" class="btn btn-connect">Connect</a>
+            <a href="/task_connect/?uuid={{task.uuid}}" class="btn btn-connect">Connect</a>
             {% else %}
             <a href="" class="btn btn-disabled">Connect</a>  
             {% endif %}
@@ -140,19 +140,19 @@
            
            <tr>
             <td><b>Tunnel port</b></td>
-            <td>{{ task.tunnel_port }}</td>
+            <td>{{ task.tcp_tunnel_port }}</td>
            </tr>
 
-           {% if task.auth_pass %}
+           {% if task.auth_token %}
            <tr>
-            <td><b>Auth pass</b></td>
-            <td>******</td>
+            <td><b>Auth token</b></td>
+            <td>{{ task.auth_token }}</td>
            </tr>
            {% endif %}
 
-           <tr>
-            <td style="padding-right:0"><b>Direct link</b>
-            <td>{% if task.status == "running" %}<a href="{{ task.direct_link }}">{{ task.direct_link }}</a>{% else %}N.A. (task not running) {% endif %}</td>
+
+            <td style="padding-right:0"><b>Sharable link</b>
+            <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td>
            </tr>
 
 

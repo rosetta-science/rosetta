@@ -527,30 +527,30 @@ def setup_tunnel(task):
     from .models import Task, KeyPair, TaskStatuses
     
     # If there is no tunnel port allocated yet, find one
-    if not task.tunnel_port:
+    if not task.tcp_tunnel_port:
 
         # Get a free port fot the tunnel:
-        allocated_tunnel_ports = []
+        allocated_tcp_tunnel_ports = []
         for other_task in Task.objects.all():
-            if other_task.tunnel_port and not other_task.status in [TaskStatuses.exited, TaskStatuses.stopped]:
-                allocated_tunnel_ports.append(other_task.tunnel_port)
+            if other_task.tcp_tunnel_port and not other_task.status in [TaskStatuses.exited, TaskStatuses.stopped]:
+                allocated_tcp_tunnel_ports.append(other_task.tcp_tunnel_port)
 
         for port in range(7000, 7021):
-            if not port in allocated_tunnel_ports:
-                tunnel_port = port
+            if not port in allocated_tcp_tunnel_ports:
+                tcp_tunnel_port = port
                 break
-        if not tunnel_port:
+        if not tcp_tunnel_port:
             logger.error('Cannot find a free port for the tunnel for task "{}"'.format(task))
             raise ErrorMessage('Cannot find a free port for the tunnel to the task')
 
-        task.tunnel_port = tunnel_port
+        task.tcp_tunnel_port = tcp_tunnel_port
         task.save()
 
 
     # Check if the tunnel is active and if not create it
     logger.debug('Checking if task "{}" has a running tunnel'.format(task))
 
-    out = os_shell('ps -ef | grep ":{}:{}:{}" | grep -v grep'.format(task.tunnel_port, task.ip, task.port), capture=True)
+    out = os_shell('ps -ef | grep ":{}:{}:{}" | grep -v grep'.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port), capture=True)
 
     if out.exit_code == 0:
         logger.debug('Task "{}" has a running tunnel, using it'.format(task))
@@ -571,10 +571,10 @@ def setup_tunnel(task):
             #setup_command = task.computing.conf.get('setup_command')
             #base_port = task.computing.conf.get('base_port')
                      
-            tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tunnel_port, task.ip, task.port, first_user, first_host)
+            tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tcp_tunnel_port, task.interface_ip, task.interface_port, first_user, first_host)
 
         else:
-            tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tunnel_port, task.ip, task.port)
+            tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port)
         
         background_tunnel_command = 'nohup {} >/dev/null 2>&1 &'.format(tunnel_command)
 

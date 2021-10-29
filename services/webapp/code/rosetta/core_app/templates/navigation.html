@@ -16,9 +16,7 @@
             <hr style="margin-top:10px; margin-bottom:20px; margin-left:10px; margin-right:10px">
 
             {% if user.is_authenticated %}
-            <li>
-                <a href="/account" onclick = $("#menu-close").click(); >Account</a>
-            </li>        
+    
             <li>
                 <a href="/containers" onclick = $("#menu-close").click(); >Software</a>
             </li>
@@ -31,7 +29,9 @@
             <li>
                 <a href="/files" onclick = $("#menu-close").click(); >Files</a>
             </li>
-       
+            <li>
+                <a href="/account" onclick = $("#menu-close").click(); >Account</a>
+            </li>           
             {% else %}
             <li>
               <center>

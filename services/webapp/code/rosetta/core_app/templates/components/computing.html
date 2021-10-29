@@ -15,6 +15,11 @@
        </tr>
 
        <tr>
+        <td><b>Description</b></td>
+        <td>{{ data.computing.description }}</td>
+       </tr>
+
+       <tr>
         <td width="110px"><b>ID</b></td>
         <td>{{ data.computing.id }}</a></td>
        </tr>
@@ -25,8 +30,18 @@
        </tr>
 
        <tr>
-        <td><b>Access method</b></td>
-        <td>{{ data.computing.access_method }}</td>
+        <td><b>Access mode</b></td>
+        <td>{{ data.computing.access_mode }}</td>
+       </tr>
+
+       <tr>
+        <td><b>Auth mode</b></td>
+        <td>{{ data.computing.auth_mode }}</td>
+       </tr>
+
+       <tr>
+        <td><b>WMS</b></td>
+        <td>{{ data.computing.wms }}</td>
        </tr>
 
        <tr>
@@ -44,11 +59,8 @@
        </tr>
 
        <tr>
-        <td><b>Supports</b></td>
-        <td>
-          Docker: {{ data.computing.supports_docker }} <br/>
-          Singularity: {{ data.computing.supports_singularity }}
-        </td>
+        <td><b>Container runtimes</b></td>
+        <td>{{ data.computing.container_runtimes }}</td>
        </tr>
 
        <tr>
@@ -77,22 +89,46 @@
         <!-- <div style="background:{{computing.color}}; height:24px"></div> -->
         
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
-        <a href="?uuid={{ computing.uuid }}&details=True">{{ computing.name }}</a>
+        <a href="/computings/?uuid={{ computing.uuid }}&details=True">{{ computing.name }}</a>
         </div>
         
         <div style="padding:10px;">
-        <b>Type:</b> {{ computing.type_str }}<br/>
-        <b>Access:</b> {{ computing.access_method_str }}<br/>
-        <!-- <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/> -->
-        <b>Supports:</b>
-        {% if computing.supports_docker %}Docker <img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
-        {% if computing.supports_singularity %}Singularity <img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
-        </div>
-        
 
-      
-      
-      
+        {% if computing.description %} 
+        <div class="description-box" title="{{ computing.description }}">
+        {{ computing.description }}
+        </div>
+        {% else %}
+        <br/>  
+        {% endif %}
+        <div class="image-version-box">
+        <b>Type:</b> {{ computing.type }}<br/>
+        {% if computing.auth_mode == 'user_keys' %}
+        <b>Access:</b> restricted
+        {% else %}
+        <b>Access:</b> open
+        {% endif %}
+        </div>
+        <!-- ><b>Access:</b> {{ computing.access_mode }}<br/> --
+        <!-- <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/> -->
+        <!--  <b>Runtimes:</b> {{ computing.container_runtimes }} -->
+        
+        <!-- {% if 'docker' in computing.container_runtimes %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
+        {% if 'singularity' in computing.container_runtimes %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}-->
+        {% if container %}
+        <div style="margin:0px; margin-top:2px; text-align:center; padding:5px">
+        <form action="/create_task/" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="{{ data.next_step }}" />
+        <input type="hidden" name="task_container_uuid" value="{{container.uuid}}">
+        <input type="hidden" name="task_computing_uuid" value="{{computing.uuid}}">
+        <input type="submit" value="Choose" class="btn btn-connect">
+        </form>
+        </div>
+        {% endif %}
+        
+        </div>  
+
       </div>
       
 

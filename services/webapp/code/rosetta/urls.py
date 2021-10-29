@@ -49,6 +49,7 @@ urlpatterns = [
     url(r'^tasks/$', core_app_views.tasks),
     url(r'^create_task/$', core_app_views.create_task),
     url(r'^task_log/$', core_app_views.task_log),
+    url(r'^task_connect/$', core_app_views.task_connect),
     url(r'^computings/$', core_app_views.computings),
     url(r'^add_computing/$', core_app_views.add_computing),
     url(r'^edit_computing_conf/$', core_app_views.edit_computing_conf),
@@ -56,8 +57,9 @@ urlpatterns = [
     url(r'^add_container/$', core_app_views.add_container),
     url(r'^files/$', core_app_views.files_view),
 
-    # Sharable link for tasks
-    url(r'^t/(?P<id>\w{0,36})/$', core_app_views.sharable_link_handler),
+    # Sharable and direct connection links for tasks
+    url(r'^direct_connect/(?P<uuid>[0-9a-f-]+)/$', core_app_views.direct_connection_handler),
+    url(r'^t/(?P<short_uuid>\w{0,36})/$', core_app_views.sharable_link_handler),
 
     # Modules
     path('admin/', admin.site.urls),

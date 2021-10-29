@@ -13,14 +13,14 @@
 
       {% if not data.added %}
 
-          <h3>Configure the new container.</h3> 
+          <h3>Set up the new container.</h3> 
           
           <br/>
           
           <form action="#" method="POST">
           {% csrf_token %}
 
-          <table class="dashboard" style="max-width:430px">
+          <table class="dashboard" style="width:360px">
 
            <tr>
             <td><b>Name</b></td>
@@ -28,66 +28,94 @@
              <input type="text" name="container_name" value="" placeholder="" size="23" required />
             </td>
            </tr>
-    
+
            <tr>
-            <td><b>Type</b></td><td>
-              <select name="container_type" >
-              <option value="docker" selected>Docker</option>
-              <option value="singularity">Singularity</option>
-              </select>
+            <td><b>Description</b></td>
+            <td>
+             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
+             ​<textarea name="container_description" rows="3" cols="22"></textarea>
             </td>
            </tr>
+    
+    
 
            <tr>
             <td><b>Registry</b></td><td>
-              <select name="container_registry" >
-              <option value="docker_hub">Docker Hub</option>
-              <option value="singularity_hub">Singularity Hub</option>
-              </select>
+             <input type="text" name="container_registry" value="docker.io" size="23" required />
             </td>
            </tr>
 
            <tr>
-            <td><b>Image:tag</b></td>
+            <td><b>Image</b></td>
             <td>
              <input type="text" name="container_image" value="" placeholder="" size="23" required />
             </td>
            </tr>
 
            <tr>
-            <td><b>Protocol</b></td>
+            <td><b>Tag</b></td>
             <td>
-             <select name="container_protocol" id="cars">
-              <option value="http" selected>http</option>
-              <option value="https">https</option>
-             </select>
+             <input type="text" name="container_tag" value="latest" size="23" required />
             </td>
            </tr>
+
+           </table>
+
+          <table class="dashboard" style="width:360px">
+
+           <tr>
+            <td><b>Interface port</b></td>
+             <td><input type="text" name="container_interface_port" value="" placeholder="" size="5" /></td>
+           </tr>
+
+           <tr>
+            <td><b>Interface protocol</b></td>
+            <td>
+             <input type="text" value="http" name="container_interface_protocol" size="5" /> 
+            </td>
+           </tr>
+           </table>
    
+            <table class="dashboard" style="width:360px">
+
+           <tr><td colspan=2><hr style="margin:5px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Advanced</td></tr>
+
+
            <tr>
-            <td colspan=2><b>Default port(s)</b>
-             &nbsp; &nbsp;<input type="text" name="container_ports" value="" placeholder="" size="5" />
+            <td><b>Architecture</b></td><td>
+              <select name="container_arch" >
+              <option value="x86_64" selected>x86_64</option>
+              </select>
+            </td>
+           </tr>
+
+           <tr>
+            <td><b>OS</b></td><td>
+              <select name="container_os" >
+              <option value="linux" selected>linux</option>
+              </select>
+            </td>
+           </tr>
+
+           <tr>
+            <td><b>interface transport</b></td><td>
+              <select name="container_interface_transport" >
+              <option value="tcp/ip" selected>tcp/ip</option>
+              </select>
             </td>
            </tr>
 
            <tr>
             <td colspan=2>
-             <b>Supports dynamic ports</b> &nbsp; 
-             <input type="checkbox" name="container_supports_dynamic_ports" value="True" />
+             <b>Supports custom interface port</b> &nbsp; 
+             <input type="checkbox" name="container_supports_custom_interface_port" value="True" />
             </td>
            </tr>
 
            <tr>
             <td colspan=2>
-             <b>Supports user auth</b> &nbsp; 
-             <input type="checkbox" name="container_supports_user_auth" value="True" />
-            </td>
-           </tr>
-
-           <tr>
-            <td colspan=2>
-             <b>Supports pass auth</b> &nbsp; 
-             <input type="checkbox" name="container_supports_pass_auth" value="True" />
+             <b>Supports interface auth</b> &nbsp; 
+             <input type="checkbox" name="container_supports_interface_auth" value="True" />
             </td>
            </tr>
 

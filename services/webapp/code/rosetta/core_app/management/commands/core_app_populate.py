@@ -63,116 +63,53 @@ class Command(BaseCommand):
             Text.objects.create(id='home', content=default_home_text_content)
 
 
-        # Public containers
-        public_containers = Container.objects.filter(user=None)
-        if public_containers:
+        # Platform containers
+        platform_containers = Container.objects.filter(user=None)
+        if platform_containers:
             print('Not creating public containers as they already exist')
         else:
-            print('Creating public containers...')
+            print('Creating platform containers...')
             
             # MinimalMetaDesktop Docker (sarusso repo)
             Container.objects.create(user     = None,
-                                     name     = 'MinimalMetaDesktop latest',
+                                     name     = 'MinimalMetaDesktop ',
+                                     description = 'A minimal meta-desktop environment providing basic window management functionalities and a terminal.',
+                                     registry = 'docker.io',
                                      image    = 'sarusso/minimalmetadesktop',
-                                     type     = 'docker',
-                                     registry = 'docker_hub',
-                                     ports    = '8590',
-                                     protocol = 'https',
-                                     supports_dynamic_ports = True,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = True)
+                                     tag      = 'v0.2.0',
+                                     arch = 'x86_64',
+                                     os = 'linux',
+                                     interface_port     = '8590',
+                                     interface_protocol = 'http',
+                                     interface_transport = 'tcp/ip',
+                                     supports_custom_interface_port = True,
+                                     supports_interface_auth = True)
 
-            # BasicMetaDesktop Docker (sarusso repo)
-            Container.objects.create(user     = None,
-                                     name     = 'BasicMetaDesktop latest',
-                                     image    = 'sarusso/basicmetadesktop',
-                                     type     = 'docker',
-                                     registry = 'docker_hub',
-                                     protocol = 'https',
-                                     ports    = '8590',
-                                     supports_dynamic_ports = True,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = True)
+#             # BasicMetaDesktop Docker (sarusso repo)
+#             Container.objects.create(user     = None,
+#                                      name     = 'BasicMetaDesktop latest',
+#                                      image    = 'sarusso/basicmetadesktop',
+#                                      registry = 'docker_hub',
+#                                      protocol = 'https',
+#                                      ports    = '8590',
+#                                      supports_custom_interface_port = True,
+#                                      supports_user_auth     = False,
+#                                      supports_pass_auth     = True)
+# 
+# 
+#             # DevMetaDesktop Docker (sarusso repo)
+#             Container.objects.create(user     = None,
+#                                      name     = 'DevMetaDesktop latest',
+#                                      image    = 'sarusso/devmetadesktop',
+#                                      type     = 'docker',
+#                                      registry = 'docker_hub',
+#                                      protocol = 'https',
+#                                      ports    = '8590',
+#                                      supports_custom_interface_port = True,
+#                                      supports_user_auth     = False,
+#                                      supports_pass_auth     = True)
 
-
-            # DevMetaDesktop Docker (sarusso repo)
-            Container.objects.create(user     = None,
-                                     name     = 'DevMetaDesktop latest',
-                                     image    = 'sarusso/devmetadesktop',
-                                     type     = 'docker',
-                                     registry = 'docker_hub',
-                                     protocol = 'https',
-                                     ports    = '8590',
-                                     supports_dynamic_ports = True,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = True)
-
-
-            # MinimalMetaDesktop Singularity (sarusso repo)
-            Container.objects.create(user     = None,
-                                     name     = 'MinimalMetaDesktop latest',
-                                     image    = 'sarusso/minimalmetadesktop',
-                                     type     = 'singularity',
-                                     registry = 'docker_hub',
-                                     protocol = 'https',
-                                     ports    = '8590',
-                                     supports_dynamic_ports = True,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = True)
-            
-
-            # BasicMetaDesktop Singularity (sarusso repo)
-            Container.objects.create(user     = None,
-                                     name     = 'BasicMetaDesktop latest',
-                                     image    = 'sarusso/basicmetadesktop',
-                                     type     = 'singularity',
-                                     registry = 'docker_hub',
-                                     protocol = 'https',
-                                     ports    = '8590',
-                                     supports_dynamic_ports = True,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = True)
-
-
-            # DevMetaDesktop Singularity (sarusso repo)
-            Container.objects.create(user     = None,
-                                     name     = 'DevMetaDesktop latest',
-                                     image    = 'sarusso/devmetadesktop',
-                                     type     = 'singularity',
-                                     registry = 'docker_hub',
-                                     protocol = 'https',
-                                     ports    = '8590',
-                                     supports_dynamic_ports = True,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = True)
-
-
-            # MetaDesktop Singularity (local)
-            #Container.objects.create(user     = None,
-            #                         name     = 'MetaDesktop latest',
-            #                         image    = 'rosetta/metadesktop',
-            #                         type     = 'singularity',
-            #                         registry = 'docker_local',
-            #                         ports    = '8590',
-            #                         supports_dynamic_ports = True,
-            #                         supports_user_auth     = False,
-            #                         supports_pass_auth     = True)
-
-
-
-            # Astrocook
-            #Container.objects.create(user     = None,
-            #                         name     = 'Astrocook b2b819e',
-            #                         image    = 'sarusso/astrocook:b2b819e',
-            #                         type     = 'docker',
-            #                         registry = 'docker_local',
-            #                         ports    = '8590',
-            #                         supports_dynamic_ports = False,
-            #                         supports_user_auth     = False,
-            #                         supports_pass_auth     = False)
-
-
-        # Private containers
+        # Testuser containers
         testuser_containers = Container.objects.filter(user=testuser)
         if testuser_containers:
             print('Not creating testuser private containers as they already exist')
@@ -181,25 +118,20 @@ class Command(BaseCommand):
 
             # Jupyter Singularity
             Container.objects.create(user     = testuser,
-                                     name     = 'Jupyter Notebook latest',
+                                     name     = 'Jupyter Notebook',
+                                     description = 'A basic Jupyter notebook environment.',
+                                     registry = 'docker.io',
                                      image    = 'jupyter/base-notebook',
-                                     type     = 'singularity',
-                                     registry = 'docker_hub',
-                                     ports    = '8888', 
-                                     supports_dynamic_ports = False,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = False)
-            
-            # Jupyter Docker
-            Container.objects.create(user     = testuser,
-                                     name     = 'Jupyter Notebook latest',
-                                     image    = 'jupyter/base-notebook',
-                                     type     = 'docker',
-                                     registry = 'docker_hub',
-                                     ports    = '8888', 
-                                     supports_dynamic_ports = False,
-                                     supports_user_auth     = False,
-                                     supports_pass_auth     = False)
+                                     tag      = 'latest',
+                                     arch = 'x86_64',
+                                     os = 'linux',
+                                     interface_port     = '8888',
+                                     interface_protocol = 'http',
+                                     interface_transport = 'tcp/ip',
+                                     supports_custom_interface_port = False,
+                                     supports_interface_auth = False)
+
+
 
         # Computing resources
         computing_resources = Computing.objects.all()
@@ -213,27 +145,31 @@ class Command(BaseCommand):
             #==============================
             Computing.objects.create(user = None,
                                      name = 'Demo Internal',
-                                     type = 'singlenode',
-                                     access_method = 'internal',
+                                     description = 'A demo internal computing resource.',
+                                     type = 'standalone',
+                                     access_mode = 'internal',
+                                     auth_mode = 'internal',
+                                     wms = None,
                                      requires_sys_conf  = False,
                                      requires_user_conf = False,
                                      requires_user_keys = False,
-                                     supports_docker = True,
-                                     supports_singularity = False)
+                                     container_runtimes = 'docker')
 
 
             #==============================
             # Demo Single Node computing 
             #==============================    
             demo_singlenode_computing = Computing.objects.create(user = None,
-                                                                 name = 'Demo Single Node',
-                                                                 type = 'singlenode',
-                                                                 access_method = 'ssh',
+                                                                 name = 'Demo Standalone',
+                                                                 description = 'A demo standalone computing resource.',
+                                                                 type = 'standalone',
+                                                                 access_mode = 'ssh+cli',
+                                                                 auth_mode = 'user_keys',
+                                                                 wms = None,
                                                                  requires_sys_conf  = True,
                                                                  requires_user_conf = True,
                                                                  requires_user_keys = True,
-                                                                 supports_docker = True,
-                                                                 supports_singularity = True)
+                                                                 container_runtimes = 'singularity')
     
             ComputingSysConf.objects.create(computing = demo_singlenode_computing,
                                             data      = {'host': 'slurmclusterworker-one',
@@ -249,13 +185,15 @@ class Command(BaseCommand):
             #==============================
             demo_slurm_computing = Computing.objects.create(user = None,
                                                             name = 'Demo Cluster',
+                                                            description = 'A demo cluster computing resource.',
                                                             type = 'cluster',
-                                                            access_method = 'slurm+ssh',
+                                                            access_mode = 'ssh+cli',
+                                                            auth_mode = 'user_keys',
+                                                            wms = 'slurm',
                                                             requires_sys_conf  = True,
                                                             requires_user_conf = True,
                                                             requires_user_keys = True,
-                                                            supports_docker = False,
-                                                            supports_singularity = True)
+                                                            container_runtimes = 'singularity')
     
             # Create demo slurm sys computing conf
             ComputingSysConf.objects.create(computing = demo_slurm_computing,

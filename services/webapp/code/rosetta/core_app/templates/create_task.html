@@ -12,80 +12,50 @@
       <hr>
 
 
-      {% if data.step == 'two' %} 
-      <h3>Step 2: set task name and computing.</h3> 
+      <!-- {% if data.step == 'two' %} 
+      <h3>Choose computing resource</h3> 
       {% elif data.step == 'three' %}  
-      <h3>Step 3: add authentication and computing details.</h3>    
+      <h3>Task details and confirm</h3>    
       {% endif %}
 
-      <br/>
+      <br/> -->
 
       {% if data.step != 'created' %}
-      <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
-        <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{data.task_container.color}} solid 10px; ">
-        <a href="?uuid={{ container.uuid }}">{{ data.task_container.name }}</a>&nbsp; 
-        {% if data.task_container.type == 'docker' %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
-        {% if data.task_container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
-        </div>  
-        <div style="padding:10px; height: 64px; vertical-align: middle;">
-        <b>Image:</b> {{ data.task_container.image_name }}<br/>
-        <b>Version:</b> {{ data.task_container.image_tag }}
-        </div>
+      <div style="float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:20px">
+          <h4>Software container</h4>
+          <div class="row" style="padding:5px">
+          {% include "components/container.html" with container=data.task_container disable_play_button=True %}
+          </div>
       </div>
       {% endif %}
+      
 
       {% if data.step == 'two' %}
 
-          <form action="/create_task/" method="POST">
-          {% csrf_token %}
-          <input type="hidden" name="step" value="{{ data.next_step }}" />
-          <input type="hidden" name="task_container_uuid" value="{{data.task_container.uuid}}">
-
-      <div style="width:300px; float:left; border: #e0e0e0 solid 0px; margin:10px; background:#f8f8f8; margin-bottom:15px">
-
-          <table style="max-width:100%; border: #e0e0e0 solid 1px; margin:0">
-          <tr><td colspan="2"></td></tr>
-
-           <tr>
-            <td><b>Task name </b></td>
-            <td>
-             <input type="text" name="task_name" value="" placeholder="" size="" required />
-            </td>
-           </tr>
-
-           <tr>
-            <td><b>Computing</b></td><td>
-              <select name="task_computing_uuid" >
-              {% for computing in data.computings %}}
-              <option value="{{ computing.uuid }}">{{ computing.name}}</option>
-              {% endfor %}
-              </select>
-            </td>
-           </tr>
-
-           <tr>
-           <td colspan=2 align=center style="padding:9px">
-           <input type="submit" value="Next">
-           </td>
-           </tr>
-          </table>
+      <div style="width:300px; float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:0px">
+          <h4>Computing resource</h4>
+          <div class="row" style="padding:5px">
+          {% for computing in data.computings %}
+          {% include "components/computing.html" with container=data.task_container %}
+          {% endfor %}
           </div>
-          </form>
+      </div>
+
 
       {% elif data.step == 'three' %}
+
+
+      <div style="width:300px; float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:0px">
+          <h4>Computing resource</h4>
+          <div class="row" style="padding:5px">
+          {% include "components/computing.html" with computing=data.task_computing %}
+          </div>
+      </div>
           
           
-          <div style="width:300px; float:left; border: #e0e0e0 solid 0px; margin:10px; background:#f8f8f8; margin-bottom:15px">
+          <!-- <div style="width:300px; float:left; border: #e0e0e0 solid 0px; margin:10px; background:#f8f8f8; margin-bottom:15px">
           <table style="width:100%; height:126px;  border: #e0e0e0 solid 1px; margin:0">
 
-           <tr valign="bottom">
-            <td><b>Task name </b></td>
-            <td>
-             <input type="text" name="task_name_RECAP" value="{{ data.task_name }}" placeholder="" size="" disabled />
-            </td>
-           </tr>
-
-           
            <tr valign="top">
             <td><b>Computing</b></td><td>
               <select name="task_computing_uuid_RECAP" >
@@ -95,11 +65,15 @@
            </tr>
 
           </table>
-          </div>
-          
+          </div> -->
+
+      <div style="width:300px;  background:#ffffff; margin-left:10px; margin-right:10px; margin-top:10px; margin-bottom:0px">
+
+          <h4>Options and confirm</h4>
           <div style="width:640px; float:left; border: #e0e0e0 solid 0px; margin:10px; background:#f8f8f8; margin-bottom:15px">
-          
-          {% if data.task_container.type == 'singularity' and not data.task_container.supports_dynamic_ports %}
+              
+
+          {% if data.task_container.type == 'singularity' and not data.task_container.supports_custom_interface_port %}
           <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support dynamic ports and you are running it with Singularity, without network insulation. This means that if the container port is already occupied, it will not be able to start.
           </p></div>
@@ -130,7 +104,7 @@
            </tr>
            {% endif %}
 
-           {% if data.task_container.supports_dynamic_ports and data.task_computing.type == 'remotehop' %}
+           {% if data.task_container.supports_custom_interface_port and data.task_computing.type == 'remotehop' %}
            <tr>
             <td valign="top" style="width:180px"><b>Set custom port </b></td>
             <td>
@@ -140,12 +114,36 @@
            </tr>
            {% endif %}
 
-           {% if data.task_container.supports_pass_auth %}
+           {% if data.task_container.supports_interface_auth %}
+           
            <tr>
-            <td valign="top"><b>Set task password</b></td>
+            <td valign="top"><b>Task name</b></td>
+            <td><input type="text" name="task_name" value="" placeholder="" size="" required /></td>
+           </tr>
+           
+           <tr>
+            <td valign="top"><b>Task password</b></td>
             <td>
-             <input type="password" name="auth_password" value="" placeholder="" size="23" /><br>
-             <font size=-1>Use a non-sensitive password as it will be stored in plain text. 6 chars min.</font>
+            
+             <input type="password" name="task_auth_password" placeholder="{{data.task_auth_token}}" size="23" /><br>
+             <input type="hidden" name="task_auth_token" value="{{data.task_auth_token}}">
+
+             <!-- IF NOT USING HTTP PROTOCOL: -->
+             <!-- <font size=-1>Use a non-sensitive password as it will be stored in plain text. 6 chars min.</font> -->
+             <!--  !!!!!!!!!!!
+             
+             Non serve differenziare, lascia che venga generato un token anche dove la pass deve essere immessa nel task (i.e. VNC ma
+             non con la password a soli 6 caratteri, ssh è buon esempio). Metti il mneu advances che si apre.
+             
+             Vedi: https://superuser.com/questions/493583/how-to-connect-to-ssh-with-character-in-username
+             
+             
+             -->
+             <font size=-1>A one-time task password. By default set to a randomly generated token, and automatically handled by Rosetta. Can be also set to a custom one, which in this case will be required to be entered manually when connecting to the task (as it will not be stored by Rosetta). Six characters minimum.</font>
+             
+             <!-- f not set, Rosetta will generate a random token and automatically feed it to the task when you connect. use Use a non-sensitive password as it will be stored in plain text. 6 chars min.</font> -->
+             <!--  TODO: do the /connect with the redirect thing  -->
+             
             </td>
            </tr>
            {% endif %}
@@ -156,7 +154,7 @@
             <td valign="top" style="width:180px"><b>Extra binds</b></td>
             <td>
              <input type="text" name="extra_binds" value="" placeholder="" size="40" /><br>
-             <p style="line-height: 0.95"><font size=-1>Here you can set extra binds on top of the ones already define by the administrator. Format is <i>host_directory:container_directory</i>, comma separated.</font></p>
+<p style="line-height: 0.95"><font size=-1>For this computing resource, you can set extra FS binds on top of the ones already define by the administrators. Format is <i>host_directory:container_directory</i>, comma separated.</font></p>
             </td>
            </tr>
            {% endif %}
@@ -195,19 +193,20 @@
              
            <tr><td colspan=2>
            <table><tr><td  style="border: 1px solid lightgray;" >
-           I understand that files saved or modified in this container, if not explicitly saved to a persistent bind, will be LOST when the task ends.
+           I understand that files saved or modified in this container, if not explicitly saved to a persistent storage, will be LOST when the task ends.
            </td><td  style="border: 1px solid lightgray;" >
            <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required>
            </td></table>
            </td></tr>
            <tr>
            <td colspan=2 align=center style="padding:20px">
-           <input type="submit" value="Create">
+           <input type="submit" value="Create task">
            </td>
            </tr>
           </table>
           </form>
           </div>
+      </div>
 
 
       {% else %}
@@ -216,17 +215,17 @@
 
       {% endif %} 
   
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
+
       
     </div>
   </div>
 </div>
-
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
+      <br/>
 {% include "footer.html" %}
 
 

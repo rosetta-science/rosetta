@@ -1,5 +1,5 @@
 {% load static %} 
-{% include "header.html" with onload="onload='init()'" use_bg=True  %}
+{% include "header.html" %}
 {% include "navigation.html"%}
 
     <center>
@@ -19,7 +19,7 @@
         
 
         <div style="margin-top:25px; margin-bottom:15px">
-        <font color="#a9a9a9"> — OR —</font>
+        {% if OPENID_ENABLED %}<font color="#a9a9a9"> — OR —</font>{% endif %}
         </div>
         
         {% if OPENID_ENABLED %}
