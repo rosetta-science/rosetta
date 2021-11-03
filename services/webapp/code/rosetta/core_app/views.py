@@ -465,6 +465,7 @@ def create_task(request):
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
         
+        # Generate random auth token        
         data['task_auth_token'] = str(uuid.uuid4())
 
         # Set current and next step
@@ -539,11 +540,6 @@ def create_task(request):
         # Attach user config to computing
         task.computing.attach_user_conf(task.user)
 
-        # Set port if not dynamic ports
-        if not task.container.supports_custom_interface_port:
-            if task.container.ports:
-                task.port = task.container.port
-    
         # Set extra binds if any:
         task.extra_binds = extra_binds
 

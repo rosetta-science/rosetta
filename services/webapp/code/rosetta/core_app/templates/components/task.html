@@ -1,8 +1,9 @@
 
           {% if data.task %} 
-          <div style="width:350px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
+          <center>
+          <div style="width:350px; display:block; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
             <div style="margin-top:5px; padding:10px; text-align:center; border-bottom: #f8f8f8 solid 1px; ">
-            <b>Summary</b>
+            <b>Task {{data.task.name}} summary</b>
             </div>
           {% else %}
           <div style="width:350px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
@@ -30,7 +31,7 @@
             <!-- <b>Container:</b> {{ task.container.name }} <span style="font-size:14px; background-color:{{task.container.color}}">&nbsp;&nbsp;&nbsp;&nbsp;</span> <br/>
             <b>Computing:</b> {{ task.computing.name }} <span style="font-size:14px; background-color:{{task.computing.color}}">&nbsp;&nbsp;&nbsp;&nbsp;</span><br/> -->
 
-            <b>Container:</b>
+            <b>Software:</b>
             <a href="/containers/?uuid={{ task.container.uuid }}" style="color:{{task.container.color}}">{{ task.container.name }}</a>
             {% if task.container.type == 'docker' %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
             {% if task.container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
@@ -81,7 +82,8 @@
 
 
           {% if data.task %}      
-          <div style="float:left; max-width:450px">
+          <br/>
+          <div style="display:block"; max-width:450px">
           <table class="dashboard" style="margin:10px">
 
             <!-- <tr>
@@ -109,14 +111,9 @@
            </tr>
 
            <tr>
-            <td><b>Image</b></td>
-            <td><a href="/containers/?uuid={{ task.container.uuid }}">{{ task.container.image }}</a></td>
-           </tr>
-
-           <!-- <tr>
             <td><b>Status</b></td>
             <td>{{ task.status }}</td>
-           </tr>  -->
+           </tr> 
 
            <tr>
             <td><b>Created at</b></td>
@@ -129,13 +126,13 @@
            </tr>  
 
            <tr>
-            <td><b>Host</b></td>
-            <td>{{ task.ip }}</td>
+            <td><b>Interface IP</b></td>
+            <td>{{ task.interface_ip }}</td>
            </tr>
 
            <tr>
-            <td><b>Port</b></td>
-            <td>{{ task.port }}</td>
+            <td><b>Interface port</b></td>
+            <td>{{ task.interface_port }}</td>
            </tr>
            
            <tr>
@@ -151,63 +148,20 @@
            {% endif %}
 
 
-            <td style="padding-right:0"><b>Sharable link</b>
+            <!-- <tr><td style="padding-right:0"><b>Sharable link</b>
             <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td>
-           </tr>
+           </tr> -->
 
 
-           <!--  <tr>
-            <td><b>Operations</b></td>
-            
-            <td>
-            {% if task.status == "running" %}
-            <a href="?uuid={{task.uuid}}&action=stop&details={{details}}">Stop</a> | 
-            {% else %}-->
-            <!-- <a href=?uuid={{task.uuid}}&action=start>Start</a> |  -->
-            <!-- <font color="#c0c0c0">Stop</font> | 
-            {% endif %}
-            <a href="?uuid={{task.uuid}}&action=delete&details=False">Delete</a>
-            
-            {% if task.port %}
-            {% if task.status == "running" %}
-             | <a href="?uuid={{task.uuid}}&action=connect">Connect</a>
-            {% else %}
-             | <font color="#c0c0c0">Connect</font>
-            {% endif%}
-            {% endif %}
-            
-            {% if task.status == "created" %}
-             | <font color="#c0c0c0">View Log</font>
-            {% else %}
-             | <a href="/task_log/?uuid={{task.uuid}}&action=viewlog">View Log</a>             
-            {% endif %}
-            
-            </td>
-  
-           </tr>
-           -->
+
 
           </table>
-          <p style="margin-left:10px; font-size:0.9em; color:#484848">
+          <!-- <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i> You can share a direct link with other people, but remember that if you have no authentication in place anyone will be able to access.
-          </p>
+          </p> -->
           </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+          </center>
 
           
           {% endif  %}

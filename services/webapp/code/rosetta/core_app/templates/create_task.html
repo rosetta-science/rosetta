@@ -69,21 +69,9 @@
 
       <div style="width:300px;  background:#ffffff; margin-left:10px; margin-right:10px; margin-top:10px; margin-bottom:0px">
 
-          <h4>Options and confirm</h4>
-          <div style="width:640px; float:left; border: #e0e0e0 solid 0px; margin:10px; background:#f8f8f8; margin-bottom:15px">
+          <h4>Details and confirm</h4>
+          <div style="width:640px; float:left; border: #e0e0e0 solid 0px; margin:10px; ; margin-bottom:15px">
               
-
-          {% if data.task_container.type == 'singularity' and not data.task_container.supports_custom_interface_port %}
-          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
-          <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support dynamic ports and you are running it with Singularity, without network insulation. This means that if the container port is already occupied, it will not be able to start.
-          </p></div>
-          {% endif %}
-          
-          {% if data.task_container.ports and not data.task_container.supports_pass_auth %}
-          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
-          <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support configuring any authentication. This means that unless it is built-in within the container, anyone running on the same network will be able to access it.
-          </p></div>
-          {% endif %}
         
           <form action="/create_task/" method="POST">
           {% csrf_token %}
@@ -93,63 +81,28 @@
           <input type="hidden" name="task_container_uuid" value="{{ data.task_container.uuid }}" />
           <input type="hidden" name="task_computing_uuid" value="{{ data.task_computing.uuid }}" />
 
-          <table class="dashboard" style="max-width:700px">
-          <tr><td colspan="2"></td></tr>
-           {% if data.task_container.supports_user_auth %}
-           <tr>
-            <td><b>Task user</b></td>
-            <td>
-             <input type="text" name="auth_user" value="" placeholder="" size="23" />
-            </td>
-           </tr>
-           {% endif %}
+          <table class="dashboard" style="max-width:700px; margin-bottom:20px">
+           <tr><td colspan="2"></td></tr>
 
-           {% if data.task_container.supports_custom_interface_port and data.task_computing.type == 'remotehop' %}
-           <tr>
-            <td valign="top" style="width:180px"><b>Set custom port </b></td>
-            <td>
-             <input type="text" name="task_base_port" value="" placeholder="" size="23" style="margin-bottom:5px"/><br>
-             <p style="line-height: 0.95"><font size=-1>This container supports dynamic ports and you can thus set a custom port (>5900) to avoid clashes with services already running on the computing resource.</font></p>
-            </td>
-           </tr>
-           {% endif %}
-
-           {% if data.task_container.supports_interface_auth %}
-           
            <tr>
             <td valign="top"><b>Task name</b></td>
-            <td><input type="text" name="task_name" value="" placeholder="" size="" required /></td>
+            <td><input type="text" name="task_name" value="" placeholder="" size="37" required /></td>
            </tr>
            
            <tr>
-            <td valign="top"><b>Task password</b></td>
+            <td valign="top"><b>Task&nbsp;password</b></td>
             <td>
             
-             <input type="password" name="task_auth_password" placeholder="{{data.task_auth_token}}" size="23" /><br>
+             <input type="password" name="task_auth_password" placeholder="{{data.task_auth_token}}" size="37" /><br>
              <input type="hidden" name="task_auth_token" value="{{data.task_auth_token}}">
 
-             <!-- IF NOT USING HTTP PROTOCOL: -->
-             <!-- <font size=-1>Use a non-sensitive password as it will be stored in plain text. 6 chars min.</font> -->
-             <!--  !!!!!!!!!!!
-             
-             Non serve differenziare, lascia che venga generato un token anche dove la pass deve essere immessa nel task (i.e. VNC ma
-             non con la password a soli 6 caratteri, ssh è buon esempio). Metti il mneu advances che si apre.
-             
-             Vedi: https://superuser.com/questions/493583/how-to-connect-to-ssh-with-character-in-username
-             
-             
-             -->
-             <font size=-1>A one-time task password. By default set to a randomly generated token, and automatically handled by Rosetta. Can be also set to a custom one, which in this case will be required to be entered manually when connecting to the task (as it will not be stored by Rosetta). Six characters minimum.</font>
-             
-             <!-- f not set, Rosetta will generate a random token and automatically feed it to the task when you connect. use Use a non-sensitive password as it will be stored in plain text. 6 chars min.</font> -->
-             <!--  TODO: do the /connect with the redirect thing  -->
-             
+             <!-- <font size=-1>A one-time task password. By default set to a randomly generated token, and automatically handled by Rosetta. Can be also set to a custom one, which in this case will be required to be entered manually when connecting to the task (as it will not be stored by Rosetta). Six characters minimum.</font> -->
+             <font size=-1>A one-time task password. By default set to a randomly generated token, and automatically handled by Rosetta. Six chars min.</font>
+
             </td>
            </tr>
-           {% endif %}
-
-
-           {% if data.task_container.type == 'singularity' %}
+           
+           <!-- {% if data.task_computing.supports_custom_binds %}
            <tr>
             <td valign="top" style="width:180px"><b>Extra binds</b></td>
             <td>
@@ -158,6 +111,7 @@
             </td>
            </tr>
            {% endif %}
+            -->
 
            <tr>
             <td><b>Access method</b></td><td>
@@ -169,16 +123,17 @@
             </td>
            </tr>
 
-           <!-- <tr>
-            <td><b>Run using</b></td><td>
+           <tr>
+            <td><b>Container runtime</b></td><td>
               <select name="run_using" >
-              <option value="docker" selected>Docker</option>
-              <option value="singularity">Singularity</option>
+              <option value="default" selected>Default</option>
+              <!-- <option value="docker" selected>default</option> -->
+              <!-- <option value="singularity">Singularity</option> -->
               </select>
             </td>
-           </tr>  -->
+           </tr>
            
-           {% if data.task_computing.access_method == 'slurm+ssh' %}
+           {% if data.task_computing.wms == 'slurm' %}
            <tr>
             <td><b>Computing options</b></td>
             <td>
@@ -192,18 +147,33 @@
            {% endif %}
              
            <tr><td colspan=2>
-           <table><tr><td  style="border: 1px solid lightgray;" >
-           I understand that files saved or modified in this container, if not explicitly saved to a persistent storage, will be LOST when the task ends.
-           </td><td  style="border: 1px solid lightgray;" >
-           <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required>
-           </td></table>
+           
            </td></tr>
-           <tr>
-           <td colspan=2 align=center style="padding:20px">
-           <input type="submit" value="Create task">
-           </td>
-           </tr>
+
           </table>
+          
+          
+          {% if data.task_computing.default_container_runtime == 'singularity' and not data.task_container.supports_custom_interface_port %}
+          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
+          <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support custom interface ports and the computing resource you selected might use a container runtime which does not support port mapping (Singularity). In this case, if the container interface port is already allocated, the task will fail to start.
+          </p></div>
+          {% endif %}
+          
+          <!-- {% if data.task_container.interface_port and not data.task_container.supports_interface_auth %}
+          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
+          <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support configuring any authentication. This means that unless it is somehow built-in within the container, anyone will be able to access it.
+          </p></div>
+          {% endif %}  -->
+         
+          <table><tr><td  style="border: 1px solid lightgray;" >
+          I understand that files saved or modified in this container, if not explicitly saved to a persistent storage, will be LOST upon task completition.
+          </td><td  style="border: 1px solid lightgray;" >
+          <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required>
+          </td></table>
+          
+          <div style="width:640px; text-align:center; padding:20px">
+          <input type="submit" value="Create task">    
+          </div>
           </form>
           </div>
       </div>

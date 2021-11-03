@@ -102,13 +102,13 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Set registry string
-        if task.container.registry == 'local':
-            registry_string = 'localhost:5000/'
-        else:
-            registry_string  = 'docker.io/'
+        #if task.container.registry == 'local':
+        #    registry_string = 'localhost:5000/'
+        #else:
+        #    registry_string  = 'docker.io/'
 
         # Host name, image entry command
-        run_command += ' -h task-{} -d -t {}{}'.format(task.uuid, registry_string, task.container.image)
+        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image, task.container.tag)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -348,17 +348,16 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         sbatch_args += ' --output=\$HOME/{}.log --error=\$HOME/{}.log '.format(task.uuid, task.uuid)
 
         # Submit the job
-        if task.container.type == 'singularity':
+        if task.computing.default_container_runtime == 'singularity':
 
             #if not task.container.supports_custom_interface_port:
             #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
 
             # Set pass if any
-            if task.auth_pass:
-                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.auth_pass)
-            else:
-                authstring = ''
-
+            authstring = ''
+            if not task.requires_proxy_auth and task.password:
+                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
+                
             # Set binds, only from sys config if the resource is not owned by the user
             if self.computing.user != task.user:
                 binds = self.computing.sys_conf.get('binds')
@@ -382,24 +381,11 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             run_command += 'rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp &>> \$HOME/{}.log && mkdir -p /tmp/{}_data/home &>> \$HOME/{}.log && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
-            # Double to escape for Pythom, six for shell (double times three as \\\ escapes a single slash in shell)
+            # Double to escape for Python, six for shell (double times three as \\\ escapes a single slash in shell)
+            run_command+='docker://{}/{}:{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(task.container.registry, task.container.image, task.container.tag, task.uuid, task.uuid, sbatch_args, task.uuid)
 
-            # Set registry
-            if task.container.registry == 'docker_local':
-                # Get local Docker registry conn string
-                from.utils import get_local_docker_registry_conn_string
-                local_docker_registry_conn_string = get_local_docker_registry_conn_string()
-                registry = 'docker://{}/'.format(local_docker_registry_conn_string)
-            elif task.container.registry == 'docker_hub':
-                registry = 'docker://'
-            else:
-                raise NotImplementedError('Registry {} not supported'.format(task.container.registry))
-    
-            run_command+='{}{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(registry, task.container.image, task.uuid, task.uuid, sbatch_args, task.uuid)
-
-            
         else:
-            raise NotImplementedError('Container {} not supported'.format(task.container.type))
+            raise NotImplementedError('Default container runtime "{}" not supported'.format(task.computing.default_container_runtime))
 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:
@@ -419,8 +405,8 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         task_uuid = task.uuid
         task = Task.objects.get(uuid=task_uuid)
 
-        # Save job id as task pid
-        task.pid = job_id
+        # Save job id as task id
+        task.id = job_id
         
         # Set status (only fi we get here before the agent which sets the status as running via the API)
         if task.status != TaskStatuses.running:
@@ -443,7 +429,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         user = self.computing.conf.get('user')
 
         # Stop the task remotely
-        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(user_keys.private_key_file, user, host, task.pid)
+        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(user_keys.private_key_file, user, host, task.id)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             raise Exception(out.stderr)
