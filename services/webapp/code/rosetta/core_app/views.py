@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingSysConf, ComputingUserConf, Text
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_tunnel_host, random_username, setup_tunnel, finalize_user_creation
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_tunnel_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
 
@@ -341,7 +341,7 @@ def tasks(request):
             elif action=='connect':
                 
                 # First ensure that the tunnel is setu up
-                setup_tunnel(task)
+                setup_tunnel_and_proxy(task)
 
                 # Then, redirect to the task through the tunnel
                 tunnel_host = get_tunnel_host()
@@ -972,16 +972,25 @@ def direct_connection_handler(request, uuid):
         raise ErrorMessage('You do not have access to this task.')
 
     # First ensure that the tunnel is setu up
-    setup_tunnel(task)
+    setup_tunnel_and_proxy(task)
+    
+    # Set task proxy host
+    task_proxy_host = settings.TASK_PROXY_HOST
 
     # Then, redirect to the task through the tunnel
     tunnel_host = get_tunnel_host()
-    if task.requires_proxy_auth and task.auth_token:
-        user = request.user.email
-        password = task.auth_token
-        return redirect('{}://{}:{}@{}:{}'.format(task.container.interface_protocol, user, password, tunnel_host, task.tcp_tunnel_port))
+    if task.requires_proxy:
+        if task.requires_proxy_auth and task.auth_token:
+            user = request.user.email
+            password = task.auth_token
+            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, task_proxy_host, task.tcp_tunnel_port)        
+        else:
+            redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
     else:
-        return redirect('{}://{}:{}'.format(task.container.interface_protocol, tunnel_host,task.tcp_tunnel_port))
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, tunnel_host,task.tcp_tunnel_port)
+    
+    logger.debug('Task direct connect redirect: "{}"'.format(redirect_string))
+    return redirect(redirect_string)
         
     
 
@@ -999,7 +1008,7 @@ def sharable_link_handler(request, short_uuid):
         raise ErrorMessage('You do not have access to this task.')
 
     # First ensure that the tunnel is setu up
-    setup_tunnel(task)
+    setup_tunnel_and_proxy(task)
 
     # Then, redirect to the task through the tunnel
     tunnel_host = get_tunnel_host()

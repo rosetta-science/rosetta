@@ -230,6 +230,8 @@ LOCAL_USER_DATA_DIR = os.environ.get('LOCAL_USER_DATA_DIR', '/data')
 # Invitation code if any
 INVITATION_CODE = os.environ.get('INVITATION_CODE', None)
 
+# Task proxy host (WARNING: direct use of the env var in utils.py)
+TASK_PROXY_HOST = os.environ.get('TASK_PROXY_HOST', 'localhost')
 
 #===============================
 #  Auth
