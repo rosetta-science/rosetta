@@ -558,26 +558,65 @@ def setup_tunnel_and_proxy(task):
 
         task.tcp_tunnel_port = tcp_tunnel_port
         task.save()
+
+
+    # Check if the tunnel is (still) active, if not create it
+    logger.debug('Checking if task "{}" has a running tunnel'.format(task))
+
+    out = os_shell('ps -ef | grep ":{}:{}:{}" | grep -v grep'.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port), capture=True)
+
+    if out.exit_code == 0:
+        logger.debug('Task "{}" has a running tunnel, using it'.format(task))
+    else:
+        logger.debug('Task "{}" has no running tunnel, creating it'.format(task))
+
+        # Get user keys
+        user_keys = KeyPair.objects.get(user=task.user, default=True)
+
+        # Tunnel command
+        if task.computing.type == 'remotehop':           
+            
+            # Get computing params
+            first_host = task.computing.conf.get('first_host')
+            first_user = task.computing.conf.get('first_user')
+            #second_host = task.computing.conf.get('second_host')
+            #second_user = task.computing.conf.get('second_user')
+            #setup_command = task.computing.conf.get('setup_command')
+            #base_port = task.computing.conf.get('base_port')
+                     
+            tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tcp_tunnel_port, task.interface_ip, task.interface_port, first_user, first_host)
+
+        else:
+            tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port)
         
-    # Setup the proxy now.
-    # Some info about the various SSL switches: https://serverfault.com/questions/577616/using-https-between-apache-loadbalancer-and-backends
+        background_tunnel_command = 'nohup {} >/dev/null 2>&1 &'.format(tunnel_command)
 
-    # Esnure conf directory exists
-    if not os.path.exists('/shared/etc_apache2_sites_enabled'):
-        os.makedirs('/shared/etc_apache2_sites_enabled')
+        # Log
+        logger.debug('Opening tunnel with command: {}'.format(background_tunnel_command))
 
-    # Set conf file name
-    apache_conf_file = '/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid)
+        # Execute
+        subprocess.Popen(background_tunnel_command, shell=True)
 
-    # Check if proxy conf exists 
-    if not os.path.exists(apache_conf_file):
-
-        # Write conf file
-        logger.debug('Writing task proxy conf to {}'.format(apache_conf_file))
+  
+    # Setup the proxy now (if required.)
+    if task.requires_proxy:
+        
+        # Ensure conf directory exists
+        if not os.path.exists('/shared/etc_apache2_sites_enabled'):
+            os.makedirs('/shared/etc_apache2_sites_enabled')
     
-        websocket_protocol = 'wss' if task.container.interface_protocol == 'https' else 'ws'
-        task_proxy_host = get_task_proxy_host()
-        apache_conf_content = '''
+        # Set conf file name
+        apache_conf_file = '/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid)
+    
+        # Check if proxy conf exists 
+        if not os.path.exists(apache_conf_file):
+    
+            # Write conf file
+            # Some info about the various SSL switches: https://serverfault.com/questions/577616/using-https-between-apache-loadbalancer-and-backends
+            logger.debug('Writing task proxy conf to {}'.format(apache_conf_file))
+            websocket_protocol = 'wss' if task.container.interface_protocol == 'https' else 'ws'
+            task_proxy_host = get_task_proxy_host()
+            apache_conf_content = '''
 #---------------------------
 #  Task interface proxy 
 #---------------------------
@@ -637,66 +676,30 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 </VirtualHost>
 
 '''
-        with open(apache_conf_file, 'w') as f:
-            f.write(apache_conf_content)
+            with open(apache_conf_file, 'w') as f:
+                f.write(apache_conf_content)
     
-    # Now check conf exist on proxy
-    logger.debug('Checking if conf is enabled on proxy service')
-    out = os_shell('ssh -o StrictHostKeyChecking=no proxy "[ -e /etc/apache2/sites-enabled/{}.conf ]"'.format(task.uuid), capture=True)
-
-    if out.exit_code == 1:
-  
-        logger.debug('Conf not enabled on proxy service, linkig it and reloading Apache conf')
-  
-        # Link on proxy since conf does not exist
-        out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo ln -s /shared/etc_apache2_sites_enabled/{0}.conf /etc/apache2/sites-enabled/{0}.conf"'.format(task.uuid), capture=True)
-        if out.exit_code != 0:
-            logger.error(out.stderr)
-            raise ErrorMessage('Somthing went wrong when activating the task proxy conf')        
-        
-        # Reload apache conf on Proxy
-        out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo apache2ctl graceful"', capture=True)
-        if out.exit_code != 0:
-            logger.error(out.stderr) 
-            raise ErrorMessage('Somthing went wrong when loading the task proxy conf')        
-
-
-    # Check if the tunnel is (still) active and if not create it
-    logger.debug('Checking if task "{}" has a running tunnel'.format(task))
-
-    out = os_shell('ps -ef | grep ":{}:{}:{}" | grep -v grep'.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port), capture=True)
-
-    if out.exit_code == 0:
-        logger.debug('Task "{}" has a running tunnel, using it'.format(task))
-    else:
-        logger.debug('Task "{}" has no running tunnel, creating it'.format(task))
-
-        # Get user keys
-        user_keys = KeyPair.objects.get(user=task.user, default=True)
-
-        # Tunnel command
-        if task.computing.type == 'remotehop':           
+        # Now check if conf exist on proxy
+        logger.debug('Checking if conf is enabled on proxy service')
+        out = os_shell('ssh -o StrictHostKeyChecking=no proxy "[ -e /etc/apache2/sites-enabled/{}.conf ]"'.format(task.uuid), capture=True)
+    
+        if out.exit_code == 1:
+      
+            logger.debug('Conf not enabled on proxy service, linkig it and reloading Apache conf')
+      
+            # Link on proxy since conf does not exist
+            out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo ln -s /shared/etc_apache2_sites_enabled/{0}.conf /etc/apache2/sites-enabled/{0}.conf"'.format(task.uuid), capture=True)
+            if out.exit_code != 0:
+                logger.error(out.stderr)
+                raise ErrorMessage('Somthing went wrong when activating the task proxy conf')        
             
-            # Get computing params
-            first_host = task.computing.conf.get('first_host')
-            first_user = task.computing.conf.get('first_user')
-            #second_host = task.computing.conf.get('second_host')
-            #second_user = task.computing.conf.get('second_user')
-            #setup_command = task.computing.conf.get('setup_command')
-            #base_port = task.computing.conf.get('base_port')
-                     
-            tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tcp_tunnel_port, task.interface_ip, task.interface_port, first_user, first_host)
+            # Reload apache conf on Proxy
+            out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo apache2ctl graceful"', capture=True)
+            if out.exit_code != 0:
+                logger.error(out.stderr) 
+                raise ErrorMessage('Somthing went wrong when loading the task proxy conf')        
+            
 
-        else:
-            tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port)
-        
-        background_tunnel_command = 'nohup {} >/dev/null 2>&1 &'.format(tunnel_command)
-
-        # Log
-        logger.debug('Opening tunnel with command: {}'.format(background_tunnel_command))
-
-        # Execute
-        subprocess.Popen(background_tunnel_command, shell=True)
 
 
 
