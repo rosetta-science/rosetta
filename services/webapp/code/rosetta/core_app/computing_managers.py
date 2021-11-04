@@ -95,7 +95,7 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         run_command  = 'sudo docker run  --network=rosetta_default --name {}'.format(task.uuid)
 
         # Pass if any
-        if task.password:
+        if not task.requires_proxy and task.password:
             run_command += ' -eAUTH_PASS={} '.format(task.password)
 
         # User data volume

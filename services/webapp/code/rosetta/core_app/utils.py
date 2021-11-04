@@ -504,9 +504,13 @@ def get_local_docker_registry_conn_string():
     local_docker_registry_conn_string = '{}:{}'.format(local_docker_registry_host, local_docker_registry_port)
     return local_docker_registry_conn_string
     
-def get_tunnel_host():
-    tunnel_host = os.environ.get('ROSETTA_TUNNEL_HOST', 'localhost')
+def get_task_tunnel_host():
+    tunnel_host = os.environ.get('TASK_TUNNEL_HOST', 'localhost')
     return tunnel_host
+
+def get_task_proxy_host():
+    proxy_host = os.environ.get('TASK_PROXY_HOST', 'localhost')
+    return proxy_host
 
 def hash_string_to_int(string):
     #int_hash = 0 
@@ -535,10 +539,19 @@ def setup_tunnel_and_proxy(task):
             if other_task.tcp_tunnel_port and not other_task.status in [TaskStatuses.exited, TaskStatuses.stopped]:
                 allocated_tcp_tunnel_ports.append(other_task.tcp_tunnel_port)
 
-        for port in range(7000, 7021):
-            if not port in allocated_tcp_tunnel_ports:
-                tcp_tunnel_port = port
-                break
+        if task.requires_proxy:
+            # Proxy ports are in the 9000-range
+            for port in range(9000, 9021):
+                if not port in allocated_tcp_tunnel_ports:
+                    tcp_tunnel_port = port
+                    break
+        else:
+            # Direct tunnel ports are in the 7000-range
+            for port in range(7000, 7021):
+                if not port in allocated_tcp_tunnel_ports:
+                    tcp_tunnel_port = port
+                    break
+
         if not tcp_tunnel_port:
             logger.error('Cannot find a free port for the tunnel for task "{}"'.format(task))
             raise ErrorMessage('Cannot find a free port for the tunnel to the task')
@@ -563,17 +576,14 @@ def setup_tunnel_and_proxy(task):
         logger.debug('Writing task proxy conf to {}'.format(apache_conf_file))
     
         websocket_protocol = 'wss' if task.container.interface_protocol == 'https' else 'ws'
-        task_proxy_host = os.environ.get('TASK_PROXY_HOST', 'localhost')
+        task_proxy_host = get_task_proxy_host()
         apache_conf_content = '''
 #---------------------------
 #  Task interface proxy 
 #---------------------------
 
 #<Location /desktop/{0}/>
-#AuthType Basic
-#AuthName "Restricted area"
-#AuthUserFile /shared/reyns/etc_apache2_sites_enabled/'''+str(task.uuid)+'''.htpasswd
-#Require valid-user  
+#
 
 #ProxyPass http://desktop-{0}:8590/
 #ProxyPassReverse http://desktop-{0}:8590/
@@ -591,9 +601,9 @@ Listen '''+str(task.tcp_tunnel_port)+'''
     ServerAdmin admin@rosetta
     
     SSLEngine on
-    SSLCertificateFile /root/certificates/rosetta_platform/rosetta_platform.crt
-    SSLCertificateKeyFile /root/certificates/rosetta_platform/rosetta_platform.key
-    SSLCACertificateFile /root/certificates/rosetta_platform/rosetta_platform.ca-bundle
+    SSLCertificateFile /root/certificates/rosetta_platform/rosetta_tasks.crt
+    SSLCertificateKeyFile /root/certificates/rosetta_platform/rosetta_tasks.key
+    SSLCACertificateFile /root/certificates/rosetta_platform/rosetta_tasks.ca-bundle
     
     SSLProxyEngine On
     SSLProxyVerify none 
@@ -612,6 +622,11 @@ Listen '''+str(task.tcp_tunnel_port)+'''
     RewriteRule /(.*) '''+str(websocket_protocol)+'''://webapp:'''+str(task.tcp_tunnel_port)+'''/$1 [P,L]
 
     <Location "/">
+      AuthType Basic
+      AuthName "Restricted area"
+      AuthUserFile /shared/etc_apache2_sites_enabled/'''+str(task.uuid)+'''.htpasswd
+      Require valid-user  
+
       # preserve Host header to avoid cross-origin problems
       ProxyPreserveHost on
       # proxy to the port

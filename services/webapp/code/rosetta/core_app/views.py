@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingSysConf, ComputingUserConf, Text
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_tunnel_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
 
@@ -323,6 +323,16 @@ def tasks(request):
                 try:
                     # Get the task (raises if none available including no permission)
                     task = Task.objects.get(user=request.user, uuid=uuid)
+
+                    # Re-remove proxy files before deleting the task itself just to be sure
+                    try:
+                        os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
+                    except:
+                        pass
+                    try:
+                        os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
+                    except:
+                        pass
     
                     # Delete
                     task.delete()
@@ -334,18 +344,21 @@ def tasks(request):
                     data['error'] = 'Error in deleting the task'
                     logger.error('Error in deleting task with uuid="{}": "{}"'.format(uuid, e))
                     return render(request, 'error.html', {'data': data})
-    
-            elif action=='stop': # or delete,a and if delete also remove object               
-                task.computing.manager.stop_task(task)
-
-            elif action=='connect':
                 
-                # First ensure that the tunnel is setu up
-                setup_tunnel_and_proxy(task)
 
-                # Then, redirect to the task through the tunnel
-                tunnel_host = get_tunnel_host()
-                return redirect('{}://{}:{}'.format(task.container.interface_protocol, tunnel_host, task.tcp_tunnel_port))
+    
+            elif action=='stop': # or delete,a and if delete also remove object
+                # Remove proxy files. Do it here or will cause issues when reloading the conf re-using ports of stopped tasks.
+                try:
+                    os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
+                except:
+                    pass
+                try:
+                    os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
+                except:
+                    pass
+                   
+                task.computing.manager.stop_task(task)
 
         except Exception as e:
             data['error'] = 'Error in getting the task or performing the required action'
@@ -508,12 +521,21 @@ def create_task(request):
         else:
             task.auth_token = task_auth_token # This is saved on the ORM model
             task.password = task_auth_token # Not stored
-        
-        # Hardcoded for now
+
+        # Any task requires the TCP tunnel for now
         task.requires_tcp_tunnel = True
-        task.requires_proxy      = False
-        task.requires_proxy_auth = False
         
+        # Task access method
+        access_method = request.POST.get('access_method', None)
+        if access_method == 'direct_tunnel':
+            task.requires_proxy      = False
+            task.requires_proxy_auth = False            
+        elif access_method == 'https_proxy':
+            task.requires_proxy      = True
+            task.requires_proxy_auth = True
+        else:
+            raise ErrorMessage('Unknow access method "{}"'.format(access_method))
+
         # Computing options # TODO: This is hardcoded thinking about Slurm and Singularity
         computing_cpus = request.POST.get('computing_cpus', None)
         computing_memory = request.POST.get('computing_memory', None)
@@ -555,6 +577,13 @@ def create_task(request):
             
             # ..and re-raise
             raise
+
+        # Add here proxy auth file as we have the password
+        if task.requires_proxy_auth:
+            out = os_shell('ssh -o StrictHostKeyChecking=no proxy "cd /shared/etc_apache2_sites_enabled/ && htpasswd -bc {}.htpasswd {} {}"'.format(task.uuid, task.user.email, task.password), capture=True)
+            if out.exit_code != 0:
+                logger.error(out.stderr)
+                raise ErrorMessage('Something went wrong when enabling proxy auth')   
 
         # Set step        
         data['step'] = 'created'
@@ -971,14 +1000,14 @@ def direct_connection_handler(request, uuid):
     if task.user != request.user:
         raise ErrorMessage('You do not have access to this task.')
 
-    # First ensure that the tunnel is setu up
+    # First ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
     
-    # Set task proxy host
-    task_proxy_host = settings.TASK_PROXY_HOST
+    # Get task and tunnel proxy host
+    task_proxy_host = get_task_proxy_host()
+    task_tunnel_host = get_task_tunnel_host()
 
-    # Then, redirect to the task through the tunnel
-    tunnel_host = get_tunnel_host()
+    # Redirect to the task through the tunnel    
     if task.requires_proxy:
         if task.requires_proxy_auth and task.auth_token:
             user = request.user.email
@@ -987,7 +1016,7 @@ def direct_connection_handler(request, uuid):
         else:
             redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
     else:
-        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, tunnel_host,task.tcp_tunnel_port)
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, task_tunnel_host, task.tcp_tunnel_port)
     
     logger.debug('Task direct connect redirect: "{}"'.format(redirect_string))
     return redirect(redirect_string)
@@ -1004,17 +1033,21 @@ def sharable_link_handler(request, short_uuid):
     # Get the task (if the short uuid is not enough an error wil be raised)
     task = Task.objects.get(uuid__startswith=short_uuid)
     
-    if task.user != request.user:
-        raise ErrorMessage('You do not have access to this task.')
-
-    # First ensure that the tunnel is setu up
+    # First ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
-
-    # Then, redirect to the task through the tunnel
-    tunnel_host = get_tunnel_host()
-    return redirect('{}://{}:{}'.format(task.container.interface_protocol, tunnel_host,task.tcp_tunnel_port))
-        
     
+    # Get task and tunnel proxy host
+    task_proxy_host = get_task_proxy_host()
+    task_tunnel_host = get_task_tunnel_host()
+
+    # Redirect to the task through the tunnel    
+    if task.requires_proxy:
+        redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
+    else:
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, task_tunnel_host, task.tcp_tunnel_port)
+    
+    logger.debug('Task sharable link connect redirect: "{}"'.format(redirect_string))
+    return redirect(redirect_string)
 
 
 #=========================
