@@ -194,16 +194,17 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         from.utils import get_webapp_conn_string
         webapp_conn_string = get_webapp_conn_string()
             
-        # Run the container on the host (non blocking)
-        if task.container.type == 'singularity':
+        # Handle container runtime 
+        if task.computing.default_container_runtime == 'singularity':
 
+            #if not task.container.supports_custom_interface_port:
+            #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
 
             # Set pass if any
-            if task.auth_pass:
-                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.auth_pass)
-            else:
-                authstring = ''
-
+            authstring = ''
+            if not task.requires_proxy_auth and task.password:
+                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
+                
             # Set binds, only from sys config if the resource is not owned by the user
             if self.computing.user != task.user:
                 binds = self.computing.sys_conf.get('binds')
@@ -227,19 +228,10 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT && {} '.format(authstring)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
-            # Set registry
-            if task.container.registry == 'docker_local':
-                # Get local Docker registry conn string
-                from.utils import get_local_docker_registry_conn_string
-                local_docker_registry_conn_string = get_local_docker_registry_conn_string()
-                registry = 'docker://{}/'.format(local_docker_registry_conn_string)
-            elif task.container.registry == 'docker_hub':
-                registry = 'docker://'
-            else:
-                raise NotImplementedError('Registry {} not supported'.format(task.container.registry))
-    
-            run_command+='{}{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(registry, task.container.image, task.uuid)
+            # Container part
+            run_command+='docker://{}/{}:{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(task.container.registry, task.container.image, task.container.tag, task.uuid)
             
+
         else:
             raise NotImplementedError('Container {} not supported'.format(task.container.type))
 
@@ -274,7 +266,7 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         user = self.computing.conf.get('user')
 
         # Stop the task remotely
-        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "kill -9 {}"\''.format(user_keys.private_key_file, user, host, task.pid)
+        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "kill -9 {}"\''.format(user_keys.private_key_file, user, host, task.id)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             if not 'No such process' in out.stderr:
