@@ -65,11 +65,12 @@ services:
       - "8080:8080"
       - "7000-7020:7000-7020"
     volumes:
+      - ./data/shared:/shared
       - ./data/webapp/data:/data
       - ./data/webapp/log:/var/log/webapp
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./services/webapp/code:/opt/code
-      - ./data/shared:/shared
+      #- ./services/webapp/code:/opt/code
+      
 
   proxy:
     image: "rosetta/proxy"
