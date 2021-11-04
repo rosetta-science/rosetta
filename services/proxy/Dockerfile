@@ -43,6 +43,10 @@ COPY certificates/rosetta_platform.crt /root/certificates/rosetta_platform/roset
 COPY certificates/rosetta_platform.key /root/certificates/rosetta_platform/rosetta_platform.key
 COPY certificates/rosetta_platform.ca-bundle /root/certificates/rosetta_platform/rosetta_platform.ca-bundle
 
+COPY certificates/rosetta_tasks.crt /root/certificates/rosetta_platform/rosetta_tasks.crt
+COPY certificates/rosetta_tasks.key /root/certificates/rosetta_platform/rosetta_tasks.key
+COPY certificates/rosetta_tasks.ca-bundle /root/certificates/rosetta_platform/rosetta_tasks.ca-bundle
+
 # Copy index and norobots.txt
 COPY index.html /var/www/html/
 COPY norobots.txt /var/www/html/

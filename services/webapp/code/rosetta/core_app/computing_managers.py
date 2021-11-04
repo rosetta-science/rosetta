@@ -41,13 +41,13 @@ class ComputingManager(object):
         task.save()
         
         # Check if the tunnel is active and if so kill it
-        logger.debug('Checking if task "{}" has a running tunnel'.format(task.tid))
-        check_command = 'ps -ef | grep ":'+str(task.tunnel_port)+':'+str(task.ip)+':'+str(task.port)+'" | grep -v grep | awk \'{print $2}\''
+        logger.debug('Checking if task "{}" has a running tunnel'.format(task.uuid))
+        check_command = 'ps -ef | grep ":'+str(task.tcp_tunnel_port)+':'+str(task.interface_ip)+':'+str(task.interface_port)+'" | grep -v grep | awk \'{print $2}\''
         logger.debug(check_command)
         out = os_shell(check_command, capture=True)
         logger.debug(out)
         if out.exit_code == 0:
-            logger.debug('Task "{}" has a running tunnel, killing it'.format(task.tid))
+            logger.debug('Task "{}" has a running tunnel, killing it'.format(task.uuid))
             tunnel_pid = out.stdout
             # Kill Tunnel command
             kill_tunnel_command= 'kill -9 {}'.format(tunnel_pid)
@@ -91,27 +91,24 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
     
     def _start_task(self, task):
 
-        if task.container.type != 'docker':
-            raise ErrorMessage('Sorry, only Docker container are supported on this computing resource.')
-
         # Init run command #--cap-add=NET_ADMIN --cap-add=NET_RAW
-        run_command  = 'sudo docker run  --network=rosetta_default --name rosetta-task-{}'.format( task.id)
+        run_command  = 'sudo docker run  --network=rosetta_default --name {}'.format(task.uuid)
 
         # Pass if any
-        if task.auth_pass:
-            run_command += ' -eAUTH_PASS={} '.format(task.auth_pass)
+        if not task.requires_proxy and task.password:
+            run_command += ' -eAUTH_PASS={} '.format(task.password)
 
         # User data volume
         run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Set registry string
-        if task.container.registry == 'local':
-            registry_string = 'localhost:5000/'
-        else:
-            registry_string  = ''
+        #if task.container.registry == 'local':
+        #    registry_string = 'localhost:5000/'
+        #else:
+        #    registry_string  = 'docker.io/'
 
         # Host name, image entry command
-        run_command += ' -h task-{} -d -t {}{}'.format(task.id, registry_string, task.container.image)
+        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image, task.container.tag)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -121,20 +118,20 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         if out.exit_code != 0:
             raise Exception(out.stderr)
         else:
-            task_tid = out.stdout
-            logger.debug('Created task with id: "{}"'.format(task_tid))
+            tid = out.stdout
+            logger.debug('Created task with id: "{}"'.format(tid))
 
             # Get task IP address
-            out = os_shell('sudo docker inspect --format \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' ' + task_tid + ' | tail -n1', capture=True)
+            out = os_shell('sudo docker inspect --format \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' ' + tid + ' | tail -n1', capture=True)
             if out.exit_code != 0:
                 raise Exception('Error: ' + out.stderr)
             task_ip = out.stdout
 
             # Set fields
-            task.tid    = task_tid
+            task.id = tid
             task.status = TaskStatuses.running
-            task.ip     = task_ip
-            task.port   = int(task.container.ports.split(',')[0])
+            task.interface_ip = task_ip
+            task.interface_port = task.container.interface_port
 
             # Save
             task.save()
@@ -145,9 +142,9 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         # Delete the Docker container
         standby_supported = False
         if standby_supported:
-            stop_command = 'sudo docker stop {}'.format(task.tid)
+            stop_command = 'sudo docker stop {}'.format(task.id)
         else:
-            stop_command = 'sudo docker stop {} && sudo docker rm {}'.format(task.tid,task.tid)
+            stop_command = 'sudo docker stop {} && sudo docker rm {}'.format(task.id,task.id)
     
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
@@ -164,7 +161,7 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
     def _get_task_log(self, task, **kwargs):
 
         # View the Docker container log (attach)
-        view_log_command = 'sudo docker logs {}'.format(task.tid,)
+        view_log_command = 'sudo docker logs {}'.format(task.id,)
         logger.debug(view_log_command)
         out = os_shell(view_log_command, capture=True)
         if out.exit_code != 0:
@@ -197,18 +194,17 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         from.utils import get_webapp_conn_string
         webapp_conn_string = get_webapp_conn_string()
             
-        # Run the container on the host (non blocking)
-        if task.container.type == 'singularity':
+        # Handle container runtime 
+        if task.computing.default_container_runtime == 'singularity':
 
-            task.tid    = task.uuid
-            task.save()
+            #if not task.container.supports_custom_interface_port:
+            #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
 
             # Set pass if any
-            if task.auth_pass:
-                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.auth_pass)
-            else:
-                authstring = ''
-
+            authstring = ''
+            if not task.requires_proxy_auth and task.password:
+                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
+                
             # Set binds, only from sys config if the resource is not owned by the user
             if self.computing.user != task.user:
                 binds = self.computing.sys_conf.get('binds')
@@ -232,19 +228,10 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT && {} '.format(authstring)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
-            # Set registry
-            if task.container.registry == 'docker_local':
-                # Get local Docker registry conn string
-                from.utils import get_local_docker_registry_conn_string
-                local_docker_registry_conn_string = get_local_docker_registry_conn_string()
-                registry = 'docker://{}/'.format(local_docker_registry_conn_string)
-            elif task.container.registry == 'docker_hub':
-                registry = 'docker://'
-            else:
-                raise NotImplementedError('Registry {} not supported'.format(task.container.registry))
-    
-            run_command+='{}{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(registry, task.container.image, task.uuid)
+            # Container part
+            run_command+='docker://{}/{}:{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(task.container.registry, task.container.image, task.container.tag, task.uuid)
             
+
         else:
             raise NotImplementedError('Container {} not supported'.format(task.container.type))
 
@@ -260,12 +247,8 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         task = Task.objects.get(uuid=task_uuid)
 
         # Save pid echoed by the command above
-        task_pid = out.stdout
+        task.id = out.stdout
 
-        # Set fields
-        #task.status = TaskStatuses.running
-        task.pid = task_pid
- 
         # Save
         task.save()
 
@@ -283,7 +266,7 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         user = self.computing.conf.get('user')
 
         # Stop the task remotely
-        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "kill -9 {}"\''.format(user_keys.private_key_file, user, host, task.pid)
+        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "kill -9 {}"\''.format(user_keys.private_key_file, user, host, task.id)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             if not 'No such process' in out.stderr:
@@ -357,17 +340,16 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         sbatch_args += ' --output=\$HOME/{}.log --error=\$HOME/{}.log '.format(task.uuid, task.uuid)
 
         # Submit the job
-        if task.container.type == 'singularity':
+        if task.computing.default_container_runtime == 'singularity':
 
-            #if not task.container.supports_dynamic_ports:
+            #if not task.container.supports_custom_interface_port:
             #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
 
             # Set pass if any
-            if task.auth_pass:
-                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.auth_pass)
-            else:
-                authstring = ''
-
+            authstring = ''
+            if not task.requires_proxy_auth and task.password:
+                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
+                
             # Set binds, only from sys config if the resource is not owned by the user
             if self.computing.user != task.user:
                 binds = self.computing.sys_conf.get('binds')
@@ -391,24 +373,11 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             run_command += 'rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp &>> \$HOME/{}.log && mkdir -p /tmp/{}_data/home &>> \$HOME/{}.log && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
-            # Double to escape for Pythom, six for shell (double times three as \\\ escapes a single slash in shell)
+            # Double to escape for Python, six for shell (double times three as \\\ escapes a single slash in shell)
+            run_command+='docker://{}/{}:{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(task.container.registry, task.container.image, task.container.tag, task.uuid, task.uuid, sbatch_args, task.uuid)
 
-            # Set registry
-            if task.container.registry == 'docker_local':
-                # Get local Docker registry conn string
-                from.utils import get_local_docker_registry_conn_string
-                local_docker_registry_conn_string = get_local_docker_registry_conn_string()
-                registry = 'docker://{}/'.format(local_docker_registry_conn_string)
-            elif task.container.registry == 'docker_hub':
-                registry = 'docker://'
-            else:
-                raise NotImplementedError('Registry {} not supported'.format(task.container.registry))
-    
-            run_command+='{}{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(registry, task.container.image, task.uuid, task.uuid, sbatch_args, task.uuid)
-
-            
         else:
-            raise NotImplementedError('Container {} not supported'.format(task.container.type))
+            raise NotImplementedError('Default container runtime "{}" not supported'.format(task.computing.default_container_runtime))
 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:
@@ -428,8 +397,8 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         task_uuid = task.uuid
         task = Task.objects.get(uuid=task_uuid)
 
-        # Save job id as task pid
-        task.pid = job_id
+        # Save job id as task id
+        task.id = job_id
         
         # Set status (only fi we get here before the agent which sets the status as running via the API)
         if task.status != TaskStatuses.running:
@@ -452,7 +421,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         user = self.computing.conf.get('user')
 
         # Stop the task remotely
-        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(user_keys.private_key_file, user, host, task.pid)
+        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(user_keys.private_key_file, user, host, task.id)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             raise Exception(out.stderr)

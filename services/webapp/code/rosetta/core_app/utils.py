@@ -504,9 +504,13 @@ def get_local_docker_registry_conn_string():
     local_docker_registry_conn_string = '{}:{}'.format(local_docker_registry_host, local_docker_registry_port)
     return local_docker_registry_conn_string
     
-def get_tunnel_host():
-    tunnel_host = os.environ.get('ROSETTA_TUNNEL_HOST', 'localhost')
+def get_task_tunnel_host():
+    tunnel_host = os.environ.get('TASK_TUNNEL_HOST', 'localhost')
     return tunnel_host
+
+def get_task_proxy_host():
+    proxy_host = os.environ.get('TASK_PROXY_HOST', 'localhost')
+    return proxy_host
 
 def hash_string_to_int(string):
     #int_hash = 0 
@@ -518,39 +522,48 @@ def hash_string_to_int(string):
 
 
 #================================
-#  Tunnel setup
+#  Tunnel (and proxy) setup
 #================================
 
-def setup_tunnel(task):
+def setup_tunnel_and_proxy(task):
 
     # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
     from .models import Task, KeyPair, TaskStatuses
     
     # If there is no tunnel port allocated yet, find one
-    if not task.tunnel_port:
+    if not task.tcp_tunnel_port:
 
         # Get a free port fot the tunnel:
-        allocated_tunnel_ports = []
+        allocated_tcp_tunnel_ports = []
         for other_task in Task.objects.all():
-            if other_task.tunnel_port and not other_task.status in [TaskStatuses.exited, TaskStatuses.stopped]:
-                allocated_tunnel_ports.append(other_task.tunnel_port)
+            if other_task.tcp_tunnel_port and not other_task.status in [TaskStatuses.exited, TaskStatuses.stopped]:
+                allocated_tcp_tunnel_ports.append(other_task.tcp_tunnel_port)
 
-        for port in range(7000, 7021):
-            if not port in allocated_tunnel_ports:
-                tunnel_port = port
-                break
-        if not tunnel_port:
+        if task.requires_proxy:
+            # Proxy ports are in the 9000-range
+            for port in range(9000, 9021):
+                if not port in allocated_tcp_tunnel_ports:
+                    tcp_tunnel_port = port
+                    break
+        else:
+            # Direct tunnel ports are in the 7000-range
+            for port in range(7000, 7021):
+                if not port in allocated_tcp_tunnel_ports:
+                    tcp_tunnel_port = port
+                    break
+
+        if not tcp_tunnel_port:
             logger.error('Cannot find a free port for the tunnel for task "{}"'.format(task))
             raise ErrorMessage('Cannot find a free port for the tunnel to the task')
 
-        task.tunnel_port = tunnel_port
+        task.tcp_tunnel_port = tcp_tunnel_port
         task.save()
 
 
-    # Check if the tunnel is active and if not create it
+    # Check if the tunnel is (still) active, if not create it
     logger.debug('Checking if task "{}" has a running tunnel'.format(task))
 
-    out = os_shell('ps -ef | grep ":{}:{}:{}" | grep -v grep'.format(task.tunnel_port, task.ip, task.port), capture=True)
+    out = os_shell('ps -ef | grep ":{}:{}:{}" | grep -v grep'.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port), capture=True)
 
     if out.exit_code == 0:
         logger.debug('Task "{}" has a running tunnel, using it'.format(task))
@@ -571,10 +584,10 @@ def setup_tunnel(task):
             #setup_command = task.computing.conf.get('setup_command')
             #base_port = task.computing.conf.get('base_port')
                      
-            tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tunnel_port, task.ip, task.port, first_user, first_host)
+            tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tcp_tunnel_port, task.interface_ip, task.interface_port, first_user, first_host)
 
         else:
-            tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tunnel_port, task.ip, task.port)
+            tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port)
         
         background_tunnel_command = 'nohup {} >/dev/null 2>&1 &'.format(tunnel_command)
 
@@ -583,6 +596,110 @@ def setup_tunnel(task):
 
         # Execute
         subprocess.Popen(background_tunnel_command, shell=True)
+
+  
+    # Setup the proxy now (if required.)
+    if task.requires_proxy:
+        
+        # Ensure conf directory exists
+        if not os.path.exists('/shared/etc_apache2_sites_enabled'):
+            os.makedirs('/shared/etc_apache2_sites_enabled')
+    
+        # Set conf file name
+        apache_conf_file = '/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid)
+    
+        # Check if proxy conf exists 
+        if not os.path.exists(apache_conf_file):
+    
+            # Write conf file
+            # Some info about the various SSL switches: https://serverfault.com/questions/577616/using-https-between-apache-loadbalancer-and-backends
+            logger.debug('Writing task proxy conf to {}'.format(apache_conf_file))
+            websocket_protocol = 'wss' if task.container.interface_protocol == 'https' else 'ws'
+            task_proxy_host = get_task_proxy_host()
+            apache_conf_content = '''
+#---------------------------
+#  Task interface proxy 
+#---------------------------
+
+#<Location /desktop/{0}/>
+#
+
+#ProxyPass http://desktop-{0}:8590/
+#ProxyPassReverse http://desktop-{0}:8590/
+#</Location>     
+
+#<Location /sessions/{1}>
+#ProxyPass ws://desktop-{0}:8590/websockify
+#ProxyPassReverse ws://desktop-{0}:8590/websockify
+#</Location>
+
+Listen '''+str(task.tcp_tunnel_port)+'''
+<VirtualHost _default_:'''+str(task.tcp_tunnel_port)+'''>
+    
+    ServerName  '''+task_proxy_host+'''
+    ServerAdmin admin@rosetta
+    
+    SSLEngine on
+    SSLCertificateFile /root/certificates/rosetta_platform/rosetta_tasks.crt
+    SSLCertificateKeyFile /root/certificates/rosetta_platform/rosetta_tasks.key
+    SSLCACertificateFile /root/certificates/rosetta_platform/rosetta_tasks.ca-bundle
+    
+    SSLProxyEngine On
+    SSLProxyVerify none 
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerName off  
+
+    BrowserMatch "MSIE [2-6]" \
+        nokeepalive ssl-unclean-shutdown \
+        downgrade-1.0 force-response-1.0
+    BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
+
+    # Use RewriteEngine to handle websocket connection upgrades
+    RewriteEngine On
+    RewriteCond %{HTTP:Connection} Upgrade [NC]
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteRule /(.*) '''+str(websocket_protocol)+'''://webapp:'''+str(task.tcp_tunnel_port)+'''/$1 [P,L]
+
+    <Location "/">
+      AuthType Basic
+      AuthName "Restricted area"
+      AuthUserFile /shared/etc_apache2_sites_enabled/'''+str(task.uuid)+'''.htpasswd
+      Require valid-user  
+
+      # preserve Host header to avoid cross-origin problems
+      ProxyPreserveHost on
+      # proxy to the port
+      ProxyPass         '''+str(task.container.interface_protocol)+'''://webapp:'''+str(task.tcp_tunnel_port)+'''/
+      ProxyPassReverse  '''+str(task.container.interface_protocol)+'''://webapp:'''+str(task.tcp_tunnel_port)+'''/
+    </Location>
+
+</VirtualHost>
+
+'''
+            with open(apache_conf_file, 'w') as f:
+                f.write(apache_conf_content)
+    
+        # Now check if conf exist on proxy
+        logger.debug('Checking if conf is enabled on proxy service')
+        out = os_shell('ssh -o StrictHostKeyChecking=no proxy "[ -e /etc/apache2/sites-enabled/{}.conf ]"'.format(task.uuid), capture=True)
+    
+        if out.exit_code == 1:
+      
+            logger.debug('Conf not enabled on proxy service, linkig it and reloading Apache conf')
+      
+            # Link on proxy since conf does not exist
+            out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo ln -s /shared/etc_apache2_sites_enabled/{0}.conf /etc/apache2/sites-enabled/{0}.conf"'.format(task.uuid), capture=True)
+            if out.exit_code != 0:
+                logger.error(out.stderr)
+                raise ErrorMessage('Somthing went wrong when activating the task proxy conf')        
+            
+            # Reload apache conf on Proxy
+            out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo apache2ctl graceful"', capture=True)
+            if out.exit_code != 0:
+                logger.error(out.stderr) 
+                raise ErrorMessage('Somthing went wrong when loading the task proxy conf')        
+            
+
 
 
 

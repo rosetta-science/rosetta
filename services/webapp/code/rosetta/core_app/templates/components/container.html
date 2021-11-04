@@ -2,36 +2,18 @@
 
       {% if details %}      
 
-      <table class="dashboard" style="margin:10px">
+      <table class="dashboard" style="margin:10px; max-width:600px">
         
        <tr>
-        <td colspan="2" style="background:{{ container.color }}; height:15px">
-        </td>
+        <td colspan="2" style="background:{{ container.color }}; height:15px"></td>
        </tr>
+
+       <tr><td colspan=2 style="height:5px"></td></tr>
+
 
        <tr>
         <td><b>Name</b></td>
         <td>{{ container.name }}</td>
-       </tr>
-
-       <tr>
-        <td><b>ID</b></td>
-        <td>{{ container.id }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Image</b></td>
-        <td>{{ container.image_name }}</td>
-       </tr>
-
-       <tr>
-        <td><b>V. tag</b></td>
-        <td>{{ container.image_tag }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Type</b></td>
-        <td>{{ container.type }}</td>
        </tr>
 
        <tr>
@@ -40,24 +22,61 @@
        </tr>
 
        <tr>
+        <td><b>Description</b></td>
+        <td>{{ container.description }}</td>
+       </tr>
+
+       <tr><td colspan=2><hr style="margin:5px"></td></tr>
+
+       <tr>
         <td><b>Registry</b></td>
         <td>{{ container.registry }}</td>
        </tr>
 
        <tr>
-        <td><b>Protocol</b></td>
-        <td>{{ container.protocol }}</td>
+        <td><b>Image</b></td>
+        <td><code>{{ container.image }}</code></td>
        </tr>
 
        <tr>
-        <td colspan=2><b>Default port(s)</b>
-        &nbsp; &nbsp;{{ container.ports }}</td>
+        <td><b>Tag</b></td>
+        <td>{{ container.tag }}</td>
        </tr>
+
+       <tr><td colspan=2><hr style="margin:5px"></td></tr>
+
+       <tr>
+        <td><b>Protocol</b></td>
+        <td>{{ container.interface_protocol }}</td>
+       </tr>
+
+       <tr>
+        <td><b>Port</b></td>
+        <td>{{ container.interface_port }}</td>
+       </tr>
+
+       <tr>
+        <td><b>Transport</b></td>
+        <td>{{ container.interface_transport }}</td>
+       </tr>
+
+       <tr>
+        <td><b>Architecture</b></td>
+        <td>{{ container.arch }}</td>
+       </tr>
+
+
+       <tr>
+        <td><b>OS</b></td>
+        <td>{{ container.os }}</td>
+       </tr>
+
+       <tr><td colspan=2><hr style="margin:5px"></td></tr>
 
        <tr>
         <td colspan=2>
-         <b>Supports dynamic ports</b> &nbsp; 
-         {% if container.supports_dynamic_ports %}
+         <b>Supports custom interface port</b> &nbsp; 
+         {% if container.supports_custom_interface_port %}
            <input type="checkbox" name="container_supports_user_auth" checked disabled/> 
          {% else %}
            <input type="checkbox" name="container_supports_user_auth" disabled/> 
@@ -67,21 +86,11 @@
 
        <tr>
         <td colspan=2>
-         <b>Supports user auth</b> &nbsp; 
-         {% if container.supports_user_auth %}
-           <input type="checkbox" name="supports_user_auth" checked disabled/> 
+         <b>Supports interface auth</b> &nbsp; 
+         {% if container.supports_interface_auth %}
+           <input type="checkbox" name="supports_interface_auth" checked disabled/> 
          {% else %}
-           <input type="checkbox" name="supports_user_auth" disabled/> 
-         {% endif %}        </td>
-       </tr>
-
-       <tr>
-        <td colspan=2>
-         <b>Supports pass auth</b> &nbsp; 
-         {% if container.supports_pass_auth %}
-           <input type="checkbox" name="supports_pass_auth" checked disabled/> 
-         {% else %}
-           <input type="checkbox" name="supports_pass_auth" disabled/> 
+           <input type="checkbox" name="supports_interface_auth" disabled/> 
          {% endif %}        </td>
        </tr>
 
@@ -101,18 +110,31 @@
 
         
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
-        <a href="?uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
-        {% if container.type == 'docker' %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
-        {% if container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
+        <a href="/containers/?uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
         </div>
         
-        <div style="padding:10px; height: 64px; vertical-align: middle;">
-        <b>Image:</b> {{ container.image_name }}<br/>
-        <b>Version:</b> {{ container.image_tag }}
+        <div style="padding:10px; height: 110px; vertical-align: middle; ">
+        
+        {% if container.description %} 
+        <div class="description-box" title="{{ container.description }}">
+        {{ container.description }}
+        </div>
+        {% else %}
+        <br/>  
+        {% endif %}
+        
+        <div class="image-version-box">
+        <!-- <font style="font-family:monospace; font-size:1.2em"></font> -->
+        <b>Image:</b> <code>{{ container.image }}</code><br/>
+        <b>Tag:</b> &nbsp;{{ container.tag }}
+        </div> 
+       
         </div>
         
         <div style="margin-bottom:13px; margin-top: 3px; text-align:center">
+        {% if not disable_play_button %}
         <a href="/create_task?task_container_uuid={{ container.uuid }}&step=two" class="btn btn-light" style="border: #c0c0c0 1px solid">&nbsp;<i class="fa fa-play" style="color:green"></i></a>
+        {% endif %}
         </div>    
       
       

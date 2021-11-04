@@ -8,8 +8,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
+from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingSysConf, ComputingUserConf, Text
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_tunnel_host, random_username, setup_tunnel, finalize_user_creation
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
 
@@ -17,10 +18,6 @@ from .exceptions import ErrorMessage
 import logging
 logger = logging.getLogger(__name__)
 
-# Conf
-SUPPORTED_CONTAINER_TYPES = ['docker', 'singularity']
-SUPPORTED_REGISTRIES = ['docker_hub', 'singularity_hub'] # Registry "docker_local" is also supported but must be set manually
-UNSUPPORTED_TYPES_VS_REGISTRIES = ['docker:singularity_hub']
 
 # Task cache
 _task_cache = {}
@@ -326,6 +323,16 @@ def tasks(request):
                 try:
                     # Get the task (raises if none available including no permission)
                     task = Task.objects.get(user=request.user, uuid=uuid)
+
+                    # Re-remove proxy files before deleting the task itself just to be sure
+                    try:
+                        os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
+                    except:
+                        pass
+                    try:
+                        os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
+                    except:
+                        pass
     
                     # Delete
                     task.delete()
@@ -337,18 +344,21 @@ def tasks(request):
                     data['error'] = 'Error in deleting the task'
                     logger.error('Error in deleting task with uuid="{}": "{}"'.format(uuid, e))
                     return render(request, 'error.html', {'data': data})
-    
-            elif action=='stop': # or delete,a and if delete also remove object               
-                task.computing.manager.stop_task(task)
-
-            elif action=='connect':
                 
-                # First ensure that the tunnel is setu up
-                setup_tunnel(task)
 
-                # Then, redirect to the task through the tunnel
-                tunnel_host = get_tunnel_host()
-                return redirect('{}://{}:{}'.format(task.container.protocol, tunnel_host, task.tunnel_port))
+    
+            elif action=='stop': # or delete,a and if delete also remove object
+                # Remove proxy files. Do it here or will cause issues when reloading the conf re-using ports of stopped tasks.
+                try:
+                    os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
+                except:
+                    pass
+                try:
+                    os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
+                except:
+                    pass
+                   
+                task.computing.manager.stop_task(task)
 
         except Exception as e:
             data['error'] = 'Error in getting the task or performing the required action'
@@ -467,9 +477,9 @@ def create_task(request):
 
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
-
-        # Get task name
-        data['task_name'] = get_task_name(request)
+        
+        # Generate random auth token        
+        data['task_auth_token'] = str(uuid.uuid4())
 
         # Set current and next step
         data['step'] = 'three'
@@ -499,18 +509,33 @@ def create_task(request):
                     computing = data['task_computing'])
 
         # Add auth
-        task.auth_user     = request.POST.get('auth_user', None)
-        task.auth_pass     = request.POST.get('auth_password', None)
-        task.access_method = request.POST.get('access_method', None)
-        task_base_port     = request.POST.get('task_base_port', None)
+        task_auth_password = request.POST.get('task_auth_password', None)
+        task_auth_token = request.POST.get('task_auth_token', None)
+        if task_auth_password:
+            if task_auth_password != task_auth_token: # Just an extra check probably not much useful
+                if not task_auth_password:
+                    raise ErrorMessage('No task password set')
+                if len(task_auth_password) < 6:
+                    raise ErrorMessage('Task password must be at least 6 chars')
+                task.password = task_auth_password # Not stored in the ORM model, just a temporary var.
+        else:
+            task.auth_token = task_auth_token # This is saved on the ORM model
+            task.password = task_auth_token # Not stored
+
+        # Any task requires the TCP tunnel for now
+        task.requires_tcp_tunnel = True
         
-        if task_base_port:
-            task.port = task_base_port
-        
-        # Checks
-        if task.auth_pass and len(task.auth_pass) < 6:
-            raise ErrorMessage('Task password must be at least 6 chars') 
-        
+        # Task access method
+        access_method = request.POST.get('access_method', None)
+        if access_method == 'direct_tunnel':
+            task.requires_proxy      = False
+            task.requires_proxy_auth = False            
+        elif access_method == 'https_proxy':
+            task.requires_proxy      = True
+            task.requires_proxy_auth = True
+        else:
+            raise ErrorMessage('Unknow access method "{}"'.format(access_method))
+
         # Computing options # TODO: This is hardcoded thinking about Slurm and Singularity
         computing_cpus = request.POST.get('computing_cpus', None)
         computing_memory = request.POST.get('computing_memory', None)
@@ -537,11 +562,6 @@ def create_task(request):
         # Attach user config to computing
         task.computing.attach_user_conf(task.user)
 
-        # Set port if not dynamic ports
-        if not task.container.supports_dynamic_ports:
-            if task.container.ports:
-                task.port = task.container.port
-    
         # Set extra binds if any:
         task.extra_binds = extra_binds
 
@@ -557,6 +577,13 @@ def create_task(request):
             
             # ..and re-raise
             raise
+
+        # Add here proxy auth file as we have the password
+        if task.requires_proxy_auth:
+            out = os_shell('ssh -o StrictHostKeyChecking=no proxy "cd /shared/etc_apache2_sites_enabled/ && htpasswd -bc {}.htpasswd {} {}"'.format(task.uuid, task.user.email, task.password), capture=True)
+            if out.exit_code != 0:
+                logger.error(out.stderr)
+                raise ErrorMessage('Something went wrong when enabling proxy auth')   
 
         # Set step        
         data['step'] = 'created'
@@ -629,11 +656,11 @@ def containers(request):
 
     # Get filter/search if any
     search_text   = request.POST.get('search_text', '')
-    search_type = request.POST.get('search_type', 'All')
+    search_owner  = request.POST.get('search_owner', 'All')
 
     # Set back to page data
-    data['search_type'] = search_type
-    data['search_text'] = search_text
+    data['search_owner'] = search_owner
+    data['search_text']  = search_text
 
     # Are we using this page as first step of a new task?
     data['mode'] = request.GET.get('mode', None)
@@ -660,6 +687,9 @@ def containers(request):
 
                 # Delete
                 container.delete()
+                
+                # Redirect
+                return HttpResponseRedirect('/containers')
 
         except Exception as e:
             data['error'] = 'Error in getting the container or performing the required action'
@@ -667,24 +697,22 @@ def containers(request):
             return render(request, 'error.html', {'data': data})
 
 
-    # Get containers for list
-    if search_type and search_type != 'All':
-        if search_text:
-            user_containers = Container.objects.filter(user=None, type=search_type.lower(), name__icontains=search_text)
-            platform_containers = Container.objects.filter(user=request.user, type=search_type.lower(), name__icontains=search_text)
-        else:
-            user_containers = Container.objects.filter(user=None, type=search_type.lower())
-            platform_containers = Container.objects.filter(user=request.user, type=search_type.lower())
-                    
+    # Get containers (fitered by search term, or all)
+    if search_text:
+        search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image__icontains=search_text))
+        user_containers = Container.objects.filter(search_query, user=request.user)
+        platform_containers = Container.objects.filter(search_query, user=None)
     else:
-        if search_text:
-            user_containers = Container.objects.filter(user=None, name__icontains=search_text)
-            platform_containers = Container.objects.filter(user=request.user, name__icontains=search_text)        
-        else:
-            user_containers = Container.objects.filter(user=None)
-            platform_containers = Container.objects.filter(user=request.user)
-                    
+        user_containers = Container.objects.filter(user=request.user)
+        platform_containers = Container.objects.filter(user=None)
     
+    # Filter by owner
+    if search_owner != 'All':
+        if search_owner == 'User':
+            platform_containers =[]
+        if search_owner == 'Platform':
+            user_containers = []
+
     data['containers'] = list(user_containers) + list(platform_containers)
 
     return render(request, 'containers.html', {'data': data})
@@ -704,78 +732,73 @@ def add_container(request):
     data['profile'] = Profile.objects.get(user=request.user)
     data['title']   = 'Add container'
 
-    # Container image if any
-    container_image = request.POST.get('container_image',None)
+    # Container name if setting up a new container
+    container_name = request.POST.get('container_name', None)
 
-    if container_image:
+    if container_name:
 
-        # Container type
-        container_type = request.POST.get('container_type', None)
-        if not container_type:
-            raise ErrorMessage('No container type given')
-        if not container_type in SUPPORTED_CONTAINER_TYPES:
-            raise ErrorMessage('No valid container type, got "{}"'.format(container_type))
+        # Container description
+        container_description = request.POST.get('container_description', None)
 
         # Container registry
         container_registry = request.POST.get('container_registry', None)
-        if not container_registry:
-            raise ErrorMessage('No registry type given')
-        if not container_registry in SUPPORTED_REGISTRIES:
-            raise ErrorMessage('No valid container registry, got "{}"'.format(container_registry))
 
-        # Check container type vs container registry compatibility
-        if container_type+':'+container_registry in UNSUPPORTED_TYPES_VS_REGISTRIES:
-            raise ErrorMessage('Sorry, container type "{}" is not compatible with registry type "{}"'.format(container_type, container_registry))
-
-        # Container name
-        container_name = request.POST.get('container_name', None)
-
-        # Container protocol 
-        container_protocol = request.POST.get('container_protocol')
-
-        # Container service ports. TODO: support multiple ports? 
-        container_ports = request.POST.get('container_ports', None)
+        # Container image
+        container_image = request.POST.get('container_image',None)
         
-        if container_ports:       
+        # Container tag
+        container_tag = request.POST.get('container_tag', None)
+
+        # Container architecture
+        container_arch = request.POST.get('container_arch')
+
+        # Container operating system
+        container_os = request.POST.get('container_os')
+
+        # Container interface port
+        container_interface_port = request.POST.get('container_interface_port', None) 
+        if container_interface_port:       
             try:
-                for container_service_port in container_ports.split(','):
-                    int(container_service_port)
+                int(container_interface_port)
             except:
-                raise ErrorMessage('Invalid container port(s) in "{}"'.format(container_ports))
+                raise ErrorMessage('Invalid container port "{}"')
+
+        # Container interface protocol 
+        container_interface_protocol = request.POST.get('container_interface_protocol')
+
+        # Container interface transport 
+        container_interface_transport = request.POST.get('container_interface_transport')
+        logger.critical('Creating with desc={}, transp={}'.format(container_description, container_interface_transport))
         # Capabilities
-        container_supports_dynamic_ports = request.POST.get('container_supports_dynamic_ports', None)
-        if container_supports_dynamic_ports and container_supports_dynamic_ports == 'True':
-            container_supports_dynamic_ports = True
+        container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
+        if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':
+            container_supports_custom_interface_port = True
         else:
-            container_supports_dynamic_ports = False
+            container_supports_custom_interface_port = False
 
-        container_supports_user_auth = request.POST.get('container_supports_user_auth', None)
-        if container_supports_user_auth and container_supports_user_auth == 'True':
-            container_supports_user_auth = True
-        else:
-            container_supports_user_auth = False
-
-        container_supports_pass_auth = request.POST.get('container_supports_pass_auth', None)
-        if container_supports_pass_auth and container_supports_pass_auth == 'True':
+        container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
+        if container_supports_interface_auth and container_supports_interface_auth == 'True':
             container_supports_pass_auth = True
         else:
             container_supports_pass_auth = False
 
         # Log
-        logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
+        #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
 
         # Create
-        Container.objects.create(user     = request.user,
-                                 image    = container_image,
-                                 name     = container_name,
-                                 type     = container_type,
-                                 registry = container_registry,
-                                 protocol = container_protocol,
-                                 ports    = container_ports,
-                                 supports_dynamic_ports = container_supports_dynamic_ports,
-                                 supports_user_auth     = container_supports_user_auth,
-                                 supports_pass_auth     = container_supports_pass_auth,
-                                 )
+        Container.objects.create(user        = request.user,
+                                 name        = container_name,
+                                 description = container_description,
+                                 registry    = container_registry,
+                                 image       = container_image,
+                                 tag         = container_tag,
+                                 arch        = container_arch,
+                                 os          = container_os,
+                                 interface_port      = container_interface_port,
+                                 interface_protocol  = container_interface_protocol,
+                                 interface_transport = container_interface_transport,
+                                 supports_custom_interface_port = container_supports_custom_interface_port,
+                                 supports_interface_auth = container_supports_pass_auth)
         # Set added switch
         data['added'] = True
 
@@ -938,24 +961,93 @@ def edit_computing_conf(request):
     return render(request, 'edit_computing_conf.html', {'data': data})
 
 
-
 #=========================
-#  Sharable link handler
+#  Task connect
 #=========================
 
-@public_view
-def sharable_link_handler(request, id):
+@private_view
+def task_connect(request):
+
+    task_uuid = request.GET.get('uuid', None)
+    if not task_uuid:
+        raise ErrorMessage('Empty task uuid')
+
 
     # Get the task     
-    task = Task.objects.get(uuid__startswith=id)
-
-    # First ensure that the tunnel is setu up
-    setup_tunnel(task)
-
-    # Then, redirect to the task through the tunnel
-    tunnel_host = get_tunnel_host()
-    return redirect('{}://{}:{}'.format(task.container.protocol, tunnel_host,task.tunnel_port))
+    #task = Task.objects.get(uuid__startswith=short_uuid)
+    task = Task.objects.get(uuid=task_uuid)
     
+    if task.user != request.user:
+        raise ErrorMessage('You do not have access to this task.')
+    
+    data ={}
+    data['task'] = task
+    
+    return render(request, 'task_connect.html', {'data': data})
+
+
+#===========================
+# Direct connection handler
+#===========================
+
+@private_view
+def direct_connection_handler(request, uuid):
+
+    # Get the task     
+    #task = Task.objects.get(uuid__startswith=short_uuid)
+    task = Task.objects.get(uuid=uuid)
+
+    if task.user != request.user:
+        raise ErrorMessage('You do not have access to this task.')
+
+    # First ensure that the tunnel and proxy are set up
+    setup_tunnel_and_proxy(task)
+    
+    # Get task and tunnel proxy host
+    task_proxy_host = get_task_proxy_host()
+    task_tunnel_host = get_task_tunnel_host()
+
+    # Redirect to the task through the tunnel    
+    if task.requires_proxy:
+        if task.requires_proxy_auth and task.auth_token:
+            user = request.user.email
+            password = task.auth_token
+            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, task_proxy_host, task.tcp_tunnel_port)        
+        else:
+            redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
+    else:
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, task_tunnel_host, task.tcp_tunnel_port)
+    
+    logger.debug('Task direct connect redirect: "{}"'.format(redirect_string))
+    return redirect(redirect_string)
+        
+    
+
+#===========================
+#  Sharable link handler
+#===========================
+
+@public_view
+def sharable_link_handler(request, short_uuid):
+
+    # Get the task (if the short uuid is not enough an error wil be raised)
+    task = Task.objects.get(uuid__startswith=short_uuid)
+    
+    # First ensure that the tunnel and proxy are set up
+    setup_tunnel_and_proxy(task)
+    
+    # Get task and tunnel proxy host
+    task_proxy_host = get_task_proxy_host()
+    task_tunnel_host = get_task_tunnel_host()
+
+    # Redirect to the task through the tunnel    
+    if task.requires_proxy:
+        redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
+    else:
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, task_tunnel_host, task.tcp_tunnel_port)
+    
+    logger.debug('Task sharable link connect redirect: "{}"'.format(redirect_string))
+    return redirect(redirect_string)
 
 
 #=========================

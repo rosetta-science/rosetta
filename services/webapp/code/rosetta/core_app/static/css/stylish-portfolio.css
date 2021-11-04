@@ -142,9 +142,9 @@ hr.small {
     z-index: 1000;
     position: fixed;
     right: 0;
-    width: 250px;
+    width: 240px;
     height: 100%;
-    margin-right: -250px;
+    margin-right: -240px;
     overflow-y: auto;
     background: #222;
     -webkit-transition: all 0.4s ease 0s;
@@ -157,7 +157,7 @@ hr.small {
 .sidebar-nav {
     position: absolute;
     top: 0;
-    width: 250px;
+    width: 240px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -165,7 +165,7 @@ hr.small {
 
 .sidebar-nav li {
     text-indent: 20px;
-    line-height: 27px;
+    line-height: 32px; 
 }
 
 .sidebar-nav li a {
@@ -210,8 +210,8 @@ hr.small {
 }
 
 #sidebar-wrapper.active {
-    right: 250px;
-    width: 250px;
+    right: 240px;
+    width: 240px;
     -webkit-transition: all 0.4s ease 0s;
     -moz-transition: all 0.4s ease 0s;
     -ms-transition: all 0.4s ease 0s;
@@ -571,6 +571,27 @@ th, td {
 
 
 
+.description-box { 
+  width: 100%; 
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 5px;
+  line-height:1.3em;
+  font-size:0.9em
+}
+
+
+.image-version-box { 
+  width: 100%; 
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 5px;
+  font-size:0.9em
+}
 
 
 

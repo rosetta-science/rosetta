@@ -305,25 +305,25 @@ print(port)
 
         elif action=='set_ip_port':
             
-            task_ip   = request.GET.get('ip', None)
-            if not task_ip:
-                return HttpResponse('IP not valid (got "{}")'.format(task_ip))
+            task_interface_ip   = request.GET.get('ip', None)
+            if not task_interface_ip:
+                return HttpResponse('IP not valid (got "{}")'.format(task_interface_ip))
             
-            task_port = request.GET.get('port', None)
-            if not task_port:
-                return HttpResponse('Port not valid (got "{}")'.format(task_port))
+            task_interface_port = request.GET.get('port', None)
+            if not task_interface_port:
+                return HttpResponse('Port not valid (got "{}")'.format(task_interface_port))
             
             try:
-                int(task_port)
+                int(task_interface_port)
             except (TypeError, ValueError):
-                return HttpResponse('Port not valid (got "{}")'.format(task_port))
+                return HttpResponse('Port not valid (got "{}")'.format(task_interface_port))
               
             # Set fields
-            logger.info('Setting task "{}" to ip "{}" and port "{}"'.format(task.uuid, task_ip, task_port))
+            logger.info('Setting task "{}" to ip "{}" and port "{}"'.format(task.uuid, task_interface_ip, task_interface_port))
             task.status = TaskStatuses.running
-            task.ip     = task_ip
-            if task.container.supports_dynamic_ports:
-                task.port = int(task_port)
+            task.interface_ip = task_interface_ip
+            if task.container.supports_custom_interface_port:
+                task.interface_port = int(task_interface_port)
             task.save()
                     
             # Notify the user that the task called back home

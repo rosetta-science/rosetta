@@ -27,12 +27,13 @@ logger = logging.getLogger(__name__)
 # Task statuses
 class TaskStatuses(object):
     created = 'created'
-    sumbitted = 'sumbitted'
+    sumbitted = 'sumbitted' # TODO: fix me!
     running = 'running'
     stopped = 'stopped'
     exited = 'exited'
 
-
+# All char model attributes are based on a 36 chars field. This is for making it easy to switch
+# using an UUID pointing to some other model instead of the value in future, should this be necessary.
 
 #=========================
 #  Profile 
@@ -78,54 +79,47 @@ class Container(models.Model):
     user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)  
     # If a container has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
 
-    name     = models.CharField('Container Name', max_length=255, blank=False, null=False)    
-    image    = models.CharField('Container image', max_length=255, blank=False, null=False)
-    type     = models.CharField('Container type', max_length=36, blank=False, null=False)
-    registry = models.CharField('Container registry', max_length=255, blank=False, null=False)
-    ports    = models.CharField('Container ports', max_length=36, blank=True, null=True)
-    protocol = models.CharField('Container protocol', max_length=36, blank=True, null=True, default='http')
+    # Generic attributes
+    name        = models.CharField('Name', max_length=255, blank=False, null=False)
+    description = models.TextField('Description', blank=True, null=True)
+    
+    # Registry-related attributes
+    registry = models.CharField('Registry', max_length=255, blank=False, null=False)
+    image    = models.CharField('Image', max_length=255, blank=False, null=False)
+    tag      = models.CharField('Tag', max_length=255, blank=False, null=False, default='latest')
+
+    # Platform-related
+    arch = models.CharField('Architecture', max_length=36, blank=False, null=False, default='x86_64')
+    os   = models.CharField('Operating system', max_length=36, blank=False, null=False, default='linux')
+    
+    # TODO: do we want more control with respect to kernel, CPUs, instruction sets? 
+    # requires = i.e. kernel > 3, intel, AVX2
+    
+    # Port, protocol and transport for the container interface
+    interface_port = models.IntegerField('Interface port', blank=True, null=True) 
+    interface_protocol = models.CharField('Interface protocol', max_length=36, blank=True, null=True)
+    interface_transport = models.CharField('Interface transport', max_length=36, blank=True, null=True)
 
     # Capabilities
-    supports_dynamic_ports = models.BooleanField(default=False)
-    supports_user_auth = models.BooleanField(default=False)
-    supports_pass_auth = models.BooleanField(default=False)
-
+    supports_custom_interface_port = models.BooleanField('Supports custom interface port', default=False) # BASE_PORT
+    supports_interface_auth = models.BooleanField('Supports interface auth', default=False) # AUTH_USER / AUTH_PASS
 
     class Meta:
         ordering = ['name']
 
-
     def __str__(self):
-        return str('Container "{}" of type "{}" with image "{}" and  ports "{}" from registry "{}" of user "{}"'.format(self.name, self.type, self.image, self.ports, self.registry, self.user))
+        return str('Container "{}" with image "{}" and tag "{}" of user "{}" on registry "{}" '.format(self.name, self.image, self.tag, self.user, self.registry))
 
-
-    @property
-    def id(self):
-        return str(self.uuid).split('-')[0]
+    #@property
+    #def id(self):
+    #    return str(self.uuid).split('-')[0]
 
     @ property
     def color(self):
-        string_int_hash = hash_string_to_int(self.name + self.type + self.image)
+        string_int_hash = hash_string_to_int(self.registry + self.image + self.tag)
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
 
-    @property 
-    def port(self):
-        if not self.ports:
-            return None
-        return(int(self.ports.split(',')[0]))
-
-
-    @property 
-    def image_name(self):
-        return self.image.split(':')[0]
-    
-    def image_tag(self):
-        
-        if ':' in self.image:
-            return self.image.split(':')[1]
-        else:
-            return 'latest'
 
 #=========================
 #  Computing resources
@@ -137,34 +131,23 @@ class Computing(models.Model):
     user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)
     # If a compute resource has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
     
-    name = models.CharField('Computing Name', max_length=255, blank=False, null=False)
-    type = models.CharField('Computing Type', max_length=255, blank=False, null=False)
-    access_method = models.CharField('Computing Access method', max_length=255, blank=False, null=False)
+    name        = models.CharField('Name', max_length=255, blank=False, null=False)
+    description = models.TextField('Description', blank=True, null=True)
+
+    # Standalone / sluster
+    type = models.CharField('Type', max_length=255, blank=False, null=False)
 
     requires_sys_conf  = models.BooleanField(default=False)
     requires_user_conf = models.BooleanField(default=False)
     requires_user_keys = models.BooleanField(default=False)
 
-    supports_docker  = models.BooleanField(default=False)
-    supports_singularity  = models.BooleanField(default=False)
-
-    @property
-    def type_str(self):
-        # TODO: improve me?
-        if self.type == 'cluster':
-            return 'Cluster'
-        elif self.type == 'singlenode':
-            return 'Single Node'
-        else:
-            raise ConsistencyException('Unknown computing resource type "{}"'.format(self.type))
-
-    @property
-    def access_method_str(self):
-        # TODO: improve me?
-        access_method = self.access_method
-        access_method = access_method.replace('ssh', 'SSH')
-        access_method = access_method.replace('slurm', 'Slurm')
-        return access_method
+    # Interfce and interaction definition
+    access_mode = models.CharField('Access (control) mode', max_length=36, blank=False, null=False)
+    auth_mode   = models.CharField('Auth mode', max_length=36, blank=False, null=False)
+    wms         = models.CharField('Workload management system', max_length=36, blank=True, null=True)
+    
+    # Supported container runtimes
+    container_runtimes = models.CharField('Container runtimes', max_length=256, blank=False, null=False) 
 
     class Meta:
         ordering = ['name']
@@ -185,6 +168,10 @@ class Computing(models.Model):
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
 
+    @property
+    def default_container_runtime(self):
+        return str(self.container_runtimes).split(',')[0]
+
 
     #=======================
     # Computing manager
@@ -198,14 +185,14 @@ class Computing(models.Model):
         try:
             return self._manager
         except AttributeError:
-            if self.type == 'cluster' and self.access_method == 'slurm+ssh':
+            if self.type == 'cluster' and self.access_mode == 'ssh+cli' and self.auth_mode == 'user_keys' and self.wms == 'slurm':
                 self._manager = computing_managers.SlurmSSHClusterComputingManager(self)
-            elif self.type == 'singlenode' and self.access_method == 'ssh':
-                self._manager = computing_managers.SSHSingleNodeComputingManager(self)            
-            elif self.type == 'singlenode' and self.access_method == 'internal':
+            elif self.type == 'standalone' and self.access_mode == 'ssh+cli' and self.auth_mode == 'user_keys' and self.wms is None:
+                self._manager = computing_managers.SSHSingleNodeComputingManager(self)
+            elif self.type == 'standalone' and self.access_mode == 'internal' and self.auth_mode == 'internal' and self.wms is None:
                 self._manager = computing_managers.InternalSingleNodeComputingManager(self)
             else:
-                raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}" and access mode "{}"'.format(self.type, self.access_method))
+                raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}", access mode "{}" and WMS "{}"'.format(self.type, self.access_mode, self.wms))
             return self._manager
     
     
@@ -301,29 +288,39 @@ class ComputingUserConf(models.Model):
 
 class Task(models.Model):
 
-    uuid      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user      = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE)
-    tid       = models.CharField('Task ID', max_length=64, blank=True, null=True)
-    name      = models.CharField('Task name', max_length=36, blank=False, null=False)
-    status    = models.CharField('Task status', max_length=36, blank=True, null=True)
+    uuid  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user  = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE)
+    name  = models.CharField('Name', max_length=36, blank=False, null=False)
+
+    # Task management
+    id        = models.CharField('ID', max_length=64, blank=True, null=True) # i.e. Slurm job id, singularity PID, docker hash
+    status    = models.CharField('Status', max_length=36, blank=True, null=True)
     created   = models.DateTimeField('Created on', default=timezone.now)
-    pid       = models.IntegerField('Task pid', blank=True, null=True)
-    port      = models.IntegerField('Task port', blank=True, null=True)
-    ip        = models.CharField('Task ip address', max_length=36, blank=True, null=True)
-    tunnel_port = models.IntegerField('Task tunnel port', blank=True, null=True)
-    extra_binds = models.CharField('Extra binds', max_length=4096, blank=True, null=True)
+
+    # How to reach the task interface. The IP has to be intended either as the container IP if this is directly
+    # reachable (i.e. using a Docker or Kubernetes network) or as the host IP address, depending on the
+    # computing resource and its computing manager/WMS/container runtime. The port is to be intended
+    # as the port where the task interface is exposed on its IP address.
+    interface_ip   = models.CharField('Interface IP address', max_length=36, blank=True, null=True)
+    interface_port = models.IntegerField('Interface port', blank=True, null=True) 
+    
+    # Task access
+    requires_tcp_tunnel = models.BooleanField('Requires a TCP tunnel')
+    tcp_tunnel_port     = models.IntegerField('TCP tunnel port', blank=True, null=True)
+    requires_proxy      = models.BooleanField('Requires proxy')
+    requires_proxy_auth = models.BooleanField('Requires proxy auth')
+    auth_token          = models.CharField('Auth token', max_length=36, blank=True, null=True) # A one-time token for proxy or interface authentication
 
     # Links
     computing = models.ForeignKey(Computing, related_name='+', on_delete=models.CASCADE)
     container = models.ForeignKey('Container', on_delete=models.CASCADE, related_name='+')
 
-    # Auth
-    auth_user     = models.CharField('Task auth user', max_length=36, blank=True, null=True)
-    auth_pass     = models.CharField('Task auth pass', max_length=36, blank=True, null=True)
-    access_method = models.CharField('Task access method', max_length=36, blank=True, null=True)
-
-    # Computing options
-    computing_options = JSONField(blank=True, null=True)
+    # Extra 
+    extra_binds = models.CharField('Extra binds', max_length=4096, blank=True, null=True)
+    computing_options = JSONField('Computing options', blank=True, null=True) # i.e. CPUs, RAM, cluster partition etc. TODO: why here?
+    
+    # TODO: add the option for selecting the runtime as advanced option when creating the task
+    #container_runtime 
 
     class Meta:
         ordering = ['-created']
@@ -360,9 +357,9 @@ class Task(models.Model):
                 
             self.save()                   
 
-    @property
-    def id(self):
-        return str(self.uuid).split('-')[0]
+    #@property
+    #def id(self):
+    #    return str(self.uuid).split('-')[0]
 
 
     def __str__(self):
@@ -375,9 +372,13 @@ class Task(models.Model):
         return color_map[color_map_index]
     
     @property
-    def direct_link(self):
-        return '{}/t/{}'.format(settings.DJANGO_PUBLIC_HTTP_HOST, self.id)
-
+    def sharable_link(self):
+        return '{}/t/{}'.format(settings.DJANGO_PUBLIC_HTTP_HOST, str(self.uuid)[0:8])
+    
+    @property
+    def tcp_tunnel_host(self):
+        # If separate host for tasks is set use that, otherwise:
+        return settings.DJANGO_PUBLIC_HTTP_HOST
 
 
 #=========================

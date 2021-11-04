@@ -59,14 +59,18 @@ services:
       #- DJANGO_EMAIL_FROM="Rosetta Platform <notifications@rosetta.platform>"
       #- DJANGO_PUBLIC_HTTP_HOST=http://localhost:8080
       #- DJANGO_SECRET_KEY=""
+      - TASK_PROXY_HOST="localhost"
+      - TASK_TUNNEL_HOST="localhost"
     ports:
       - "8080:8080"
       - "7000-7020:7000-7020"
     volumes:
+      - ./data/shared:/shared
       - ./data/webapp/data:/data
       - ./data/webapp/log:/var/log/webapp
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./services/webapp/code:/opt/code
+      #- ./services/webapp/code:/opt/code
+      
 
   proxy:
     image: "rosetta/proxy"
@@ -77,8 +81,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "9000-9020:9000-9020"
     volumes:
-      - ./data/proxy/data:/data    
+      - ./data/shared:/shared   
 
 
 

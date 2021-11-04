@@ -15,7 +15,7 @@
       {% if data.mode == 'new_task' %}
       <h1>New Task</h1>
       <hr/>
-      <h3>Step 1: choose software container.</h3>
+      <div style="padding-left:10px; padding-top:1px"><h4>Software container</h4></div>
       <br/> 
       {% else %}
       <h1>Software Containers</h1>
@@ -32,24 +32,25 @@
                     
           <input type="text" class="form-control" id="search_text" name="search_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.search_text}}" autofocus>
 
-          <select class="form-control" id="search_type" name="search_type" style="width:120px; margin:0; display:inline">
+          <!-- onchange="this.form.submit()"  -->
+          <select class="form-control" id="search_owner" name="search_owner" style="width:120px; margin:0; display:inline">
             
-            {% if data.search_type == 'All' %}
+            {% if data.search_owner == 'All' %}
             <option selected>All</option>
             {% else %}
             <option>All</option>            
             {% endif %}
             
-            {% if data.search_type == 'Docker' %}
-            <option selected>Docker</option>
+            {% if data.search_owner == 'Platform' %}
+            <option selected>Platform</option>
             {% else %}
-            <option>Docker</option>            
+            <option>Platform</option>            
             {% endif %}
             
-            {% if data.search_type == 'Singularity' %}
-            <option selected>Singularity</option>
+            {% if data.search_owner == 'User' %}
+            <option selected>User</option>
             {% else %}
-            <option>Singularity</option>            
+            <option>User</option>            
             {% endif %}
             
           </select>

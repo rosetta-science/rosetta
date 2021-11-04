@@ -1,0 +1,80 @@
+{% load static %} 
+{% include "header.html" %}
+{% include "navigation.html"%}
+<!-- with body_args="style='background: #202020'" -->
+    <center>
+    <div style="width:300px;">
+      <form class="form-signin" role="form" action='/direct_connect/{{data.task.uuid}}/' method='POST'>
+        {% csrf_token %}
+        <br />
+        <br />
+        <br />
+        <!-- <h1>Rosetta <img src="/static/img/emoji_u1f6f0.png" style="height:84px; width:64px; padding-bottom:20px"></h1> -->
+        <h2> Connecting to task <b>{{ data.task.name }}</b></h2>
+        <p style="font-size: 16px;">
+        <br />
+        User: <input style="margin-bottom:5px;" type="username" class="form-control" value="{{ request.user.email }}"name='username' disabled >
+        
+        
+        {% if data.task.requires_proxy_auth %}
+        
+          {% if data.task.auth_token %}
+          Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' disabled>
+          {% else %}
+          Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' disabled>
+          <p style="margin-left:10px; font-size:0.9em; color:#484848">
+          <i class="fa fa-info-circle" style="color:#337ab7"></i>
+          This task will require to manually enter the password set up when creating the task
+          </p> 
+          {% endif %}
+                 
+        {% else %}
+        
+          {% if data.task.auth_token %}
+          Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' disabled>
+          <p style="margin-left:10px; font-size:0.9em; color:#484848">
+          <i class="fa fa-info-circle" style="color:#337ab7"></i>
+          This task will require to manually enter the above user and password token
+          </p> 
+          {% else %}
+          Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' disabled>
+          <p style="margin-left:10px; font-size:0.9em; color:#484848">
+          <i class="fa fa-info-circle" style="color:#337ab7"></i>
+          This task will require to manually enter the above user and the password set up when creating the task
+          </p> 
+          {% endif %}
+          
+        {% endif %}
+        
+        <br />
+        
+        
+        {% if data.task.container.interface_protocol == 'http' or data.task.container.interface_protocol == 'https' %}       
+        <input type='submit' style="width:110px" class="btn btn-lg btn-success btn-block" value='Log in' />
+        {% else %}
+        To connect, open the program suitable for this task interface protocol ({{data.task.container.interface_protocol}}) with:<br />
+        IP: <code>{{ data.task.tcp_tunnel_host}}</code><br />
+        Port: <code>{{ data.task.tcp_tunnel_port}}</code>
+        {% endif %}
+        
+        
+        </p>
+        
+      </form>      
+    </div>
+    <br /><br />
+    
+    {% if data.task.requires_proxy_auth %}
+    <p style="margin-left:10px; font-size:0.9em; color:rgb(200,200,200); max-width:600px">
+    <i class="fa fa-info-warning" style="color:#337ab7"></i>
+    Some web browsers (i.e. Safari) might require to manually re-enter the above user credentials. You can copy-paste them, or switch
+    to a web browser which supports embedding user credentials in the connection URL (as Chorme, Edge or Firefox). 
+    </p>
+    {% endif %}
+    <br /><br /><br />
+    </center>
+
+
+
+
+{% include "footer.html" %}

@@ -8,19 +8,17 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1>Add container</h1> 
+      <h1>Add software container</h1> 
       <hr>
 
       {% if not data.added %}
 
-          <h3>Configure the new container.</h3> 
-          
-          <br/>
-          
+          <h4>Container basics</h4> 
+                    
           <form action="#" method="POST">
           {% csrf_token %}
 
-          <table class="dashboard" style="max-width:430px">
+          <table class="dashboard" style="width:360px; margin-bottom:25px">
 
            <tr>
             <td><b>Name</b></td>
@@ -28,76 +26,113 @@
              <input type="text" name="container_name" value="" placeholder="" size="23" required />
             </td>
            </tr>
-    
+
            <tr>
-            <td><b>Type</b></td><td>
-              <select name="container_type" >
-              <option value="docker" selected>Docker</option>
-              <option value="singularity">Singularity</option>
-              </select>
+            <td><b>Description</b></td>
+            <td>
+             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
+             ​<textarea name="container_description" rows="3" cols="22"></textarea>
             </td>
            </tr>
+    
+    
 
            <tr>
             <td><b>Registry</b></td><td>
-              <select name="container_registry" >
-              <option value="docker_hub">Docker Hub</option>
-              <option value="singularity_hub">Singularity Hub</option>
-              </select>
+             <input type="text" name="container_registry" value="docker.io" size="23" required />
             </td>
            </tr>
 
            <tr>
-            <td><b>Image:tag</b></td>
+            <td><b>Image</b></td>
             <td>
              <input type="text" name="container_image" value="" placeholder="" size="23" required />
             </td>
            </tr>
 
            <tr>
-            <td><b>Protocol</b></td>
+            <td><b>Tag</b></td>
             <td>
-             <select name="container_protocol" id="cars">
-              <option value="http" selected>http</option>
-              <option value="https">https</option>
-             </select>
+             <input type="text" name="container_tag" value="latest" size="23" required />
             </td>
            </tr>
-   
+
+           </table>
+
+
+
+          <h4>Container interface </h4> 
+          <table class="dashboard" style="width:360px; margin-bottom:25px">
+
            <tr>
-            <td colspan=2><b>Default port(s)</b>
-             &nbsp; &nbsp;<input type="text" name="container_ports" value="" placeholder="" size="5" />
+            <td><b>Interface port</b></td>
+             <td><input type="text" name="container_interface_port" value="" placeholder="" size="5" /></td>
+           </tr>
+
+           <tr>
+            <td><b>Interface protocol</b></td>
+            <td>
+             <input type="text" value="http" name="container_interface_protocol" size="5" /> 
+            </td>
+           </tr>
+           </table>
+
+           
+           <a href="javascript:void(0);" id="show_button" onclick="toggle_visibility('advanced_div')">Advanced...</a>
+           
+
+           <div id="advanced_div" style="display:none; width:360px;">
+           <h4>Container advanced settings <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('advanced_div')" style="display:none">hide</a></font></h4>
+  
+           <table class="dashboard" style="width:360px; margin-bottom:25px">
+
+           <tr>
+            <td><b>Architecture</b></td><td>
+              <select name="container_arch" >
+              <option value="x86_64" selected>x86_64</option>
+              </select>
+            </td>
+           </tr>
+
+           <tr>
+            <td><b>Operating System</b></td><td>
+              <select name="container_os" >
+              <option value="linux" selected>linux</option>
+              </select>
+            </td>
+           </tr>
+
+           <tr>
+            <td><b>Interface transport</b></td><td>
+              <select name="container_interface_transport" >
+              <option value="tcp/ip" selected>tcp/ip</option>
+              </select>
             </td>
            </tr>
 
            <tr>
             <td colspan=2>
-             <b>Supports dynamic ports</b> &nbsp; 
-             <input type="checkbox" name="container_supports_dynamic_ports" value="True" />
+             <b>Supports custom interface port</b> &nbsp; 
+             <input type="checkbox" name="container_supports_custom_interface_port" value="True" />
             </td>
            </tr>
 
            <tr>
             <td colspan=2>
-             <b>Supports user auth</b> &nbsp; 
-             <input type="checkbox" name="container_supports_user_auth" value="True" />
+             <b>Supports interface auth</b> &nbsp; 
+             <input type="checkbox" name="container_supports_interface_auth" value="True" />
             </td>
            </tr>
 
-           <tr>
-            <td colspan=2>
-             <b>Supports pass auth</b> &nbsp; 
-             <input type="checkbox" name="container_supports_pass_auth" value="True" />
-            </td>
-           </tr>
-
-
-           <tr>
-           <td colspan=2 align=center style="padding:20px">
-           <input type="submit" value="Add">
-           </td>
-           </tr>
           </table>
+          </div>
+          
+          <table style="width:360px; border:0; background:#ffffff; margin-top:20px">
+          <tr><td align="center">
+          <input type="submit" value="Add">
+          </td></tr>
+          </table>
+                    
           </form>
 
           <br/>          
@@ -110,9 +145,6 @@
           <br/>
           <br/>
           
-
-
-
  
       {% else %}
         Ok, Container added. Go back to your <a href="/containers">container list</a>.
@@ -133,6 +165,23 @@
 
 {% include "footer.html" %}
 
+<script>
+function toggle_visibility(id) {
+      var x = document.getElementById(id);
+      var y = document.getElementById('show_button');
+      var z = document.getElementById('hide_button');
+      if (x.style.display === "none") {
+        x.style.display = "block";
+        y.style.display = "none"
+        z.style.display= "inline"
+        
+      } else {
+        x.style.display = "none";
+        y.style.display= "inline"
+        z.style.display = "none"
+      }
+    }
+</script>
 
 
 
