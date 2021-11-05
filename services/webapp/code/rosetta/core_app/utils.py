@@ -513,11 +513,7 @@ def get_task_proxy_host():
     return proxy_host
 
 def hash_string_to_int(string):
-    #int_hash = 0 
-    #for char in string:
-    #    int_hash += ord(char)
-    #return int_hash
-    return int(hashlib.sha1(string.encode('utf8')).hexdigest(), 16) #% (10 ** 8)
+    return int(hashlib.sha1(string.encode('utf8')).hexdigest(), 16)
 
 
 
