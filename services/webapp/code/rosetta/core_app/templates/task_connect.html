@@ -3,7 +3,7 @@
 {% include "navigation.html"%}
 <!-- with body_args="style='background: #202020'" -->
     <center>
-    <div style="width:300px;">
+    <div style="width:370px;">
       <form class="form-signin" role="form" action='/direct_connect/{{data.task.uuid}}/' method='POST'>
         {% csrf_token %}
         <br />
@@ -13,15 +13,15 @@
         <h2> Connecting to task <b>{{ data.task.name }}</b></h2>
         <p style="font-size: 16px;">
         <br />
-        User: <input style="margin-bottom:5px;" type="username" class="form-control" value="{{ request.user.email }}"name='username' disabled >
+        User: <input style="margin-bottom:15px;" type="username" class="form-control" value="{{ request.user.email }}"name='username' readonly >
         
         
         {% if data.task.requires_proxy_auth %}
         
           {% if data.task.auth_token %}
-          Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' disabled>
+          Password: <input type="text" size=37 class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
           {% else %}
-          Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' disabled>
+          Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' readonly>
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
           This task will require to manually enter the password set up when creating the task
@@ -31,13 +31,13 @@
         {% else %}
         
           {% if data.task.auth_token %}
-          Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' disabled>
+          Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
           This task will require to manually enter the above user and password token
           </p> 
           {% else %}
-          Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' disabled>
+          Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' readonly>
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
           This task will require to manually enter the above user and the password set up when creating the task

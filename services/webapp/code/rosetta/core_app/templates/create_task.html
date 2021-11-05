@@ -93,7 +93,7 @@
             <td valign="top"><b>Task&nbsp;password</b></td>
             <td>
             
-             <input type="password" name="task_auth_password" placeholder="{{data.task_auth_token}}" size="37" /><br>
+             <input type="text" name="task_auth_password" placeholder="{{data.task_auth_token}}" size="37" style="-webkit-text-security: disc;" /><br>
              <input type="hidden" name="task_auth_token" value="{{data.task_auth_token}}">
 
              <!-- <font size=-1>A one-time task password. By default set to a randomly generated token, and automatically handled by Rosetta. Can be also set to a custom one, which in this case will be required to be entered manually when connecting to the task (as it will not be stored by Rosetta). Six characters minimum.</font> -->
