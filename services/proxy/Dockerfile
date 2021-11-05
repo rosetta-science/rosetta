@@ -23,26 +23,17 @@ RUN a2enmod rewrite
 RUN a2enmod headers
 RUN a2enmod proxy_wstunnel
  
-# Copy and enable conf for proxy
-COPY 001-proxy.conf /etc/apache2/sites-available/
-RUN ln -s /etc/apache2/sites-available/001-proxy.conf /etc/apache2/sites-enabled/001-proxy.conf
-
-# We overwrite default Apache conf as we force https
-COPY 000-default.conf /etc/apache2/sites-available/
-
-# Copy and enable conf for ssl. Not enabling ssl default site causes the first ssl
-# site in sites-avaialbe to be used as default. "Check with apachectl -t -D DUMP_VHOSTS".
-# A custom conf is not really necessary as defaults are ok (it is the original file)
-# Note: not naming this file with "000" causes to load other sites-available before, same problem.
-COPY default-ssl.conf /etc/apache2/sites-available/
-RUN ln -s /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-enabled/000-default-ssl.conf
+# Clean up default stuff
+RUN rm /etc/apache2/sites-available/000-default.conf
+RUN rm /etc/apache2/sites-enabled/000-default.conf
+RUN rm /etc/apache2/sites-available/default-ssl.conf
+#RUN rm /etc/apache2/sites-enabled/default-ssl.conf
 
 # Copy certificates (snakeoil or real)
 RUN mkdir /certificates
 COPY certificates/rosetta_platform.crt /root/certificates/rosetta_platform/rosetta_platform.crt
 COPY certificates/rosetta_platform.key /root/certificates/rosetta_platform/rosetta_platform.key
 COPY certificates/rosetta_platform.ca-bundle /root/certificates/rosetta_platform/rosetta_platform.ca-bundle
-
 COPY certificates/rosetta_tasks.crt /root/certificates/rosetta_platform/rosetta_tasks.crt
 COPY certificates/rosetta_tasks.key /root/certificates/rosetta_platform/rosetta_tasks.key
 COPY certificates/rosetta_tasks.ca-bundle /root/certificates/rosetta_platform/rosetta_tasks.ca-bundle
@@ -54,5 +45,10 @@ COPY norobots.txt /var/www/html/
 # Prestartup
 COPY prestartup_proxy.sh /prestartup/
 
-# reyns: expose 80/tcp
-# reyns: expose 443/tcp
+# Copy and enable conf for proxy and ssl. Warning: there are issues with precedences if splitting
+# the conf over multiple files (including task proxy files), as the first conf found in files which
+# are read in alphabetical order wins. You can cheeck ordering with "apachectl -t -D DUMP_VHOSTS".
+COPY proxy-global.conf /etc/apache2/sites-available/
+RUN ln -s /etc/apache2/sites-available/proxy-global.conf /etc/apache2/sites-enabled/proxy-global.conf
+
+

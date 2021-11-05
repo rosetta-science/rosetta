@@ -621,23 +621,21 @@ def setup_tunnel_and_proxy(task):
 #  Task interface proxy 
 #---------------------------
 
-#<Location /desktop/{0}/>
-#
-
-#ProxyPass http://desktop-{0}:8590/
-#ProxyPassReverse http://desktop-{0}:8590/
-#</Location>     
-
-#<Location /sessions/{1}>
-#ProxyPass ws://desktop-{0}:8590/websockify
-#ProxyPassReverse ws://desktop-{0}:8590/websockify
-#</Location>
-
 Listen '''+str(task.tcp_tunnel_port)+'''
-<VirtualHost _default_:'''+str(task.tcp_tunnel_port)+'''>
+
+<VirtualHost *:'''+str(task.tcp_tunnel_port)+'''>
+    ServerAdmin admin@rosetta.platform
+    SSLEngine on
+    SSLCertificateFile /root/certificates/rosetta_platform/rosetta_platform.crt
+    SSLCertificateKeyFile /root/certificates/rosetta_platform/rosetta_platform.key
+    SSLCACertificateFile /root/certificates/rosetta_platform/rosetta_platform.ca-bundle
+    DocumentRoot /var/www/html
+</VirtualHost>
+
+<VirtualHost *:'''+str(task.tcp_tunnel_port)+'''>
     
     ServerName  '''+task_proxy_host+'''
-    ServerAdmin admin@rosetta
+    ServerAdmin admin@rosetta.platform
     
     SSLEngine on
     SSLCertificateFile /root/certificates/rosetta_platform/rosetta_tasks.crt

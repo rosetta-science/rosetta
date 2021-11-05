@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .utils import os_shell, color_map, hash_string_to_int
+from .utils import os_shell, color_map, hash_string_to_int, get_task_tunnel_host
 from .exceptions import ConsistencyException
 
 if 'sqlite' in settings.DATABASES['default']['ENGINE']:
@@ -373,12 +373,11 @@ class Task(models.Model):
     
     @property
     def sharable_link(self):
-        return '{}/t/{}'.format(settings.DJANGO_PUBLIC_HTTP_HOST, str(self.uuid)[0:8])
+        return 'https://{}/t/{}'.format(settings.ROSETTA_HOST, str(self.uuid)[0:8])
     
     @property
     def tcp_tunnel_host(self):
-        # If separate host for tasks is set use that, otherwise:
-        return settings.DJANGO_PUBLIC_HTTP_HOST
+        return get_task_tunnel_host()
 
 
 #=========================

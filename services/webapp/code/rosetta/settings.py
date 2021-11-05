@@ -152,12 +152,12 @@ SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False
 }
 
+# Public Rosetta host
+ROSETTA_HOST = os.environ.get('ROSETTA_HOST', 'localhost')
 
 #===============================
 #  Email settings
 #===============================
-
-DJANGO_PUBLIC_HTTP_HOST = os.environ.get('DJANGO_PUBLIC_HTTP_HOST', 'http://localhost')
 
 DJANGO_EMAIL_SERVICE = os.environ.get('DJANGO_EMAIL_SERVICE', 'Sendgrid')
 if not DJANGO_EMAIL_SERVICE in ['Sendgrid', None]:
