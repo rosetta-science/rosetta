@@ -72,7 +72,14 @@
            <tr>
             <td><b>Interface protocol</b></td>
             <td>
+             {% if request.user.profile.is_power_user %}
              <input type="text" value="http" name="container_interface_protocol" size="5" /> 
+             {% else %}
+             <select name="container_interface_protocol" >
+             <option value="http" selected>http</option>
+             <option value="https" selected>https</option>
+             </select>
+             {% endif %}
             </td>
            </tr>
            </table>

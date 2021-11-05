@@ -510,6 +510,8 @@ def create_task(request):
 
         # Add auth
         task_auth_password = request.POST.get('task_auth_password', None)
+        if task_auth_password and not request.user.profile.is_power_user:
+            raise ErrorMessage('Sorry, only power users can set a custom task password.')
         task_auth_token = request.POST.get('task_auth_token', None)
         if task_auth_password:
             if task_auth_password != task_auth_token: # Just an extra check probably not much useful
@@ -527,14 +529,23 @@ def create_task(request):
         
         # Task access method
         access_method = request.POST.get('access_method', None)
-        if access_method == 'direct_tunnel':
+        if access_method and access_method != 'auto' and not request.user.profile.is_power_user:
+            raise ErrorMessage('Sorry, only power users can set a task access method other than \'auto\'.')
+        if access_method == 'auto':
+            if task.container.interface_protocol in ['http','https']:
+                task.requires_proxy      = True
+                task.requires_proxy_auth = True
+            else:
+                task.requires_proxy      = False
+                task.requires_proxy_auth = False                
+        elif access_method == 'direct_tunnel':
             task.requires_proxy      = False
             task.requires_proxy_auth = False            
         elif access_method == 'https_proxy':
             task.requires_proxy      = True
             task.requires_proxy_auth = True
         else:
-            raise ErrorMessage('Unknow access method "{}"'.format(access_method))
+            raise ErrorMessage('Unknown access method "{}"'.format(access_method))
 
         # Computing options # TODO: This is hardcoded thinking about Slurm and Singularity
         computing_cpus = request.POST.get('computing_cpus', None)
@@ -578,6 +589,10 @@ def create_task(request):
             # ..and re-raise
             raise
 
+        # Ensure proxy conf directory exists
+        if not os.path.exists('/shared/etc_apache2_sites_enabled'):
+            os.makedirs('/shared/etc_apache2_sites_enabled')
+    
         # Add here proxy auth file as we have the password
         if task.requires_proxy_auth:
             out = os_shell('ssh -o StrictHostKeyChecking=no proxy "cd /shared/etc_apache2_sites_enabled/ && htpasswd -bc {}.htpasswd {} {}"'.format(task.uuid, task.user.email, task.password), capture=True)
@@ -759,16 +774,21 @@ def add_container(request):
         container_interface_port = request.POST.get('container_interface_port', None) 
         if container_interface_port:       
             try:
-                int(container_interface_port)
+                container_interface_port = int(container_interface_port)
             except:
                 raise ErrorMessage('Invalid container port "{}"')
+        else:
+            container_interface_port = None
 
         # Container interface protocol 
-        container_interface_protocol = request.POST.get('container_interface_protocol')
+        container_interface_protocol = request.POST.get('container_interface_protocol', None)
+
+        if container_interface_protocol and not container_interface_protocol in ['http','https']:
+            raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
 
         # Container interface transport 
         container_interface_transport = request.POST.get('container_interface_transport')
-        logger.critical('Creating with desc={}, transp={}'.format(container_description, container_interface_transport))
+
         # Capabilities
         container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
         if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':

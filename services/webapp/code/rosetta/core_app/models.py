@@ -45,6 +45,7 @@ class Profile(models.Model):
     user      = models.OneToOneField(User, on_delete=models.CASCADE)
     timezone  = models.CharField('User Timezone', max_length=36, default='UTC')
     authtoken = models.CharField('User auth token', max_length=36, blank=True, null=True)
+    is_power_user = models.BooleanField('Power user status', default=False)
 
 
     def save(self, *args, **kwargs):
@@ -116,7 +117,7 @@ class Container(models.Model):
 
     @ property
     def color(self):
-        string_int_hash = hash_string_to_int(self.registry + self.image + self.tag)
+        string_int_hash = hash_string_to_int(self.image + self.tag + self.registry)
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
 
