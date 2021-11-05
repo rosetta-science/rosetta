@@ -7,16 +7,21 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        # Admin
+        #=====================
+        #  Admin
+        #=====================
         try:
             User.objects.get(username='admin')
             print('Not creating admin user as it already exist')
+            
         except User.DoesNotExist:
             print('Creating admin user with default password')
             admin = User.objects.create_superuser('admin', 'admin@example.com', 'admin')
             Profile.objects.create(user=admin)
         
-        # Testuser
+        #=====================    
+        #  Testuser
+        #=====================
         try:
             testuser = User.objects.get(username='testuser')
             print('Not creating test user as it already exist')
@@ -39,7 +44,9 @@ class Command(BaseCommand):
                                 private_key_file = '/rosetta/.ssh/id_rsa',
                                 public_key_file = '/rosetta/.ssh/id_rsa.pub')
 
-        # Default homepage text
+        #=====================
+        #  Default home text
+        #=====================
         default_home_text_content = '''
 <div class="span8 offset2" style="margin: 30px auto; max-width:800px">
   Welcome to Rosetta!
@@ -63,19 +70,22 @@ class Command(BaseCommand):
             Text.objects.create(id='home', content=default_home_text_content)
 
 
+        #===================== 
         # Platform containers
+        #===================== 
+        
         platform_containers = Container.objects.filter(user=None)
         if platform_containers:
             print('Not creating public containers as they already exist')
         else:
             print('Creating platform containers...')
             
-            # MinimalMetaDesktop Docker (sarusso repo)
+            # Minimal Desktop
             Container.objects.create(user     = None,
-                                     name     = 'MinimalMetaDesktop ',
-                                     description = 'A minimal meta-desktop environment providing basic window management functionalities and a terminal.',
+                                     name     = 'Minimal Desktop ',
+                                     description = 'A minimal desktop environment providing basic window management functionalities and a terminal.',
                                      registry = 'docker.io',
-                                     image    = 'sarusso/minimalmetadesktop',
+                                     image    = 'sarusso/minimaldesktop',
                                      tag      = 'v0.2.0',
                                      arch = 'x86_64',
                                      os = 'linux',
@@ -85,64 +95,87 @@ class Command(BaseCommand):
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True)
 
-#             # BasicMetaDesktop Docker (sarusso repo)
-#             Container.objects.create(user     = None,
-#                                      name     = 'BasicMetaDesktop latest',
-#                                      image    = 'sarusso/basicmetadesktop',
-#                                      registry = 'docker_hub',
-#                                      protocol = 'https',
-#                                      ports    = '8590',
-#                                      supports_custom_interface_port = True,
-#                                      supports_user_auth     = False,
-#                                      supports_pass_auth     = True)
-# 
-# 
-#             # DevMetaDesktop Docker (sarusso repo)
-#             Container.objects.create(user     = None,
-#                                      name     = 'DevMetaDesktop latest',
-#                                      image    = 'sarusso/devmetadesktop',
-#                                      type     = 'docker',
-#                                      registry = 'docker_hub',
-#                                      protocol = 'https',
-#                                      ports    = '8590',
-#                                      supports_custom_interface_port = True,
-#                                      supports_user_auth     = False,
-#                                      supports_pass_auth     = True)
-
-        # Testuser containers
-        testuser_containers = Container.objects.filter(user=testuser)
-        if testuser_containers:
-            print('Not creating testuser private containers as they already exist')
-        else:
-            print('Creating testuser private containers...')
-
-            # Jupyter Singularity
-            Container.objects.create(user     = testuser,
-                                     name     = 'Jupyter Notebook',
-                                     description = 'A basic Jupyter notebook environment.',
+            # Basic Desktop
+            Container.objects.create(user     = None,
+                                     name     = 'Basic Desktop',
+                                     description = 'A basic desktop environment. Provides a terminal, a file manager, a web browser and other generic applications.',
                                      registry = 'docker.io',
-                                     image    = 'jupyter/base-notebook',
-                                     tag      = 'latest',
+                                     image    = 'sarusso/basicdesktop',
+                                     tag      = 'v0.2.0',
+                                     arch = 'x86_64',
+                                     os = 'linux',
+                                     interface_port     = '8590',
+                                     interface_protocol = 'http',
+                                     interface_transport = 'tcp/ip',
+                                     supports_custom_interface_port = True,
+                                     supports_interface_auth = True)
+ 
+ 
+            # Jupyter Notebook 
+            Container.objects.create(user     = None,
+                                     name     = 'Jupyter Notebook',
+                                     description = 'A Jupyter Notebook server',
+                                     registry = 'docker.io',
+                                     image    = 'sarusso/jupyternotebook',
+                                     tag      = 'v0.2.0',
                                      arch = 'x86_64',
                                      os = 'linux',
                                      interface_port     = '8888',
                                      interface_protocol = 'http',
                                      interface_transport = 'tcp/ip',
-                                     supports_custom_interface_port = False,
-                                     supports_interface_auth = False)
+                                     supports_custom_interface_port = True,
+                                     supports_interface_auth = True)
+
+            # Jupyter Notebook 
+            Container.objects.create(user     = None,
+                                     name     = 'SSH server',
+                                     description = 'A SSH server supporting X forwarding as well.',
+                                     registry = 'docker.io',
+                                     image    = 'sarusso/ssh',
+                                     tag      = 'v0.2.0',
+                                     arch = 'x86_64',
+                                     os = 'linux',
+                                     interface_port     = '22',
+                                     interface_protocol = 'http',
+                                     interface_transport = 'tcp/ip',
+                                     supports_custom_interface_port = True,
+                                     supports_interface_auth = True)
+
+        #===================== 
+        # Testuser containers
+        #===================== 
+        #testuser_containers = Container.objects.filter(user=testuser)
+        #if testuser_containers:
+        #    print('Not creating testuser private containers as they already exist')
+        #else:
+        #    print('Creating testuser private containers...')
+        #
+        #    # Jupyter Singularity
+        #    Container.objects.create(user     = testuser,
+        #                             name     = 'Jupyter Notebook',
+        #                             description = 'The official Jupyter Notebook container.',
+        #                             registry = 'docker.io',
+        #                             image    = 'jupyter/base-notebook',
+        #                             tag      = 'latest',
+        #                             arch = 'x86_64',
+        #                             os = 'linux',
+        #                             interface_port     = '8888',
+        #                             interface_protocol = 'http',
+        #                             interface_transport = 'tcp/ip',
+        #                             supports_custom_interface_port = False,
+        #                             supports_interface_auth = False)
 
 
-
+        #===================== 
         # Computing resources
+        #===================== 
         computing_resources = Computing.objects.all()
         if computing_resources:
             print('Not creating demo computing resources as they already exist')
         else:
-            print('Creating demo computing resources containers...')
+            print('Creating demo computing resources...')
 
-            #==============================
-            #  Demo Internal computing
-            #==============================
+            # Demo internal computing
             Computing.objects.create(user = None,
                                      name = 'Demo Internal',
                                      description = 'A demo internal computing resource.',
@@ -155,10 +188,8 @@ class Command(BaseCommand):
                                      requires_user_keys = False,
                                      container_runtimes = 'docker')
 
-
-            #==============================
-            # Demo Single Node computing 
-            #==============================    
+            
+            # Demo standalone computing plus conf
             demo_singlenode_computing = Computing.objects.create(user = None,
                                                                  name = 'Demo Standalone',
                                                                  description = 'A demo standalone computing resource.',
@@ -180,9 +211,7 @@ class Command(BaseCommand):
                                              data      = {'user': 'slurmtestuser'})
          
 
-            #==============================
-            #  Demo Cluster computing
-            #==============================
+            #  Demo cluster computing plus conf
             demo_slurm_computing = Computing.objects.create(user = None,
                                                             name = 'Demo Cluster',
                                                             description = 'A demo cluster computing resource.',
@@ -195,12 +224,10 @@ class Command(BaseCommand):
                                                             requires_user_keys = True,
                                                             container_runtimes = 'singularity')
     
-            # Create demo slurm sys computing conf
             ComputingSysConf.objects.create(computing = demo_slurm_computing,
                                             data      = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1',
                                                          'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
 
-            # Create demo slurm user computing conf
             ComputingUserConf.objects.create(user      = testuser,
                                              computing = demo_slurm_computing,
                                              data      = {'user': 'slurmtestuser'})
