@@ -52,9 +52,11 @@
         {% if data.task.container.interface_protocol == 'http' or data.task.container.interface_protocol == 'https' %}       
         <input type='submit' style="width:110px" class="btn btn-lg btn-success btn-block" value='Log in' />
         {% else %}
-        To connect, open the program suitable for this task interface protocol ({{data.task.container.interface_protocol}}) with:<br />
-        IP: <code>{{ data.task.tcp_tunnel_host}}</code><br />
-        Port: <code>{{ data.task.tcp_tunnel_port}}</code>
+        To connect, use a program suitable for this task interface protocol ({{data.task.container.interface_protocol}}) with:<br />
+        <p style="margin-top:5px; line-height:1.8em">
+        <b>Host:</b> <code>{{ data.task.tcp_tunnel_host}}</code><br />
+        <b>Port:</b> <code>{{ data.task.tcp_tunnel_port}}</code>
+        </p>
         {% endif %}
         
         

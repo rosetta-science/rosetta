@@ -126,7 +126,7 @@ class Command(BaseCommand):
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True)
 
-            # Jupyter Notebook 
+            # SSH server
             Container.objects.create(user     = None,
                                      name     = 'SSH server',
                                      description = 'A SSH server supporting X forwarding as well.',
@@ -136,7 +136,7 @@ class Command(BaseCommand):
                                      arch = 'x86_64',
                                      os = 'linux',
                                      interface_port     = '22',
-                                     interface_protocol = 'http',
+                                     interface_protocol = 'ssh',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True)

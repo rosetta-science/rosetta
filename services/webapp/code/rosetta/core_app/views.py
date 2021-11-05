@@ -994,12 +994,14 @@ def task_connect(request):
 
 
     # Get the task     
-    #task = Task.objects.get(uuid__startswith=short_uuid)
     task = Task.objects.get(uuid=task_uuid)
     
     if task.user != request.user:
         raise ErrorMessage('You do not have access to this task.')
-    
+
+    # Ensure that the tunnel and proxy are set up
+    setup_tunnel_and_proxy(task)
+
     data ={}
     data['task'] = task
     
@@ -1020,7 +1022,7 @@ def direct_connection_handler(request, uuid):
     if task.user != request.user:
         raise ErrorMessage('You do not have access to this task.')
 
-    # First ensure that the tunnel and proxy are set up
+    # Ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
     
     # Get task and tunnel proxy host
