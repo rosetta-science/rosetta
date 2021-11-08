@@ -9,7 +9,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
-from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingConf, ComputingUserConf, Text
+from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Text
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
@@ -231,6 +231,10 @@ def account(request):
     with open(KeyPair.objects.get(user=request.user, default=True).public_key_file) as f:
         data['default_public_key'] = f.read()
 
+    # Add computings (for extra confs)
+    if request.user.profile.extra_confs:
+        data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
+
     # Edit values
     if edit and value:
         try:
@@ -273,6 +277,21 @@ def account(request):
             data['error'] = 'The property "{}" does not exists or the value "{}" is not valid.'.format(edit, value)
             return render(request, 'error.html', {'data': data})
 
+    # Lastly, do we have to remove an extra conf?
+    
+    delete_extra_conf_uuid = request.GET.get('delete_extra_conf_uuid', None)
+    if delete_extra_conf_uuid:
+        #logger.debug('Deleting extra conf "{}"'.format(delete_extra_conf_uuid))
+        new_extra_confs = {}
+        for extra_conf_uuid in profile.extra_confs:
+            if extra_conf_uuid != delete_extra_conf_uuid:
+                new_extra_confs[extra_conf_uuid] = profile.extra_confs[extra_conf_uuid]
+        profile.extra_confs = new_extra_confs
+        profile.save()
+        return redirect('/account')
+                
+            
+    
     return render(request, 'account.html', {'data': data})
 
 
@@ -310,9 +329,6 @@ def tasks(request):
                 raise ErrorMessage('Task does not exists or no access rights')
             data['task'] = task
     
-            # Attach user config to computing
-            task.computing.attach_user_conf(task.user)
-
             #  Task actions
             if action=='delete':
                 if task.status not in [TaskStatuses.stopped, TaskStatuses.exited]:
@@ -431,13 +447,12 @@ def create_task(request):
     def get_task_computing(request):
         task_computing_uuid = request.POST.get('task_computing_uuid', None)
         try:
-            task_computing = Computing.objects.get(uuid=task_computing_uuid, user=None)
+            task_computing = Computing.objects.get(uuid=task_computing_uuid, group=None)
         except Computing.DoesNotExist:
             try:
-                task_computing =  Computing.objects.get(uuid=task_computing_uuid, user=request.user)
+                task_computing =  Computing.objects.get(uuid=task_computing_uuid, group__user=request.user)
             except Computing.DoesNotExist:
                 raise Exception('Consistency error, computing with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_computing_uuid, request.user.email))        
-        task_computing.attach_user_conf(request.user)
         return task_computing
 
     # Get task name helper function
@@ -465,7 +480,7 @@ def create_task(request):
         data['task_container'] = get_task_container(request)
 
         # List all computing resources 
-        data['computings'] = list(Computing.objects.filter(user=None)) + list(Computing.objects.filter(user=request.user))
+        data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
             
         data['step'] = 'two'
         data['next_step'] = 'three'
@@ -569,9 +584,6 @@ def create_task(request):
         if computing_options:
             task.computing_options = computing_options
                     
-        # Attach user config to computing
-        task.computing.attach_user_conf(task.user)
-
         # Save the task before starting it, or the computing manager will not be able to work properly
         task.save()
 
@@ -630,9 +642,6 @@ def task_log(request):
     data['task']    = task 
     data['refresh'] = refresh
 
-    # Attach user conf in any
-    task.computing.attach_user_conf(request.user)
-    
     # Get the log
     try:
 
@@ -846,135 +855,57 @@ def computings(request):
     
     if details and computing_uuid:
         try:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid, user=request.user)
+            data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
         except Computing.DoesNotExist:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid, user=None)
-
-        # Attach user conf in any
-        data['computing'].attach_user_conf(request.user)
-            
-    
+            data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
     else:
-        data['computings'] = list(Computing.objects.filter(user=None)) + list(Computing.objects.filter(user=request.user))
+        data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
         
-        # Attach user conf in any
-        for computing in data['computings']:
-            computing.attach_user_conf(request.user)
-
     return render(request, 'computings.html', {'data': data})
 
 
-#=========================
-#  Add Computing view
-#=========================
 
+
+#=========================
+# Add profile conf view
+#=========================
+ 
 @private_view
-def add_computing(request):
-
+def add_profile_conf(request):
+ 
     # Init data
     data={}
     data['user']    = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-    data['title']   = 'Add computing'
-    data['name']    = request.POST.get('name',None)
-
-
-    return render(request, 'add_computing.html', {'data': data})
-
-
-
-#=========================
-# Edit Computing conf view
-#=========================
-
-@private_view
-def edit_computing_conf(request):
-
-    # Init data
-    data={}
-    data['user']    = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-    data['title']   = 'Add computing'
-
-    # Get computing conf type
-    computing_conf_type = request.GET.get('type', request.POST.get('type', None))
-    if not computing_conf_type:
-        raise Exception('Missing type')
     
-    # Get computing uuid
-    computing_uuid = request.GET.get('computing_uuid', request.POST.get('computing_uuid', None))
-    if not computing_uuid:
-        raise Exception('Missing computing_uuid')
-
-    new_conf = request.POST.get('new_conf', None)
-
-
-    if computing_conf_type == 'sys':
-        
-        data['type'] = 'sys'
-        
-        if not request.user.is_superuser:
-            raise Exception('Cannot edit sys conf as not superuser')
+    # Set conf types we can add
+    data['conf_types'] = ['computing_user'] #,'computing_custom_binds']
     
-        # Get computing
-        try:
-            computing = Computing.objects.get(uuid=computing_uuid)
-            data['computing'] = computing
-        except ComputingConf.DoesNotExist:
-            raise Exception('Unknown computing "{}"'.format(computing_uuid))
-        
-        # Get computing conf
-        computingSysConf, _ = ComputingConf.objects.get_or_create(computing=computing)   
-        
-        # Edit conf?
-        if new_conf:
-            new_conf_data = json.loads(new_conf)
-            logger.debug('Setting new conf data for sys conf "{}": "{}"'.format(computingSysConf.uuid, new_conf_data))
-            computingSysConf.data = new_conf_data
-            computingSysConf.save()
-            data['saved'] = True
-            return HttpResponseRedirect('/computings')
-
-
-        # Dump conf data for the webpage
-        if computingSysConf.data:
-            data['computing_conf_data'] = computingSysConf.data
-            data['computing_conf_data_json'] = json.dumps(computingSysConf.data)
+    # Process adding the new conf
+    conf_type = request.POST.get('conf_type', None)
+    if conf_type:
+        data['conf_type'] = conf_type
+        if conf_type in ['computing_user']:
+            computing_uuid = request.POST.get('computing_uuid', None)
+            if computing_uuid:
+                try:
+                    computing = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
+                except Computing.DoesNotExist:
+                    computing = Computing.objects.get(uuid=computing_uuid, group=None)                
+                data['computing'] = computing
+                data['last_step'] = True
+                value = request.POST.get('value', None)
+                if value:
+                    request.user.profile.add_extra_conf(conf_type=conf_type, object=computing, value=value)
+                    # Now redirect to site
+                    return HttpResponseRedirect('/account/')
+            
+            else:
+                data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
+        else:
+            raise ErrorMessage('Unknown conf type \'{}\''.format(conf_type))
     
-    elif computing_conf_type == 'user':
-
-        data['type'] = 'user'
-        
-        # Get computing
-        try:
-            computing = Computing.objects.get(uuid=computing_uuid)
-            data['computing'] = computing
-        except ComputingUserConf.DoesNotExist:
-            raise Exception('Unknown computing "{}"'.format(computing_uuid))
-
-        # Get computing conf
-        computingUserConf, _ = ComputingUserConf.objects.get_or_create(computing=computing, user=request.user)
-
-        # Edit conf?
-        if new_conf:
-            new_conf_data = json.loads(new_conf)
-            logger.debug('Setting new conf data for user conf "{}": "{}"'.format(computingUserConf.uuid, new_conf_data))
-            computingUserConf.data = new_conf_data
-            computingUserConf.save()
-            data['saved'] = True
-            return HttpResponseRedirect('/computings')
-        
-        # Dump conf data for the webpage
-        if computingUserConf.data:
-            data['computing_conf_data'] = computingUserConf.data
-            data['computing_conf_data_json'] = json.dumps(computingUserConf.data)
-
-           
-    else:
-        raise Exception('Unknown computing conf type "{}"'.format(computing_conf_type))
-    
-
-    return render(request, 'edit_computing_conf.html', {'data': data})
+ 
+    return render(request, 'add_profile_conf.html', {'data': data})
 
 
 #=========================

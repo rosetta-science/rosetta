@@ -417,9 +417,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         if '$SSH_USER' in base_path_expanded:
             if storage.access_through_computing:
                 computing = storage.computing
-                computing.attach_user_conf(user)
                 if computing.auth_mode == 'user_keys':
-                    base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.user_conf.get('user'))
+                    computing_user = user.profile.get_extra_conf('computing_user', storage.computing)
+                    if not computing_user:
+                        raise Exception('Computing resource \'{}\' user is not configured'.format(storage.computing.name))
+                    base_path_expanded = base_path_expanded.replace('$SSH_USER', computing_user)
                 else:
                     base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.conf.get('user'))
                     
@@ -444,16 +446,23 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         except IndexError:
             computing_name = None
             
-        # Get all the storages for this name:
-        storages = Storage.objects.filter(name=storage_name, user=None)
+        # Get all the storages this user has access to:
+        storages = list(Storage.objects.filter(group=None, name=storage_name)) + list(Storage.objects.filter(group__user=request.user, name=storage_name))
         
-        # Filter by computing resource name
+        # Filter by computing resource name (or None)
         if computing_name:
             unfiltered_storages = storages
             storages = []
             for storage in unfiltered_storages:
                 if storage.computing.name == computing_name:
                     storages.append(storage)
+        else:
+            unfiltered_storages = storages
+            storages = []
+            for storage in unfiltered_storages:
+                if storage.computing is None:
+                    storages.append(storage)            
+            
 
         # Check that we had at least and no more than one storage in the end
         if len(storages) == 0:
@@ -714,7 +723,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 data = {'data':[]}
                 
                 # Get storages
-                storages = list(Storage.objects.filter(user=None)) + list(Storage.objects.filter(user=request.user))
+                storages = list(Storage.objects.filter(group=None)) + list(Storage.objects.filter(group__user=request.user))
 
                 for storage in storages:
                     

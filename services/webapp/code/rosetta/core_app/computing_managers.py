@@ -171,10 +171,6 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
 
 
 
-
-
-
-
 class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingManager):
     
     def _start_task(self, task, **kwargs):
@@ -208,7 +204,6 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
                     expanded_base_path = storage.base_path        
                     if '$SSH_USER' in expanded_base_path:
                         if storage.access_through_computing:
-                            self.computing.attach_user_conf(self.computing.user)
                             expanded_base_path = expanded_base_path.replace('$SSH_USER', computing_user)
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
@@ -348,7 +343,6 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
                     expanded_base_path = storage.base_path        
                     if '$SSH_USER' in expanded_base_path:
                         if storage.access_through_computing:
-                            self.computing.attach_user_conf(self.computing.user)
                             expanded_base_path = expanded_base_path.replace('$SSH_USER', computing_user)
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')

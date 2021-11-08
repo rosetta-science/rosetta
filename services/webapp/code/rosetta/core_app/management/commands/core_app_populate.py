@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from ...models import Profile, Container, Computing, ComputingConf, ComputingUserConf, Storage, KeyPair, Text
+from ...models import Profile, Container, Computing, Storage, KeyPair, Text
 
 class Command(BaseCommand):
     help = 'Adds the admin superuser with \'a\' password.'
@@ -50,7 +50,7 @@ class Command(BaseCommand):
         #=====================
         # TODO: create a different pair
         try:
-            testuser = KeyPair.objects.get(user=None, default=True)
+            KeyPair.objects.get(user=None, default=True)
             print('Not creating default platform keys as they already exist')
         
         except KeyPair.DoesNotExist:
@@ -193,8 +193,7 @@ class Command(BaseCommand):
             print('Creating demo computing resources...')
 
             # Demo internal computing
-            Computing.objects.create(user = None,
-                                     name = 'Demo Internal',
+            Computing.objects.create(name = 'Demo Internal',
                                      description = 'A demo internal computing resource.',
                                      type = 'standalone',
                                      access_mode = 'internal',
@@ -204,43 +203,30 @@ class Command(BaseCommand):
 
             
             # Demo standalone computing plus conf
-            demo_singlenode_computing = Computing.objects.create(user = None,
-                                                                 name = 'Demo Standalone',
+            demo_singlenode_computing = Computing.objects.create(name = 'Demo Standalone',
                                                                  description = 'A demo standalone computing resource.',
                                                                  type = 'standalone',
                                                                  access_mode = 'ssh+cli',
                                                                  auth_mode = 'user_keys',
                                                                  wms = None,
+                                                                 conf = {'host': 'slurmclusterworker-one'},
                                                                  container_runtimes = 'singularity')
     
-            ComputingConf.objects.create(computing = demo_singlenode_computing,
-                                            data   = {'host': 'slurmclusterworker-one',
-                                                      'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
-
-            ComputingUserConf.objects.create(user      = testuser,
-                                             computing = demo_singlenode_computing,
-                                             data      = {'user': 'slurmtestuser'})
-         
+            # Add testuser extra conf for this computing resource
+            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_singlenode_computing, value= 'slurmtestuser')
 
             #  Demo cluster computing plus conf
-            demo_slurm_computing = Computing.objects.create(user = None,
-                                                            name = 'Demo Cluster',
+            demo_slurm_computing = Computing.objects.create(name = 'Demo Cluster',
                                                             description = 'A demo cluster computing resource.',
                                                             type = 'cluster',
                                                             access_mode = 'ssh+cli',
                                                             auth_mode = 'user_keys',
                                                             wms = 'slurm',
+                                                            conf = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1'},
                                                             container_runtimes = 'singularity')
-    
-            ComputingConf.objects.create(computing = demo_slurm_computing,
-                                            data   = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1',
-                                                      'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
-
-            ComputingUserConf.objects.create(user      = testuser,
-                                             computing = demo_slurm_computing,
-                                             data      = {'user': 'slurmtestuser'})
-
-
+           
+            # Add testuser extra conf for this computing resource
+            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_slurm_computing, value= 'slurmtestuser')
 
         #===================== 
         # Storages
@@ -267,26 +253,24 @@ class Command(BaseCommand):
  
             for computing in demo_computing_resources:
                 # Demo shared computing plus conf
-                Storage.objects.create(user = None,
-                                         computing = computing,
-                                         access_through_computing = True,
-                                         name = 'Shared',
-                                         type = 'generic_posix',
-                                         access_mode = 'ssh+cli',
-                                         auth_mode = 'user_keys',
-                                         base_path = '/shared/data/shared',
-                                         bind_path = '/storages/shared')
+                Storage.objects.create(computing = computing,
+                                       access_through_computing = True,
+                                       name = 'Shared',
+                                       type = 'generic_posix',
+                                       access_mode = 'ssh+cli',
+                                       auth_mode = 'user_keys',
+                                       base_path = '/shared/data/shared',
+                                       bind_path = '/storages/shared')
      
                 # Demo shared computing plus conf
-                Storage.objects.create(user = None,
-                                         computing = computing,
-                                         access_through_computing = True,
-                                         name = 'Personal',
-                                         type = 'generic_posix',
-                                         access_mode = 'ssh+cli',
-                                         auth_mode = 'user_keys',
-                                         base_path = '/shared/data/users/$SSH_USER',
-                                         bind_path = '/storages/personal')
+                Storage.objects.create(computing = computing,
+                                       access_through_computing = True,
+                                       name = 'Personal',
+                                       type = 'generic_posix',
+                                       access_mode = 'ssh+cli',
+                                       auth_mode = 'user_keys',
+                                       base_path = '/shared/data/users/$SSH_USER',
+                                       bind_path = '/storages/personal')
  
 
 
