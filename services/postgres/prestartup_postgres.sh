@@ -26,27 +26,27 @@ if [ ! -d "/data/postgres/11" ]; then
     ln -s /data/postgres/11/main /var/lib/postgresql/11/main
 
     # Move conf
-    mv /etc/postgresql/11/main/pg_hba.conf /data/postgres
-    ln -s /data/postgres/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
-    chown postgres:postgres /data/postgres/pg_hba.conf
+    #mv /etc/postgresql/11/main/pg_hba.conf /data/postgres
+    #ln -s /data/postgres/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
+    #chown postgres:postgres /data/postgres/pg_hba.conf
 
     # Move conf
-    mv /etc/postgresql/11/main/postgresql.conf /data/postgres
-    ln -s /data/postgres/postgresql.conf /etc/postgresql/11/main/postgresql.conf
-    chown postgres:postgres /data/postgres/postgresql.conf
+    #mv /etc/postgresql/11/main/postgresql.conf /data/postgres
+    #ln -s /data/postgres/postgresql.conf /etc/postgresql/11/main/postgresql.conf
+    #chown postgres:postgres /data/postgres/postgresql.conf
 
 else
     echo "Data dir does exist"
     mv /var/lib/postgresql/11/main /var/lib/postgresql/11/main_or
     ln -s /data/postgres/11/main /var/lib/postgresql/11/main
 
-    mv /etc/postgresql/11/main/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf_or
-    ln -s /data/postgres/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
-    chown postgres:postgres /data/postgres/pg_hba.conf
+    #mv /etc/postgresql/11/main/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf_or
+    #ln -s /data/postgres/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
+    #chown postgres:postgres /data/postgres/pg_hba.conf
 
-    mv /etc/postgresql/11/main/postgresql.conf /etc/postgresql/11/main/postgresql.conf_or
-    ln -s /data/postgres/postgresql.conf /etc/postgresql/11/main/postgresql.conf
-    chown postgres:postgres /data/postgres/postgresql.conf
+    #mv /etc/postgresql/11/main/postgresql.conf /etc/postgresql/11/main/postgresql.conf_or
+    #ln -s /data/postgres/postgresql.conf /etc/postgresql/11/main/postgresql.conf
+    #chown postgres:postgres /data/postgres/postgresql.conf
 
 fi
 
@@ -80,7 +80,7 @@ if [ ! -f /data/postgres/configured_flag ]; then
     echo "PID=$PID"
 
     # Wait for postgres to become ready (should be improved)
-    sleep 5
+    sleep 10
 
     echo 'Creating user/db...'
     # Execute sql commands for rosetta user/db
