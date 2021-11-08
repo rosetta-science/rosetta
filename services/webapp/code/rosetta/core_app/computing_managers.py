@@ -1,4 +1,4 @@
-from .models import TaskStatuses, KeyPair, Task
+from .models import TaskStatuses, KeyPair, Task, Storage
 from .utils import os_shell
 from .exceptions import ErrorMessage, ConsistencyException
 from django.conf import settings
@@ -180,9 +180,9 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
     def _start_task(self, task, **kwargs):
         logger.debug('Starting a remote task "{}"'.format(self.computing))
 
-        # Get computing host
-        host = self.computing.conf.get('host')
-        user = self.computing.conf.get('user')
+        # Get computing user and host
+        computing_user = self.computing.conf.get('user')
+        computing_host = self.computing.conf.get('host')
 
         # Get user keys
         if self.computing.requires_user_keys:
@@ -195,7 +195,7 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         webapp_conn_string = get_webapp_conn_string()
             
         # Handle container runtime 
-        if task.computing.default_container_runtime == 'singularity':
+        if self.computing.default_container_runtime == 'singularity':
 
             #if not task.container.supports_custom_interface_port:
             #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
@@ -205,24 +205,40 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
             if not task.requires_proxy_auth and task.password:
                 authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
                 
-            # Set binds, only from sys config if the resource is not owned by the user
-            if self.computing.user != task.user:
-                binds = self.computing.sys_conf.get('binds')
-            else:
-                binds = self.computing.conf.get('binds')
-            if not binds:
-                binds = ''
-            else:
-                binds = '-B {}'.format(binds)
+            # Handle storages (binds)
+            binds = ''
+            storages = Storage.objects.filter(computing=self.computing)
+            for storage in storages:
+                if storage.type == 'generic_posix' and storage.bind_path:
+                    
+                    # Expand the base path
+                    expanded_base_path = storage.base_path        
+                    if '$SSH_USER' in expanded_base_path:
+                        if storage.access_through_computing:
+                            self.computing.attach_user_conf(self.computing.user)
+                            expanded_base_path = expanded_base_path.replace('$SSH_USER', computing_user)
+                        else:
+                            raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
+                    if '$USER' in expanded_base_path:
+                        expanded_base_path = expanded_base_path.replace('$USER', self.task.user.name)
+                        
+                    # Expand the bind_path
+                    expanded_bind_path = storage.bind_path        
+                    if '$SSH_USER' in expanded_bind_path:
+                        if storage.access_through_computing:
+                            expanded_bind_path = expanded_bind_path.replace('$SSH_USER', computing_user)
+                        else:
+                            raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
+                    if '$USER' in expanded_bind_path:
+                        expanded_bind_path = expanded_bind_path.replace('$USER', self.task.user.name)
+                        
+                    # Add the bind
+                    if not binds:
+                        binds = '-B {}:{}'.format(expanded_base_path, expanded_bind_path)
+                    else:
+                        binds += ',{}:{}'.format(expanded_base_path, expanded_bind_path)
             
-            # Manage task extra binds
-            if task.extra_binds:
-                if not binds:
-                    binds = '-B {}'.format(task.extra_binds)
-                else:
-                    binds += ',{}'.format(task.extra_binds)
-            
-            run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(user_keys.private_key_file, user, host)
+            run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(user_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp && mkdir -p /tmp/{}_data/home && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export BASE_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT && {} '.format(authstring)
@@ -306,8 +322,8 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get computing host
-        host = self.computing.conf.get('host')
-        user = self.computing.conf.get('user')
+        computing_host = self.computing.conf.get('host')
+        computing_user = self.computing.conf.get('user')
         
         # Get user keys
         if self.computing.requires_user_keys:
@@ -350,24 +366,40 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             if not task.requires_proxy_auth and task.password:
                 authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
                 
-            # Set binds, only from sys config if the resource is not owned by the user
-            if self.computing.user != task.user:
-                binds = self.computing.sys_conf.get('binds')
-            else:
-                binds = self.computing.conf.get('binds')
-            if not binds:
-                binds = ''
-            else:
-                binds = '-B {}'.format(binds)
+            # Handle storages (binds)
+            binds = ''
+            storages = Storage.objects.filter(computing=self.computing)
+            for storage in storages:
+                if storage.type == 'generic_posix' and storage.bind_path:
+                    
+                    # Expand the base path
+                    expanded_base_path = storage.base_path        
+                    if '$SSH_USER' in expanded_base_path:
+                        if storage.access_through_computing:
+                            self.computing.attach_user_conf(self.computing.user)
+                            expanded_base_path = expanded_base_path.replace('$SSH_USER', computing_user)
+                        else:
+                            raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
+                    if '$USER' in expanded_base_path:
+                        expanded_base_path = expanded_base_path.replace('$USER', self.task.user.name)
+                        
+                    # Expand the bind_path
+                    expanded_bind_path = storage.bind_path        
+                    if '$SSH_USER' in expanded_bind_path:
+                        if storage.access_through_computing:
+                            expanded_bind_path = expanded_bind_path.replace('$SSH_USER', computing_user)
+                        else:
+                            raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
+                    if '$USER' in expanded_bind_path:
+                        expanded_bind_path = expanded_bind_path.replace('$USER', self.task.user.name)
+                        
+                    # Add the bind
+                    if not binds:
+                        binds = '-B {}:{}'.format(expanded_base_path, expanded_bind_path)
+                    else:
+                        binds += ',{}:{}'.format(expanded_base_path, expanded_bind_path)
 
-            # Manage task extra binds
-            if task.extra_binds:
-                if not binds:
-                    binds = '-B {}'.format(task.extra_binds)
-                else:
-                    binds += ',{}'.format(task.extra_binds)
-
-            run_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(user_keys.private_key_file, user, host)
+            run_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(user_keys.private_key_file, computing_user, computing_host)
             run_command += '\'bash -c "echo \\"#!/bin/bash\nwget {}/api/v1/base/agent/?task_uuid={} -O \$HOME/agent_{}.py &> \$HOME/{}.log && export BASE_PORT=\\\\\\$(python \$HOME/agent_{}.py 2> \$HOME/{}.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\\\\\\$BASE_PORT && {} '.format(authstring)
             run_command += 'rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp &>> \$HOME/{}.log && mkdir -p /tmp/{}_data/home &>> \$HOME/{}.log && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)

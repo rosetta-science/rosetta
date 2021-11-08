@@ -381,6 +381,58 @@ class Task(models.Model):
         return get_task_tunnel_host()
 
 
+
+
+
+#=========================
+#  Storages
+#=========================
+
+class Storage(models.Model):
+ 
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)
+  
+    name = models.CharField('Name', max_length=255, blank=False, null=False)
+    #description = models.TextField('Description', blank=True, null=True)
+ 
+    # Storage type
+    type = models.CharField('Type', max_length=255, blank=False, null=False)
+ 
+    # Access and auth mode 
+    access_mode = models.CharField('Access (control) mode', max_length=36, blank=False, null=False)
+    auth_mode   = models.CharField('Auth mode', max_length=36, blank=False, null=False)
+     
+    # Paths
+    base_path = models.CharField('Base path', max_length=4096, blank=False, null=False) 
+    bind_path = models.CharField('Bind path', max_length=4096, blank=False, null=False) 
+ 
+    # Link with a computing resource
+    computing = models.ForeignKey(Computing, related_name='storages', on_delete=models.CASCADE, blank=True, null=True) # Make optional?
+    access_through_computing = models.BooleanField('Access through linked computing resource?', default=False)
+    # If the above is linked, some configuration can be taken from the linked computing resource (i.e. the hostname)
+ 
+    # Configuration
+    config = JSONField(blank=True, null=True)
+ 
+ 
+    class Meta:
+        ordering = ['name']
+ 
+    def __str__(self):
+        if self.user:
+            return str('Storage "{}" of user "{}"'.format(self.id, self.user))
+        else:
+            return str('Storage "{}"'.format(self.id))
+ 
+    @property
+    def id(self):
+        return (self.name if not self.computing else '{}@{}'.format(self.name,self.computing.name))
+ 
+
+
+
+
 #=========================
 #  KeyPair 
 #=========================
