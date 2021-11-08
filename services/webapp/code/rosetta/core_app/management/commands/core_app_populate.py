@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from ...models import Profile, Container, Computing, ComputingSysConf, ComputingUserConf, Storage, KeyPair, Text
+from ...models import Profile, Container, Computing, ComputingConf, ComputingUserConf, Storage, KeyPair, Text
 
 class Command(BaseCommand):
     help = 'Adds the admin superuser with \'a\' password.'
@@ -24,7 +24,7 @@ class Command(BaseCommand):
         #=====================
         try:
             testuser = User.objects.get(username='testuser')
-            print('Not creating test user as it already exist')
+            print('Not creating test user as it already exists')
         
         except User.DoesNotExist:
             print('Creating test user with default password')
@@ -38,11 +38,28 @@ class Command(BaseCommand):
             Profile.objects.create(user=testuser, authtoken='129aac94-284a-4476-953c-ffa4349b4a50')
 
             # Create default keys
-            print('Creating testuser defualt keys')
+            print('Creating testuser default keys')
             KeyPair.objects.create(user = testuser,
-                                default = True,
-                                private_key_file = '/rosetta/.ssh/id_rsa',
-                                public_key_file = '/rosetta/.ssh/id_rsa.pub')
+                                   default = True,
+                                   private_key_file = '/rosetta/.ssh/id_rsa',
+                                   public_key_file = '/rosetta/.ssh/id_rsa.pub')
+        
+
+        #=====================    
+        #  Platform keys
+        #=====================
+        # TODO: create a different pair
+        try:
+            testuser = KeyPair.objects.get(user=None, default=True)
+            print('Not creating default platform keys as they already exist')
+        
+        except KeyPair.DoesNotExist:
+            print('Creating platform default keys')
+            KeyPair.objects.create(user = None,
+                                   default = True,
+                                   private_key_file = '/rosetta/.ssh/id_rsa',
+                                   public_key_file = '/rosetta/.ssh/id_rsa.pub')
+                  
 
         #=====================
         #  Default home text
@@ -183,9 +200,6 @@ class Command(BaseCommand):
                                      access_mode = 'internal',
                                      auth_mode = 'internal',
                                      wms = None,
-                                     requires_sys_conf  = False,
-                                     requires_user_conf = False,
-                                     requires_user_keys = False,
                                      container_runtimes = 'docker')
 
             
@@ -197,14 +211,11 @@ class Command(BaseCommand):
                                                                  access_mode = 'ssh+cli',
                                                                  auth_mode = 'user_keys',
                                                                  wms = None,
-                                                                 requires_sys_conf  = True,
-                                                                 requires_user_conf = True,
-                                                                 requires_user_keys = True,
                                                                  container_runtimes = 'singularity')
     
-            ComputingSysConf.objects.create(computing = demo_singlenode_computing,
-                                            data      = {'host': 'slurmclusterworker-one',
-                                                         'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
+            ComputingConf.objects.create(computing = demo_singlenode_computing,
+                                            data   = {'host': 'slurmclusterworker-one',
+                                                      'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
 
             ComputingUserConf.objects.create(user      = testuser,
                                              computing = demo_singlenode_computing,
@@ -219,14 +230,11 @@ class Command(BaseCommand):
                                                             access_mode = 'ssh+cli',
                                                             auth_mode = 'user_keys',
                                                             wms = 'slurm',
-                                                            requires_sys_conf  = True,
-                                                            requires_user_conf = True,
-                                                            requires_user_keys = True,
                                                             container_runtimes = 'singularity')
     
-            ComputingSysConf.objects.create(computing = demo_slurm_computing,
-                                            data      = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1',
-                                                         'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
+            ComputingConf.objects.create(computing = demo_slurm_computing,
+                                            data   = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1',
+                                                      'binds': '/shared/data/users:/shared/data/users,/shared/scratch:/shared/scratch'})
 
             ComputingUserConf.objects.create(user      = testuser,
                                              computing = demo_slurm_computing,

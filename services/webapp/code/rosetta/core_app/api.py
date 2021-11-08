@@ -11,7 +11,7 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
-from .utils import format_exception, send_email, os_shell, now_t
+from .utils import format_exception, send_email, os_shell, now_t, get_ssh_access_mode_credentials
 from .models import Profile, Task, TaskStatuses, Computing, Storage, KeyPair
 from .exceptions import ConsistencyException
 import json
@@ -368,51 +368,28 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             source = source.replace('\ ', '\\\\\\ ')
         else:
             dest = dest.replace('\ ', '\\\\\\ ')
-            
-        # Get user key
-        user_keys = KeyPair.objects.get(user=user, default=True)
-       
-        # Get computing host
-        computing.attach_user_conf(user)
-        computing_host = computing.conf.get('host')
-        computing_user = computing.conf.get('user')
-
-        if not computing_host:
-            raise Exception('No computing host?!')
-
-        if not computing_user:
-            raise Exception('No computing user?!')
+        
+        # Get credentials
+        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(computing, user)
 
         # Command
         if mode=='get':
-            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(user_keys.private_key_file, computing_user, computing_host, source, dest)
+            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(computing_keys.private_key_file, computing_user, computing_host, source, dest)
         elif mode == 'put':
-            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(user_keys.private_key_file, source, computing_user, computing_host, dest)
+            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(computing_keys.private_key_file, source, computing_user, computing_host, dest)
         else:
             raise ValueError('Unknown mode "{}"'.format(mode))
 
         return command
 
-    
 
     def ssh_command(self, command, user, computing):
 
-        # Get user key
-        user_keys = KeyPair.objects.get(user=user, default=True)
-       
-        # Get computing host
-        computing.attach_user_conf(user)
-        computing_host = computing.conf.get('host')
-        computing_user = computing.conf.get('user')
-
-        if not computing_host:
-            raise Exception('No computing host?!')
-
-        if not computing_user:
-            raise Exception('No computing user?!')
+        # Get credentials
+        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(computing, user)
 
         # Command
-        command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(user_keys.private_key_file, computing_user, computing_host, command)
+        command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(computing_keys.private_key_file, computing_user, computing_host, command)
 
         return command
 
@@ -441,7 +418,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             if storage.access_through_computing:
                 computing = storage.computing
                 computing.attach_user_conf(user)
-                base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.conf.get('user'))
+                if computing.auth_mode == 'user_keys':
+                    base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.user_conf.get('user'))
+                else:
+                    base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.conf.get('user'))
+                    
             else:
                 raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
         if '$USER' in base_path_expanded:

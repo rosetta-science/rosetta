@@ -3,7 +3,7 @@ import json
 from django.contrib.auth.models import User
         
 from .common import BaseAPITestCase
-from ..models import Profile, Computing, ComputingSysConf
+from ..models import Profile, Computing, ComputingConf
 
 class Modeltest(BaseAPITestCase):
 
@@ -22,8 +22,8 @@ class Modeltest(BaseAPITestCase):
          
         computing = Computing.objects.create(name='MyComp', type='remote')
         
-        computingSysConf = ComputingSysConf.objects.create(computing=computing, data={'myvar':42})
+        computingSysConf = ComputingConf.objects.create(computing=computing, data={'myvar':42})
         
-        self.assertEqual(ComputingSysConf.objects.all()[0].data, {'myvar':42})
+        self.assertEqual(ComputingConf.objects.all()[0].data, {'myvar':42})
         
 

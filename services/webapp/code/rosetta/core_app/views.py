@@ -9,7 +9,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
-from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingSysConf, ComputingUserConf, Text
+from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, ComputingConf, ComputingUserConf, Text
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
@@ -551,7 +551,6 @@ def create_task(request):
         computing_cpus = request.POST.get('computing_cpus', None)
         computing_memory = request.POST.get('computing_memory', None)
         computing_partition = request.POST.get('computing_partition', None)
-        extra_binds = request.POST.get('extra_binds', None)
         
         computing_options = {}
         if computing_cpus:
@@ -572,9 +571,6 @@ def create_task(request):
                     
         # Attach user config to computing
         task.computing.attach_user_conf(task.user)
-
-        # Set extra binds if any:
-        task.extra_binds = extra_binds
 
         # Save the task before starting it, or the computing manager will not be able to work properly
         task.save()
@@ -924,11 +920,11 @@ def edit_computing_conf(request):
         try:
             computing = Computing.objects.get(uuid=computing_uuid)
             data['computing'] = computing
-        except ComputingSysConf.DoesNotExist:
+        except ComputingConf.DoesNotExist:
             raise Exception('Unknown computing "{}"'.format(computing_uuid))
         
         # Get computing conf
-        computingSysConf, _ = ComputingSysConf.objects.get_or_create(computing=computing)   
+        computingSysConf, _ = ComputingConf.objects.get_or_create(computing=computing)   
         
         # Edit conf?
         if new_conf:

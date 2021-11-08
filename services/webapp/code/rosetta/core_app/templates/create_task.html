@@ -108,16 +108,6 @@
             </td>
            </tr>
            
-           <!-- {% if data.task_computing.supports_custom_binds %}
-           <tr>
-            <td valign="top" style="width:180px"><b>Extra binds</b></td>
-            <td>
-             <input type="text" name="extra_binds" value="" placeholder="" size="40" /><br>
-<p style="line-height: 0.95"><font size=-1>For this computing resource, you can set extra FS binds on top of the ones already define by the administrators. Format is <i>host_directory:container_directory</i>, comma separated.</font></p>
-            </td>
-           </tr>
-           {% endif %}
-            -->
            
            {% if request.user.profile.is_power_user %}    
            <tr>

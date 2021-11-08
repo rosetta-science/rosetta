@@ -50,22 +50,13 @@
        </tr>
 
        <tr>
-        <td><b>Requires</b></td>
-        <td>
-          Sys conf: {{ data.computing.requires_sys_conf }} <br/>
-          User conf: {{ data.computing.requires_user_conf }} <br/>
-          User keys: {{ data.computing.requires_user_keys }}
-        </td>
-       </tr>
-
-       <tr>
         <td><b>Container runtimes</b></td>
         <td>{{ data.computing.container_runtimes }}</td>
        </tr>
 
        <tr>
         <td><b>Sys Conf</b></td>
-        <td>{{ data.computing.sys_conf_as_json }} {% if request.user.is_superuser %} &nbsp;[<a href="/edit_computing_conf?type=sys&computing_uuid={{ data.computing.uuid}}">Edit</a>] {% endif %}</td>
+        <td>{{ data.computing.conf_as_json }} {% if request.user.is_superuser %} &nbsp;[<a href="/edit_computing_conf?type=sys&computing_uuid={{ data.computing.uuid}}">Edit</a>] {% endif %}</td>
        </tr>
 
        <tr>

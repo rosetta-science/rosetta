@@ -696,7 +696,27 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 
 
 
-
+def get_ssh_access_mode_credentials(computing, user):
+    from .models import KeyPair
+    # Get computing host
+    computing_host = computing.conf.get('host')
+    if not computing_host:
+        raise Exception('No computing host?!')
+            
+    # Get computing user and keys
+    if computing.auth_mode == 'user_keys':
+        computing.attach_user_conf(user)
+        computing_user = computing.user_conf.get('user')
+        # Get user key
+        computing_keys = KeyPair.objects.get(user=user, default=True)
+    elif computing.auth_mode == 'platform_keys':        
+        computing_user = computing.conf.get('user')
+        computing_keys = KeyPair.objects.get(user=None, default=True)
+    else:
+        raise NotImplementedError('Auth modes other than user_keys and platform_keys not supported.')
+    if not computing_user:
+        raise Exception('No computing user?!')
+    return (computing_user, computing_host, computing_keys)
 
 
 

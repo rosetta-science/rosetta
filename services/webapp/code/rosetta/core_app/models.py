@@ -135,12 +135,8 @@ class Computing(models.Model):
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
 
-    # Standalone / sluster
+    # Tye (standalone / cluster)
     type = models.CharField('Type', max_length=255, blank=False, null=False)
-
-    requires_sys_conf  = models.BooleanField(default=False)
-    requires_user_conf = models.BooleanField(default=False)
-    requires_user_keys = models.BooleanField(default=False)
 
     # Interfce and interaction definition
     access_mode = models.CharField('Access (control) mode', max_length=36, blank=False, null=False)
@@ -198,7 +194,7 @@ class Computing(models.Model):
     
     
     #=======================
-    # Sys & user conf
+    # Conf & user conf
     #=======================
 
     def attach_user_conf(self, user):
@@ -210,9 +206,17 @@ class Computing(models.Model):
             self._user_conf_data = None
 
     @property
-    def sys_conf(self):
-        return self.related_sys_conf.get().data
+    def conf(self):
+        try:
+            return self.related_computing_conf.get().data
+        except:
+            return {}
+        #TODO: add a setter and start removing the ComputingConf model
 
+    @property    
+    def conf_as_json(self):
+        return json.dumps(self.conf)
+    
     @property
     def user_conf(self):
         try:
@@ -221,38 +225,16 @@ class Computing(models.Model):
             raise ConsistencyException('User conf has to been attached, cannot proceed.')
 
     @property    
-    def sys_conf_as_json(self):
-        return json.dumps(self.sys_conf)
-    
-    @property    
     def user_conf_as_json(self):
         return json.dumps(self.user_conf)
 
-    @property
-    def conf(self):
-    
-        if not self.requires_user_conf:  
-            conf_tmp = self.sys_conf
-        else:
-            try:
-                # Copy the conf or the original user conf will be affected by the overwrite below
-                conf_tmp = {key:value for key, value in self._user_conf_data.items()}
-            except AttributeError:
-                raise ConsistencyException('User conf has not been attached, cannot proceed.')
-            
-            # Now add (overwrite) with the sys conf
-            sys_conf = self.sys_conf
-            for key in sys_conf:
-                conf_tmp[key] = sys_conf[key]
-
-        return conf_tmp
 
 
             
-class ComputingSysConf(models.Model):
+class ComputingConf(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    computing = models.ForeignKey(Computing, related_name='related_sys_conf', on_delete=models.CASCADE)
+    computing = models.ForeignKey(Computing, related_name='related_computing_conf', on_delete=models.CASCADE)
     data = JSONField(blank=True, null=True)
 
 
@@ -316,13 +298,11 @@ class Task(models.Model):
     computing = models.ForeignKey(Computing, related_name='+', on_delete=models.CASCADE)
     container = models.ForeignKey('Container', on_delete=models.CASCADE, related_name='+')
 
-    # Extra 
-    extra_binds = models.CharField('Extra binds', max_length=4096, blank=True, null=True)
+    # Computing options
+    # TODO: add the option for selecting the runtime as advanced option when creating the task?
     computing_options = JSONField('Computing options', blank=True, null=True) # i.e. CPUs, RAM, cluster partition etc. TODO: why here?
     
-    # TODO: add the option for selecting the runtime as advanced option when creating the task
-    #container_runtime 
-
+    
     class Meta:
         ordering = ['-created']
 
@@ -440,7 +420,7 @@ class Storage(models.Model):
 class KeyPair(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, null=False)  
+    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)  
 
     private_key_file = models.CharField('Private key file', max_length=4096, blank=False, null=False)
     public_key_file  = models.CharField('Public key file', max_length=4096, blank=False, null=False)
