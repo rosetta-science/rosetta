@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from ...models import Profile, Container, Computing, ComputingSysConf, ComputingUserConf, KeyPair, Text
+from ...models import Profile, Container, Computing, ComputingSysConf, ComputingUserConf, Storage, KeyPair, Text
 
 class Command(BaseCommand):
     help = 'Adds the admin superuser with \'a\' password.'
@@ -231,5 +231,57 @@ class Command(BaseCommand):
             ComputingUserConf.objects.create(user      = testuser,
                                              computing = demo_slurm_computing,
                                              data      = {'user': 'slurmtestuser'})
+
+
+
+        #===================== 
+        # Storages
+        #===================== 
+        storages = Storage.objects.all()
+        if storages:
+            print('Not creating demo storages as they already exist')
+        else:
+            print('Creating demo storages...')
+ 
+            # Get demo computing resources
+            demo_computing_resources = []
+            try:    
+                demo_slurm_computing = Computing.objects.get(name='Demo Cluster')
+                demo_computing_resources.append(demo_slurm_computing)
+            except:
+                pass
+            try:
+                demo_standalone_computing = Computing.objects.get(name='Demo Standalone')
+                demo_computing_resources.append(demo_standalone_computing)
+            except:
+                pass
+             
+ 
+            for computing in demo_computing_resources:
+                # Demo shared computing plus conf
+                Storage.objects.create(user = None,
+                                         computing = computing,
+                                         access_through_computing = True,
+                                         name = 'Shared',
+                                         type = 'generic_posix',
+                                         access_mode = 'ssh+cli',
+                                         auth_mode = 'user_keys',
+                                         base_path = '/shared/data/shared',
+                                         bind_path = '/storages/shared')
+     
+                # Demo shared computing plus conf
+                Storage.objects.create(user = None,
+                                         computing = computing,
+                                         access_through_computing = True,
+                                         name = 'Personal',
+                                         type = 'generic_posix',
+                                         access_mode = 'ssh+cli',
+                                         auth_mode = 'user_keys',
+                                         base_path = '/shared/data/users/$SSH_USER',
+                                         bind_path = '/storages/personal')
+ 
+
+
+
 
 

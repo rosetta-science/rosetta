@@ -12,7 +12,8 @@ from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
 from .utils import format_exception, send_email, os_shell, now_t
-from .models import Profile, Task, TaskStatuses, Computing, KeyPair
+from .models import Profile, Task, TaskStatuses, Computing, Storage, KeyPair
+from .exceptions import ConsistencyException
 import json
  
 # Setup logging
@@ -372,6 +373,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         user_keys = KeyPair.objects.get(user=user, default=True)
        
         # Get computing host
+        computing.attach_user_conf(user)
         computing_host = computing.conf.get('host')
         computing_user = computing.conf.get('user')
 
@@ -399,6 +401,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         user_keys = KeyPair.objects.get(user=user, default=True)
        
         # Get computing host
+        computing.attach_user_conf(user)
         computing_host = computing.conf.get('host')
         computing_user = computing.conf.get('user')
 
@@ -426,43 +429,74 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         path = re.sub(cleaner,r"\\",path)
         return path
 
-    def get_computing(self, path, request):
-        # Get the computing based on the folder name # TODO: this is very weak..
-        computing_resource_name = path.split('/')[1]
-        
-        # First try to get platform-level computing resource
-        computing = Computing.objects.filter(name=computing_resource_name, user=None)
-        
-        # If not, fallback on the user computing name
-        if not computing:
-            computing = Computing.objects.filter(name=computing_resource_name, user=request.user)
+    @staticmethod
+    def sanitize_and_prepare_shell_path(path, storage, user):
+        path = path.replace(' ', '\ ')
+        cleaner = re.compile('(?:\\\)+')
+        path = re.sub(cleaner,r"\\",path)
+                
+        # Prepare the base path (expand it with variables substitution)
+        base_path_expanded = storage.base_path        
+        if '$SSH_USER' in base_path_expanded:
+            if storage.access_through_computing:
+                computing = storage.computing
+                computing.attach_user_conf(user)
+                base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.conf.get('user'))
+            else:
+                raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
+        if '$USER' in base_path_expanded:
+            base_path_expanded = base_path_expanded.replace('$USER', user.name)
+
+        # If the path is not starting with the base path, do it
+        if not path.startswith(base_path_expanded):
+            path = base_path_expanded+'/'+path
             
-            if not computing:
-                raise Exception('Cannot find any computing resource named "{}"'.format(computing_resource_name+'1'))
-        
-        # Check that we had no more than one computing resource
-        if len(computing) > 1:
-            raise Exception('Found more than one computign resource named "{}", cannot continue!'.format(computing_resource_name))
+        return path
 
-        computing = computing[0]
-
-        # Attach user conf in any
-        computing.attach_user_conf(request.user)
+    def get_storage_from_path(self, path, request):
+        # Get the storage based on the "root" folder name
+        # TODO: this is extremely weak..
+        storage_id = path.split('/')[1]
+        storage_name = storage_id.split('@')[0]
+        try:
+            computing_name = storage_id.split('@')[1]
+        except IndexError:
+            computing_name = None
+            
+        # Get all the storages for this name:
+        storages = Storage.objects.filter(name=storage_name, user=None)
         
-        return computing
+        # Filter by computing resource name
+        if computing_name:
+            unfiltered_storages = storages
+            storages = []
+            for storage in unfiltered_storages:
+                if storage.computing.name == computing_name:
+                    storages.append(storage)
+
+        # Check that we had at least and no more than one storage in the end
+        if len(storages) == 0:
+            raise Exception('Found no storage for id "{}", cannot continue!'.format(storage_id))
+        if len(storages) > 1:
+            raise Exception('Found more than one storage for id "{}", cannot continue!'.format(storage_id))
+
+        # Assign the storage
+        storage = storages[0]
+
+        return storage
                 
 
-    def ls(self, path, user, computing, binds=[]):
+    def ls(self, path, user, storage):
         
         # Data container 
         data = []
         
-        path = self.sanitize_shell_path(path)
+        shell_path = self.sanitize_and_prepare_shell_path(path, storage, user)
         
         # Prepare command
         # https://askubuntu.com/questions/1116634/ls-command-show-time-only-in-iso-format
         # https://www.howtogeek.com/451022/how-to-use-the-stat-command-on-linux/
-        command = self.ssh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(path), user, computing)
+        command = self.ssh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(shell_path), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -490,63 +524,48 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             timestamp = line_pieces[2]
             name = line_pieces[3]
                      
-            # Check against binds if set            
-            if binds:
-                if not path == '/':
-                    full_path = path + '/' + name
-                else:
-                    full_path = '/' + name
-
-                show = False
-                for bind in binds:
-                    if bind.startswith(full_path) or full_path.startswith(bind):
-                        show = True
-                        break  
-
-            if not binds or (binds and show):
-            
-                # Define and clean listing path:
-                listing_path = '/{}/{}/{}/'.format(computing.name, path, name)
-                listing_path = self.clean_path(listing_path)
-            
-                # File or directory?
-                if type == 'directory':
-                    if name not in ['.', '..']:
-                        data.append({
-                                     'id': listing_path,
-                                     'type': 'folder',
-                                     'attributes':{
-                                          'modified': timestamp,
-                                          'name': name,
-                                          'readable': 1,
-                                          'writable': 1,
-                                          'path': listing_path                                 
-                                      }
-                                     })
-                else:
+            # Define and clean listing path:
+            listing_path = '/{}/{}/{}/'.format(storage.id, path, name)
+            listing_path = self.clean_path(listing_path)
+        
+            # File or directory?
+            if type == 'directory':
+                if name not in ['.', '..']:
                     data.append({
-                                 'id': listing_path[:-1], # Remove trailing slash 
-                                 'type': 'file',
+                                 'id': listing_path,
+                                 'type': 'folder',
                                  'attributes':{
                                       'modified': timestamp,
                                       'name': name,
                                       'readable': 1,
                                       'writable': 1,
-                                      "size": size,
-                                      'path': listing_path[:-1] # Remove trailing slash                               
+                                      'path': listing_path                                 
                                   }
-                                 })                            
+                                 })
+            else:
+                data.append({
+                             'id': listing_path[:-1], # Remove trailing slash 
+                             'type': 'file',
+                             'attributes':{
+                                  'modified': timestamp,
+                                  'name': name,
+                                  'readable': 1,
+                                  'writable': 1,
+                                  "size": size,
+                                  'path': listing_path[:-1] # Remove trailing slash                               
+                              }
+                             })                            
             
             
         return data
 
 
-    def stat(self, path, user, computing):
+    def stat(self, path, user, storage):
         
-        path = self.sanitize_shell_path(path)
+        path = self.sanitize_and_prepare_shell_path(path, storage, user)
         
         # Prepare command. See the ls function above for some more info
-        command = self.ssh_command('stat --printf=\'%F/%s/%Y/%n\\n\' {}'.format(path), user, computing)
+        command = self.ssh_command('stat --printf=\'%F/%s/%Y/%n\\n\' {}'.format(path), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -585,12 +604,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             
 
 
-    def delete(self, path, user, computing):
+    def delete(self, path, user, storage):
 
-        path = self.sanitize_shell_path(path)
+        path = self.sanitize_and_prepare_shell_path(path, storage, user)
 
         # Prepare command
-        command = self.ssh_command('rm -rf {}'.format(path), user, computing)
+        command = self.ssh_command('rm -rf {}'.format(path), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -599,12 +618,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def mkdir(self, path, user, computing):
+    def mkdir(self, path, user, storage):
         
-        path = self.sanitize_shell_path(path)
+        path = self.sanitize_and_prepare_shell_path(path, storage, user)
         
         # Prepare command
-        command = self.ssh_command('mkdir {}'.format(path), user, computing)
+        command = self.ssh_command('mkdir {}'.format(path), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -613,12 +632,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def cat(self, path, user, computing):
+    def cat(self, path, user, storage):
         
-        path = self.sanitize_shell_path(path)
+        path = self.sanitize_and_prepare_shell_path(path, storage, user)
         
         # Prepare command
-        command = self.ssh_command('cat {}'.format(path), user, computing)
+        command = self.ssh_command('cat {}'.format(path), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -627,13 +646,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def rename(self, old, new, user, computing):
+    def rename(self, old, new, user, storage):
         
-        old = self.sanitize_shell_path(old)
-        new = self.sanitize_shell_path(new)
+        old = self.sanitize_and_prepare_shell_path(old, storage, user)
+        new = self.sanitize_and_prepare_shell_path(new, storage, user)
 
         # Prepare command
-        command = self.ssh_command('mv {} {}'.format(old, new), user, computing)
+        command = self.ssh_command('mv {} {}'.format(old, new), user, storage.computing)
 
         logger.critical(command)
         
@@ -644,13 +663,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def copy(self, source, target, user, computing):
+    def copy(self, source, target, user, storage):
 
-        source = self.sanitize_shell_path(source)
-        target = self.sanitize_shell_path(target)
+        source = self.sanitize_and_prepare_shell_path(source, storage, user)
+        target = self.sanitize_and_prepare_shell_path(target, storage, user)
 
         # Prepare command
-        command = self.ssh_command('cp -a {} {}'.format(source, target), user, computing)
+        command = self.ssh_command('cp -a {} {}'.format(source, target), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
@@ -659,13 +678,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def scp(self, source, target, user, computing, mode='get'):
+    def scp_from(self, source, target, user, storage, mode='get'):
 
-        source = self.sanitize_shell_path(source)
-        target = self.sanitize_shell_path(target)
+        source = self.sanitize_and_prepare_shell_path(source, storage, user)
+        target = self.sanitize_shell_path(target) # This is a folder on Rosetta (/tmp)
 
         # Prepare command
-        command = self.scp_command(source, target, user, computing, mode)
+        command = self.scp_command(source, target, user, storage.computing, mode)
 
         # Execute_command
         out = os_shell(command, capture=True)
@@ -673,6 +692,23 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             raise Exception(out.stderr)
 
 
+    def scp_to(self, source, target, user, storage, mode='get'):
+
+        source = self.sanitize_shell_path(source) # This is a folder on Rosetta (/tmp)
+        target = self.sanitize_and_prepare_shell_path(target, storage, user)
+
+        # Prepare command
+        command = self.scp_command(source, target, user, storage.computing, mode)
+
+        # Execute_command
+        out = os_shell(command, capture=True)
+        if out.exit_code != 0:
+            raise Exception(out.stderr)
+
+
+    #============================
+    #   API GET
+    #============================
     def _get(self, request):
         
         mode = request.GET.get('mode', None)
@@ -692,54 +728,37 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             
             # Base folder (computing resource-level)
             if path == '/':
-
+                
                 # Data container 
                 data = {'data':[]}
                 
-                # Get computing resources
-                computings = list(Computing.objects.filter(user=None)) + list(Computing.objects.filter(user=request.user))
-                
-                for computing in computings:
+                # Get storages
+                storages = list(Storage.objects.filter(user=None)) + list(Storage.objects.filter(user=request.user))
+
+                for storage in storages:
                     
-                    # For now, we only support SSH-based computing resources
-                    if not 'ssh' in computing.access_mode:
+                    # For now, we only support generic posix, SSH-based storages
+                    if not storage.type=='generic_posix'  and storage.access_mode=='ssh+cli':
                         continue
-                        
+                    
                     data['data'].append({
-                                         'id': '/{}/'.format(computing.name),
+                                         'id': '/{}/'.format(storage.id),
                                          'type': 'folder',
                                          'attributes':{
-                                              'name': computing.name,
+                                              'name': storage.id,
                                               'readable': 1,
                                               'writable': 1,
-                                              'path': '/{}/'.format(computing.name)                                   
+                                              'path': '/{}/'.format(storage.id)                                   
                                           }
                                          })
-
+                
             else:
                                 
-                computing = self.get_computing(path, request)
+                storage = self.get_storage_from_path(path, request)
                 
-                # If we just "entered" a computing resource, filter for its bindings
-                # TODO: we can remove this and just always filter agains bind probably...
-                if len(path.split('/')) == 3:
-                    if computing.user != request.user:
-                        binds = computing.sys_conf.get('binds')
-                    else:
-                        binds = computing.conf.get('binds')
-                    
-                    if binds:
-                        binds = binds.split(',')
-                        binds = [bind.split(':')[0] for bind in binds]
-                    
-                    # Ok, get directoris and files for this folder (always filtering by binds)
-                    ls_path = '/'+'/'.join(path.split('/')[2:])
-                    data = {'data': self.ls(ls_path, request.user, computing, binds)}
-         
-                else:
-                    # Ok, get directoris and files for this folder:                
-                    ls_path = '/'+'/'.join(path.split('/')[2:])
-                    data = {'data': self.ls(ls_path, request.user, computing)}
+                # Get base directoris and files for this storage:                
+                ls_path = '/'+'/'.join(path.split('/')[2:])
+                data = {'data': self.ls(ls_path, request.user, storage)}
 
 
         elif mode in ['download', 'getimage']:
@@ -755,12 +774,12 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # See here: https://github.com/psolom/RichFilemanager/wiki/API
 
             # Set support vars
-            computing = self.get_computing(path, request)
+            storage = self.get_storage_from_path(path, request)
             file_path = '/'+'/'.join(path.split('/')[2:])
             target_path = '/tmp/{}'.format(uuid.uuid4())
 
             # Get the file
-            self.scp(file_path, target_path, request.user, computing, mode='get') 
+            self.scp_from(file_path, target_path, request.user, storage, mode='get') 
 
             # Detect content type
             try:
@@ -784,11 +803,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             logger.debug('Reading "{}"'.format(path))
             
             # Set support vars
-            computing = self.get_computing(path, request)
+            storage = self.get_storage_from_path(path, request)
             file_path = '/'+'/'.join(path.split('/')[2:])
 
             # Get file contents
-            data = self.cat(file_path, request.user, computing)
+            data = self.cat(file_path, request.user, storage)
             
             # Return file contents
             return HttpResponse(data, status=status.HTTP_200_OK)
@@ -798,7 +817,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             logger.debug('Deleting "{}"'.format(path))
             
             # Set support vars
-            computing = self.get_computing(path, request)
+            storage = self.get_storage_from_path(path, request)
             path = '/'+'/'.join(path.split('/')[2:])
 
             # Is it a folder?
@@ -808,17 +827,17 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 is_folder=False
 
             # Get file contents
-            data = self.delete(path, request.user, computing)
+            data = self.delete(path, request.user, storage)
 
             # Response data
             data = { 'data': {
-                            'id': '/{}{}'.format(computing.name, path),
+                            'id': '/{}{}'.format(storage.id, path),
                             'type': 'folder' if is_folder else 'file',
                             'attributes':{
                                 'name': path,
                                 'readable': 1,
                                 'writable': 1,
-                                'path': '/{}{}'.format(computing.name, path)                            
+                                'path': '/{}{}'.format(storage.id, path)                            
                             }
                         }
                     }      
@@ -836,22 +855,22 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 raise ValueError('No folder name set')
             
             # Set support vars
-            computing = self.get_computing(path, request)
+            storage = self.get_storage_from_path(path, request)
             path = '/'+'/'.join(path.split('/')[2:]) + name
 
             # Get file contents
-            data = self.mkdir(path, request.user, computing)
+            data = self.mkdir(path, request.user, storage)
 
             # Response data
             data = { 'data': {
-                            'id': '/{}{}'.format(computing.name, path),
+                            'id': '/{}{}'.format(storage.id, path),
                             'type': 'folder',
                             'attributes':{
                                 'modified': now_t(), # This is an approximation!
                                 'name': name,
                                 'readable': 1,
                                 'writable': 1,
-                                'path': '/{}{}'.format(computing.name, path)                            
+                                'path': '/{}{}'.format(storage.id, path)                            
                             }
                         }
                     }      
@@ -870,7 +889,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 raise Exception('Missing old name')            
             
             # Set support vars
-            computing = self.get_computing(old_name_with_path, request)
+            storage = self.get_storage_from_path(old_name_with_path, request)
             old_name_with_path = '/'+'/'.join(old_name_with_path.split('/')[2:])
             
             # Is it a folder?
@@ -891,25 +910,25 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             new_name_with_path = '/'.join(old_name_with_path.split('/')[:-1]) + '/' +  new_name
 
             # Rename
-            self.rename(old_name_with_path, new_name_with_path, request.user, computing)
+            self.rename(old_name_with_path, new_name_with_path, request.user, storage)
             
             # Add trailing slash for listing
             if is_folder:
                 new_name_with_path = new_name_with_path+'/'
             
             # Get new info
-            stat = self.stat(new_name_with_path, request.user, computing)
+            stat = self.stat(new_name_with_path, request.user, storage)
 
             # Response data
             data = { 'data': {
-                            'id': '/{}{}'.format(computing.name, new_name_with_path),
+                            'id': '/{}{}'.format(storage.id, new_name_with_path),
                             'type': 'folder' if is_folder else 'file',
                             'attributes':{
                                 'modified':   stat['timestamp'],
                                 'name': new_name,
                                 'readable': 1,
                                 'writable': 1,
-                                'path': '/{}{}'.format(computing.name, new_name_with_path)                              
+                                'path': '/{}{}'.format(storage.id, new_name_with_path)                              
                             }
                         }
                     }      
@@ -942,7 +961,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
             # Set support vars
-            computing = self.get_computing(source_name_with_path, request)
+            storage = self.get_storage_from_path(source_name_with_path, request)
             
             if is_folder:
                 source_name_with_path = '/'+'/'.join(source_name_with_path.split('/')[2:])[:-1]
@@ -960,25 +979,25 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             #logger.debug('Copy target: "{}"'.format(target_name_with_path))
 
             # Rename
-            self.copy(source_name_with_path, target_name_with_path, request.user, computing)
+            self.copy(source_name_with_path, target_name_with_path, request.user, storage)
 
             # Add trailing slash for listing
             if is_folder:
                 target_name_with_path = target_name_with_path + '/'
 
             # Get new info
-            stat = self.stat(target_name_with_path, request.user, computing)
+            stat = self.stat(target_name_with_path, request.user, storage)
  
             # Response data
             data = { 'data': {
-                            'id': '/{}{}'.format(computing.name, target_name_with_path),
+                            'id': '/{}{}'.format(storage.id, target_name_with_path),
                             'type': 'folder' if is_folder else 'file',
                             'attributes':{
                                 'modified': stat['timestamp'],
                                 'name': target_name_with_path.split('/')[-2] if is_folder else target_name_with_path.split('/')[-1],
                                 'readable': 1,
                                 'writable': 1,
-                                'path': '/{}{}'.format(computing.name, target_name_with_path)                            
+                                'path': '/{}{}'.format(storage.id, target_name_with_path)                            
                             }
                         }
                     }
@@ -998,7 +1017,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
     #============================
-    #    POST 
+    #   API POST 
     #============================
     def _post(self, request):
 
@@ -1014,7 +1033,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         elif mode == 'upload':
 
             # Set support vars
-            computing = self.get_computing(path, request)
+            storage = self.get_storage_from_path(path, request)
             path = '/'+'/'.join(path.split('/')[2:])
 
             # Get the file upload
@@ -1029,11 +1048,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             logger.debug('Wrote "/tmp/{}" for "{}"'.format(file_uuid, file_upload.name))
 
             # Now copy with scp
-            self.scp('/tmp/{}'.format(file_uuid), path + file_upload.name , request.user, computing, mode='put')
+            self.scp_to('/tmp/{}'.format(file_uuid), path + file_upload.name , request.user, storage, mode='put')
         
             # Response data
             data = { 'data': [{
-                            'id': '/{}{}{}'.format(computing.name, path, file_upload.name),
+                            'id': '/{}{}{}'.format(storage.id, path, file_upload.name),
                             'type': 'file',
                             'attributes':{
                                 'modified': now_t(),  # This is an approximation!
@@ -1041,7 +1060,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                 'readable': 1,
                                 'size': os.path.getsize('/tmp/{}'.format(file_uuid)), # This is kind of an approximation!
                                 'writable': 1,
-                                'path': '/{}{}{}'.format(computing.name, path, file_upload.name)                            
+                                'path': '/{}{}{}'.format(storage.id, path, file_upload.name)                            
                             }
                         }]
                     }
