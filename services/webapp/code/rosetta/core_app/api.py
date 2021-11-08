@@ -702,12 +702,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 for computing in computings:
                     
                     # For now, we only support SSH-based computing resources
-                    if not 'ssh' in computing.access_method:
+                    if not 'ssh' in computing.access_mode:
                         continue
                         
-                    # Attach user conf in any
-                    computing.attach_user_conf(request.user)
-                    
                     data['data'].append({
                                          'id': '/{}/'.format(computing.name),
                                          'type': 'folder',
