@@ -62,11 +62,11 @@
         </td>
        </tr>   
 
-       </table>
-       <br />
+      </table>
+      <br />
        
-       <h3>Profile</h3>
-       <table class="dashboard">
+      <h3>Profile</h3>
+      <table class="dashboard">
        
        <tr>
         <td>
@@ -83,11 +83,38 @@
         {% endif %}
         </td>
        </tr>
+       
+
+       <tr>
+        <td valign=top>
+        <b>Extra configurations</b>
+        </td>
+        <td>
+        {% for conf_uuid, conf_data in data.profile.extra_confs.items %}
+        <code>{{ conf_data.type }}</code>
+        {% if conf_data.object_uuid %}
+        {% for computing in data.computings %}
+        {% if conf_data.object_uuid == computing.uuid_as_str %}
+        <font style="font-size:0.9em"> @ {{ computing.name }}</font>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        
+        : <code>{{conf_data.value}}</code> |  <a href='?delete_extra_conf_uuid={{conf_uuid}}'>delete</a>
+        <br/> 
+        {% endfor %}
+        
+        
+        
+        <span style="margin:3px"><a href="/add_profile_conf" style="line-height:2em">Add new...</a></span>
+        </td>
+       </tr>       
+
       </table>
 
       <br />
-       <h3>KeyPair</h3>
-       <table class="dashboard">
+      <h3>KeyPair</h3>
+      <table class="dashboard">
        
        <tr>
         <td valign="top">

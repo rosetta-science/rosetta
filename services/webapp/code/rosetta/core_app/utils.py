@@ -699,14 +699,18 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 def get_ssh_access_mode_credentials(computing, user):
     from .models import KeyPair
     # Get computing host
-    computing_host = computing.conf.get('host')
+    try:
+        computing_host = computing.conf.get('host')
+    except AttributeError:
+        computing_host = None
     if not computing_host:
         raise Exception('No computing host?!')
             
     # Get computing user and keys
     if computing.auth_mode == 'user_keys':
-        computing.attach_user_conf(user)
-        computing_user = computing.user_conf.get('user')
+        computing_user = user.profile.get_extra_conf('computing_user', computing)
+        if not computing_user:
+            raise Exception('Computing resource \'{}\' user is not configured'.format(computing.name))
         # Get user key
         computing_keys = KeyPair.objects.get(user=user, default=True)
     elif computing.auth_mode == 'platform_keys':        

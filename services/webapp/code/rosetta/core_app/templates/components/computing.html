@@ -54,23 +54,6 @@
         <td>{{ data.computing.container_runtimes }}</td>
        </tr>
 
-       <tr>
-        <td><b>Sys Conf</b></td>
-        <td>{{ data.computing.conf_as_json }} {% if request.user.is_superuser %} &nbsp;[<a href="/edit_computing_conf?type=sys&computing_uuid={{ data.computing.uuid}}">Edit</a>] {% endif %}</td>
-       </tr>
-
-       <tr>
-        <td><b>User Conf</b></td>
-        <td>{{ data.computing.user_conf_as_json }} &nbsp;[<a href="/edit_computing_conf?type=user&computing_uuid={{ data.computing.uuid}}">Edit</a>]</td>
-       </tr>
-
-       
-       {% if data.computing.user %}
-       <tr>
-        <td><b>Operations</b></td>
-        <td><a href="?action=delete&uuid={{ data.computing.uuid }}">Delete</a></td>
-       </tr>
-       {% endif %}
       </table>
       </div>
       

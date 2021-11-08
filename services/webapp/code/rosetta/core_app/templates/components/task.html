@@ -3,7 +3,7 @@
           <center>
           <div style="width:350px; display:block; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
             <div style="margin-top:5px; padding:10px; text-align:center; border-bottom: #f8f8f8 solid 1px; ">
-            <b>Task {{data.task.name}} summary</b>
+            Task <b>{{data.task.name}}</b> summary
             </div>
           {% else %}
           <div style="width:350px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
@@ -143,8 +143,8 @@
            {% endif %}
 
 
-            <tr><td style="padding-right:0"><b>Direct link</b>
-            <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td>
+            <!-- <tr><td style="padding-right:0"><b>Direct link</b>
+            <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td> -->
            </tr>
 
 

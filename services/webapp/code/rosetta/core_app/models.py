@@ -2,7 +2,7 @@ import uuid
 import json
 from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from .utils import os_shell, color_map, hash_string_to_int, get_task_tunnel_host
 from .exceptions import ConsistencyException
@@ -46,6 +46,7 @@ class Profile(models.Model):
     timezone  = models.CharField('User Timezone', max_length=36, default='UTC')
     authtoken = models.CharField('User auth token', max_length=36, blank=True, null=True)
     is_power_user = models.BooleanField('Power user status', default=False)
+    extra_confs   = JSONField(blank=True, null=True)
 
 
     def save(self, *args, **kwargs):
@@ -54,9 +55,32 @@ class Profile(models.Model):
         super(Profile, self).save(*args, **kwargs)
 
 
-    def __unicode__(self):
-        return str('Profile of user "{}"'.format(self.user.username))
+    def __str__(self):
+        return str('Profile of user "{}"'.format(self.user.email))
 
+
+    def add_extra_conf(self, conf_type, object=None, value=None):
+        if value in [None, '']: # TODO: improve me?
+            raise ValueError('Empty value')
+        if self.extra_confs is None:
+            self.extra_confs = {}
+        self.extra_confs[str(uuid.uuid4())] = {'type': conf_type, 'object_uuid': str(object.uuid), 'value': value}
+        self.save()
+        
+
+    def get_extra_conf(self, conf_type, object=None):
+       
+        if self.extra_confs:
+            for extra_conf in self.extra_confs:
+                if conf_type == self.extra_confs[extra_conf]['type']:
+                    if object:
+                        #logger.debug("{} vs {}".format(self.extra_confs[extra_conf]['object_uuid'], str(object.uuid)))
+                        if self.extra_confs[extra_conf]['object_uuid'] == str(object.uuid):
+                            return self.extra_confs[extra_conf]['value']                        
+                    else:
+                        return self.extra_confs[extra_conf]['value']
+        return None
+            
 
 
 #=========================
@@ -69,6 +93,9 @@ class LoginToken(models.Model):
     user  = models.OneToOneField(User, on_delete=models.CASCADE)
     token = models.CharField('Login token', max_length=36)
 
+    def __str__(self):
+        return str('Login token of user "{}"'.format(self.user.email))
+
 
 
 #=========================
@@ -77,8 +104,11 @@ class LoginToken(models.Model):
 class Container(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)  
+    user = models.ForeignKey(User, related_name='containers', on_delete=models.CASCADE, blank=True, null=True)  
     # If a container has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
+    group = models.ForeignKey(Group, related_name='containers', on_delete=models.CASCADE, blank=True, null=True)
+    # If a container has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
+
 
     # Generic attributes
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
@@ -109,11 +139,9 @@ class Container(models.Model):
         ordering = ['name']
 
     def __str__(self):
-        return str('Container "{}" with image "{}" and tag "{}" of user "{}" on registry "{}" '.format(self.name, self.image, self.tag, self.user, self.registry))
+        user_str = self.user.email if self.user else None
+        return str('Container "{}" of user "{}" with image "{}" and tag "{}" on registry "{}" '.format(self.name, user_str, self.image, self.tag, self.registry))
 
-    #@property
-    #def id(self):
-    #    return str(self.uuid).split('-')[0]
 
     @ property
     def color(self):
@@ -129,8 +157,8 @@ class Container(models.Model):
 class Computing(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)
-    # If a compute resource has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
+    group = models.ForeignKey(Group, related_name='computings', on_delete=models.CASCADE, blank=True, null=True)
+    # If a compute resource has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
     
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
@@ -146,18 +174,23 @@ class Computing(models.Model):
     # Supported container runtimes
     container_runtimes = models.CharField('Container runtimes', max_length=256, blank=False, null=False) 
 
+    # Conf
+    conf = JSONField(blank=True, null=True)
+
+
     class Meta:
         ordering = ['name']
 
+
     def __str__(self):
-        if self.user:
-            return str('Computing "{}" of user "{}"'.format(self.name, self.user))
+        if self.group:
+            return str('Computing "{}" of group "{}"'.format(self.name, self.group))
         else:
             return str('Computing "{}"'.format(self.name))
 
     @property
-    def id(self):
-        return str(self.uuid).split('-')[0]
+    def uuid_as_str(self):
+        return str(self.uuid)
 
     @property
     def color(self):
@@ -192,78 +225,6 @@ class Computing(models.Model):
                 raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}", access mode "{}" and WMS "{}"'.format(self.type, self.access_mode, self.wms))
             return self._manager
     
-    
-    #=======================
-    # Conf & user conf
-    #=======================
-
-    def attach_user_conf(self, user):
-        if self.user and self.user != user:
-            raise Exception('Cannot attach a conf data for another user (my user="{}", another user="{}"'.format(self.user, user)) 
-        try:
-            self._user_conf_data = ComputingUserConf.objects.get(computing=self, user=user).data
-        except ComputingUserConf.DoesNotExist:
-            self._user_conf_data = None
-
-    @property
-    def conf(self):
-        try:
-            return self.related_computing_conf.get().data
-        except:
-            return {}
-        #TODO: add a setter and start removing the ComputingConf model
-
-    @property    
-    def conf_as_json(self):
-        return json.dumps(self.conf)
-    
-    @property
-    def user_conf(self):
-        try:
-            return self._user_conf_data
-        except AttributeError:
-            raise ConsistencyException('User conf has to been attached, cannot proceed.')
-
-    @property    
-    def user_conf_as_json(self):
-        return json.dumps(self.user_conf)
-
-
-
-            
-class ComputingConf(models.Model):
-
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    computing = models.ForeignKey(Computing, related_name='related_computing_conf', on_delete=models.CASCADE)
-    data = JSONField(blank=True, null=True)
-
-
-    @property
-    def id(self):
-        return str(self.uuid).split('-')[0]
-
-
-    def __str__(self):
-        return 'Computing sys conf for {} with id "{}"'.format(self.computing, self.id)
-
-
-
-class ComputingUserConf(models.Model):
-
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, null=True)
-    computing = models.ForeignKey(Computing, related_name='related_user_conf', on_delete=models.CASCADE)
-    data = JSONField(blank=True, null=True)
-
-    @property
-    def id(self):
-        return str(self.uuid).split('-')[0]
-
-    def __str__(self):
-        return 'Computing user conf for {} with id "{}" of user "{}"'.format(self.computing, self.id, self.user)
-
-
-
 
 #=========================
 #  Tasks 
@@ -272,7 +233,7 @@ class ComputingUserConf(models.Model):
 class Task(models.Model):
 
     uuid  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user  = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE)
+    user  = models.ForeignKey(User, related_name='tasks', on_delete=models.CASCADE)
     name  = models.CharField('Name', max_length=36, blank=False, null=False)
 
     # Task management
@@ -295,7 +256,7 @@ class Task(models.Model):
     auth_token          = models.CharField('Auth token', max_length=36, blank=True, null=True) # A one-time token for proxy or interface authentication
 
     # Links
-    computing = models.ForeignKey(Computing, related_name='+', on_delete=models.CASCADE)
+    computing = models.ForeignKey(Computing, related_name='tasks', on_delete=models.CASCADE)
     container = models.ForeignKey('Container', on_delete=models.CASCADE, related_name='+')
 
     # Computing options
@@ -338,13 +299,9 @@ class Task(models.Model):
                 
             self.save()                   
 
-    #@property
-    #def id(self):
-    #    return str(self.uuid).split('-')[0]
-
 
     def __str__(self):
-        return str('Task "{}" of user "{}" running on "{}" in status "{}" created at "{}"'.format(self.name, self.user, self.computing, self.status, self.created))
+        return str('Task "{}" of user "{}" running on "{}" in status "{}" created at "{}"'.format(self.name, self.user.email, self.computing, self.status, self.created))
 
     @property
     def color(self):
@@ -371,7 +328,7 @@ class Task(models.Model):
 class Storage(models.Model):
  
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)
+    group = models.ForeignKey(Group, related_name='storages', on_delete=models.CASCADE, blank=True, null=True)
   
     name = models.CharField('Name', max_length=255, blank=False, null=False)
     #description = models.TextField('Description', blank=True, null=True)
@@ -393,15 +350,15 @@ class Storage(models.Model):
     # If the above is linked, some configuration can be taken from the linked computing resource (i.e. the hostname)
  
     # Configuration
-    config = JSONField(blank=True, null=True)
+    conf = JSONField(blank=True, null=True)
  
  
     class Meta:
         ordering = ['name']
  
     def __str__(self):
-        if self.user:
-            return str('Storage "{}" of user "{}"'.format(self.id, self.user))
+        if self.group:
+            return str('Storage "{}" of group "{}"'.format(self.id, self.group))
         else:
             return str('Storage "{}"'.format(self.id))
  
@@ -420,7 +377,7 @@ class Storage(models.Model):
 class KeyPair(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE, blank=True, null=True)  
+    user = models.ForeignKey(User, related_name='key_pairs', on_delete=models.CASCADE, blank=True, null=True)  
 
     private_key_file = models.CharField('Private key file', max_length=4096, blank=False, null=False)
     public_key_file  = models.CharField('Public key file', max_length=4096, blank=False, null=False)
@@ -429,12 +386,7 @@ class KeyPair(models.Model):
 
 
     def __str__(self):
-        return str('KeyPair with id "{}" of user "{}"'.format(self.id, self.user))
-
-
-    @property
-    def id(self):
-        return str(self.uuid).split('-')[0]
+        return str('KeyPair of user "{}" (default={})'.format( self.user.email, self.default))
 
 
 
