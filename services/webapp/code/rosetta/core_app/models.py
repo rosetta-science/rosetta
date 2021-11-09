@@ -364,7 +364,7 @@ class Storage(models.Model):
  
     @property
     def id(self):
-        return (self.name if not self.computing else '{}@{}'.format(self.name,self.computing.name))
+        return (self.name if not self.computing else '{}:{}'.format(self.computing.name,self.name))
  
 
 

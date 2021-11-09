@@ -440,10 +440,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         # Get the storage based on the "root" folder name
         # TODO: this is extremely weak..
         storage_id = path.split('/')[1]
-        storage_name = storage_id.split('@')[0]
         try:
-            computing_name = storage_id.split('@')[1]
+            computing_name = storage_id.split(':')[0]
+            storage_name = storage_id.split(':')[1]
         except IndexError:
+            storage_name = storage_id
             computing_name = None
             
         # Get all the storages this user has access to:
@@ -724,7 +725,11 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 
                 # Get storages
                 storages = list(Storage.objects.filter(group=None)) + list(Storage.objects.filter(group__user=request.user))
-
+                
+                # Oder storages (re-orderded in the file manager anyway)
+                storages.sort(key=lambda storage: storage.id)
+                
+                # Prepare the output
                 for storage in storages:
                     
                     # For now, we only support generic posix, SSH-based storages
