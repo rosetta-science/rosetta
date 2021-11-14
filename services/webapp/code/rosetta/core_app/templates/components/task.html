@@ -32,14 +32,14 @@
             <b>Computing:</b> {{ task.computing.name }} <span style="font-size:14px; background-color:{{task.computing.color}}">&nbsp;&nbsp;&nbsp;&nbsp;</span><br/> -->
 
             <b>Software:</b>
-            <a href="/containers/?uuid={{ task.container.uuid }}" style="color:{{task.container.color}}">{{ task.container.name }}</a>
+            <a href="/software/?uuid={{ task.container.uuid }}" style="color:{{task.container.color}}">{{ task.container.name }}</a>
             {% if task.container.type == 'docker' %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
             {% if task.container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
 
             <br/>
             
-            <b>Computing:</b> <a href="/computings/?uuid={{ task.computing.uuid }}">{{ task.computing.name }}</a>
-            <!-- <a href="/computings/?uuid={{ task.computing.uuid }}" no_style="color:{{task.computing.color}}"><i class="fa fa-external-link" ></i></a><br/> -->           
+            <b>Computing:</b> <a href="/computing/?uuid={{ task.computing.uuid }}">{{ task.computing.name }}</a>
+            <!-- <a href="/computing/?uuid={{ task.computing.uuid }}" no_style="color:{{task.computing.color}}"><i class="fa fa-external-link" ></i></a><br/> -->           
             
             <div style="margin-top:2px">
             {% if task.status == "running" %}

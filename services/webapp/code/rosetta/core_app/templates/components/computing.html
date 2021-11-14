@@ -71,7 +71,7 @@
         <!-- <div style="background:{{computing.color}}; height:24px"></div> -->
         
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
-        <a href="/computings/?uuid={{ computing.uuid }}&details=True">{{ computing.name }}</a>
+        <a href="/computing/?uuid={{ computing.uuid }}&details=True">{{ computing.name }}</a>
         </div>
         
         <div style="padding:10px;">
@@ -111,7 +111,7 @@
         {% if 'singularity' in computing.container_runtimes %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}-->
         {% if container %}
         <div style="margin:0px; margin-top:2px; text-align:center; padding:5px">
-        <form action="/create_task/" method="POST">
+        <form action="/new_task/" method="POST">
         {% csrf_token %}
         <input type="hidden" name="step" value="{{ data.next_step }}" />
         <input type="hidden" name="task_container_uuid" value="{{container.uuid}}">

@@ -233,9 +233,9 @@ class Command(BaseCommand):
         #===================== 
         storages = Storage.objects.all()
         if storages:
-            print('Not creating demo storages as they already exist')
+            print('Not creating demo storage resources as they already exist')
         else:
-            print('Creating demo storages...')
+            print('Creating demo storage resources...')
  
             # Get demo computing resources
             demo_computing_resources = []

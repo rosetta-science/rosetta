@@ -73,7 +73,7 @@
           <div style="width:620px; float:left; border: #e0e0e0 solid 0px; margin-top:10px; ; margin-bottom:15px">
               
         
-          <form action="/create_task/" method="POST">
+          <form action="/new_task/" method="POST">
           {% csrf_token %}
           <input type="hidden" name="task_container_uuid" value="{{data.task_container.uuid}}">
           <input type="hidden" name="step" value="{{ data.next_step }}" />

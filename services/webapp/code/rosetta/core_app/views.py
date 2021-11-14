@@ -416,17 +416,15 @@ def tasks(request):
 
 
 #=========================
-#  Create Task view
+#  New task
 #=========================
 
 @private_view
-def create_task(request):
+def new_task(request):
 
     # Init data
     data={}
     data['user']    = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-    data['title']   = 'New Task'
 
     # Get task container helper function
     def get_task_container(request):
@@ -472,7 +470,7 @@ def create_task(request):
     if not step:
         
         # Step one is assumed: chose software container
-        return HttpResponseRedirect('/containers/?mode=new_task')
+        return HttpResponseRedirect('/software/?mode=new_task')
         
     elif step == 'two':
         
@@ -612,7 +610,7 @@ def create_task(request):
         data['step'] = 'created'
 
 
-    return render(request, 'create_task.html', {'data': data})
+    return render(request, 'new_task.html', {'data': data})
 
 
 #=========================
@@ -659,11 +657,11 @@ def task_log(request):
 
 
 #=========================
-#  Containers
+#  Software containers
 #=========================
 
 @private_view
-def containers(request):
+def software(request):
 
     # Init data
     data={}
@@ -709,11 +707,11 @@ def containers(request):
                 container.delete()
                 
                 # Redirect
-                return HttpResponseRedirect('/containers')
+                return HttpResponseRedirect('/software')
 
         except Exception as e:
-            data['error'] = 'Error in getting the container or performing the required action'
-            logger.error('Error in getting the container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
+            data['error'] = 'Error in getting the software container or performing the required action'
+            logger.error('Error in getting container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
 
 
@@ -735,22 +733,20 @@ def containers(request):
 
     data['containers'] = list(user_containers) + list(platform_containers)
 
-    return render(request, 'containers.html', {'data': data})
+    return render(request, 'software.html', {'data': data})
 
 
 
 #=========================
-#  Add Container view
+#  Add software container
 #=========================
 
 @private_view
-def add_container(request):
+def add_software(request):
 
     # Init data
-    data={}
-    data['user']    = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-    data['title']   = 'Add container'
+    data = {}
+    data['user'] = request.user
 
     # Container name if setting up a new container
     container_name = request.POST.get('container_name', None)
@@ -827,23 +823,21 @@ def add_container(request):
         # Set added switch
         data['added'] = True
 
-    return render(request, 'add_container.html', {'data': data})
+    return render(request, 'add_software.html', {'data': data})
 
 
 
 #=========================
-#  Computings view
+#  Computing resources
 #=========================
 
 @private_view
-def computings(request):
+def computing(request):
 
     # Init data
     data={}
-    data['user']    = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-    data['title']   = 'Computing resources'
-    data['name']    = request.POST.get('name',None)
+    data['user'] = request.user
+    data['name'] = request.POST.get('name',None)
 
     # Get action/details if any
     uuid    = request.GET.get('uuid', None)
@@ -861,13 +855,26 @@ def computings(request):
     else:
         data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
         
-    return render(request, 'computings.html', {'data': data})
+    return render(request, 'computing.html', {'data': data})
+
+
+#=========================
+#  Storage
+#=========================
+@private_view
+def storage(request):
+
+    # Set data & render
+    data = {}
+    data['user'] = request.user
+    
+    return render(request, 'storage.html', {'data': data})
 
 
 
 
 #=========================
-# Add profile conf view
+#  Add profile conf
 #=========================
  
 @private_view
@@ -998,16 +1005,6 @@ def sharable_link_handler(request, short_uuid):
     logger.debug('Task sharable link connect redirect: "{}"'.format(redirect_string))
     return redirect(redirect_string)
 
-
-#=========================
-#  File manager
-#=========================
-@public_view
-def files_view(request):
-
-    # Set data & render
-    data = {}
-    return render(request, 'files.html', {'data': data})
 
 
 

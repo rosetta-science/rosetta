@@ -39,43 +39,49 @@ core_app_api_router.register(r'users', core_app_api.UserViewSet)
 
 urlpatterns = [
                
-    # Webpages
+    # Pages
     url(r'^$', core_app_views.entrypoint),
     path('main/', core_app_views.main_view),
     path('login/', core_app_views.login_view),
     path('logout/', core_app_views.logout_view),
     url(r'^register/$', core_app_views.register_view),
-    url(r'^account/$', core_app_views.account),
-    url(r'^add_profile_conf/$', core_app_views.add_profile_conf),
-
+    
+    # Software    
+    url(r'^software/$', core_app_views.software),
+    url(r'^add_software/$', core_app_views.add_software),    
+    
+    #Computing
+    url(r'^computing/$', core_app_views.computing),
+    
+    # Storage
+    url(r'^storage/$', core_app_views.storage),
+    
+    # Tasks
     url(r'^tasks/$', core_app_views.tasks),
-    url(r'^create_task/$', core_app_views.create_task),
+    url(r'^new_task/$', core_app_views.new_task),
     url(r'^task_log/$', core_app_views.task_log),
     url(r'^task_connect/$', core_app_views.task_connect),
-    url(r'^computings/$', core_app_views.computings),
-    url(r'^containers/$', core_app_views.containers),
-    url(r'^add_container/$', core_app_views.add_container),
-    url(r'^files/$', core_app_views.files_view),
-
+    
     # Sharable and direct connection links for tasks
     url(r'^direct_connect/(?P<uuid>[0-9a-f-]+)/$', core_app_views.direct_connection_handler),
     url(r'^t/(?P<short_uuid>\w{0,36})/$', core_app_views.sharable_link_handler),
 
-    # Modules
+    # Account
+    url(r'^account/$', core_app_views.account),
+    url(r'^add_profile_conf/$', core_app_views.add_profile_conf),
+
+    # OpenID Connect Auth
+    path('oidc/', include('mozilla_django_oidc.urls')),
+
+    # Admin and API docs (Swagger)
     path('admin/', admin.site.urls),
     path('api/v1/doc/', get_swagger_view(title="Swagger Documentation")),
     
-    # ViewSet APIs
+    # APIs
     path('api/v1/base/login/', core_app_api.login_api.as_view(), name='login_api'),
     path('api/v1/base/logout/', core_app_api.logout_api.as_view(), name='logout_api'),
-
-    # Custom APIs
     path('api/v1/base/agent/', core_app_api.agent_api.as_view(), name='agent_api'),
     path('api/v1/filemanager/', core_app_api.FileManagerAPI.as_view(), name='filemanager_api'),
-
-
-    # Open ID Connect Auth
-    path('oidc/', include('mozilla_django_oidc.urls')),
 
 ]
 
