@@ -134,13 +134,21 @@ def random_username():
     return username
 
 
-def finalize_user_creation(user):
+def finalize_user_creation(user, auth='local'):
 
     from .models import Profile, KeyPair
 
+    # Just an extra check
+    try:
+        Profile.objects.get(user=user)
+    except Profile.DoesNotExists:
+        pass
+    else:
+        raise Exception('Consistency error: already found a profile for user "{}"'.format(user))
+
     # Create profile
     logger.debug('Creating user profile for user "{}"'.format(user.email))
-    Profile.objects.create(user=user)
+    Profile.objects.create(user=user, auth=auth)
 
     # Generate user keys
     out = os_shell('mkdir -p /data/resources/keys/', capture=True)

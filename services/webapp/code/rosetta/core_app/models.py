@@ -43,8 +43,9 @@ class Profile(models.Model):
 
     uuid      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user      = models.OneToOneField(User, on_delete=models.CASCADE)
+    auth      = models.CharField('User auth mode', max_length=36)
     timezone  = models.CharField('User Timezone', max_length=36, default='UTC')
-    authtoken = models.CharField('User auth token', max_length=36, blank=True, null=True)
+    authtoken = models.CharField('User auth token', max_length=36, blank=True, null=True) # This is used for testing, not a login token.
     is_power_user = models.BooleanField('Power user status', default=False)
     extra_confs   = JSONField(blank=True, null=True)
 

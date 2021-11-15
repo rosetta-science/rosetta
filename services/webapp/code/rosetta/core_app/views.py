@@ -58,6 +58,9 @@ def login_view(request):
                         return render(request, 'success.html', {'data': data})
 
             if password:
+                if user.profile.auth != 'local':
+                    # This actually hides that the user cannot be authenticated using the local auth.
+                    raise ErrorMessage('Check email and password')
                 user = authenticate(username=username, password=password)
                 if user:
                     login(request, user)
@@ -66,28 +69,30 @@ def login_view(request):
                     raise ErrorMessage('Check email and password')
             else:
 
-                # If empty password, send mail with login token
-                logger.debug('Sending login token via mail to {}'.format(user.email))
+                # If empty password and local auth, send mail with login token
+                if user.profile.auth == 'local':
 
-                token = uuid.uuid4()
-
-                # Create token or update if existent (and never used)
-                try:
-                    loginToken = LoginToken.objects.get(user=user)
-                except LoginToken.DoesNotExist:
-                    LoginToken.objects.create(user=user, token=token)
-                else:
-                    loginToken.token = token
-                    loginToken.save()
-                try:
-                    send_email(to=user.email, subject='Rosetta login link', text='Hello,\n\nhere is your login link: https://{}/login/?token={}\n\nOnce logged in, you can go to "My Account" and change password (or just keep using the login link feature).\n\nThe Rosetta Team.'.format(settings.ROSETTA_HOST, token))
-                except Exception as e:
-                    logger.error(format_exception(e))
-                    raise ErrorMessage('Something went wrong. Please retry later.')
-
-                # Return here, we don't want to give any hints about existing users
-                data['success'] = 'Ok, if we have your data you will receive a login link by email shortly.'
-                return render(request, 'success.html', {'data': data})
+                    logger.debug('Sending login token via mail to {}'.format(user.email))
+    
+                    token = uuid.uuid4()
+    
+                    # Create token or update if existent (and never used)
+                    try:
+                        loginToken = LoginToken.objects.get(user=user)
+                    except LoginToken.DoesNotExist:
+                        LoginToken.objects.create(user=user, token=token)
+                    else:
+                        loginToken.token = token
+                        loginToken.save()
+                    try:
+                        send_email(to=user.email, subject='Rosetta login link', text='Hello,\n\nhere is your login link: https://{}/login/?token={}\n\nOnce logged in, you can go to "My Account" and change password (or just keep using the login link feature).\n\nThe Rosetta Team.'.format(settings.ROSETTA_HOST, token))
+                    except Exception as e:
+                        logger.error(format_exception(e))
+                        raise ErrorMessage('Something went wrong. Please retry later.')
+    
+                    # Return here, we don't want to give any hints about existing users
+                    data['success'] = 'Ok, if we have your data you will receive a login link by email shortly.'
+                    return render(request, 'success.html', {'data': data})
 
 
         else:
@@ -270,23 +275,19 @@ def account(request):
 
             # Email
             elif edit=='email' and value:
+                # If no local auth, you should never get here
+                if request.user.profile.auth != 'local':
+                    raise ErrorMessage('Cannot change password using an external authentication service')
                 request.user.email=value
                 request.user.save()
 
             # Password
             elif edit=='password' and value:
+                # If no local auth, you should never get here
+                if request.user.profile.auth != 'local':
+                    raise ErrorMessage('Cannot change password using an external authentication service')
                 request.user.set_password(value)
                 request.user.save()
-
-            # API key
-            elif edit=='apikey' and value:
-                profile.apikey=value
-                profile.save()
-
-            # Plan
-            elif edit=='plan' and value:
-                profile.plan=value
-                profile.save()
 
             # Generic property
             elif edit and value:

@@ -14,7 +14,7 @@ class RosettaOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         user = super(RosettaOIDCAuthenticationBackend, self).create_user(claims)
 
         # Add profile, keys etc.
-        finalize_user_creation(user)
+        finalize_user_creation(user, auth='oidc')
 
         return user
 
