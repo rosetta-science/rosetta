@@ -35,7 +35,7 @@ class Command(BaseCommand):
             testuser.is_superuser=True
             testuser.save() 
             print('Creating testuser profile')
-            Profile.objects.create(user=testuser, authtoken='129aac94-284a-4476-953c-ffa4349b4a50')
+            Profile.objects.create(user=testuser, auth='local', authtoken='129aac94-284a-4476-953c-ffa4349b4a50')
 
             # Create default keys
             print('Creating testuser default keys')
@@ -82,8 +82,8 @@ class Command(BaseCommand):
                 <br/><br/>
                 A test user with admin rights registered with email <code>testuser@rosetta.platform</code> and password 
                 <code>testpass</code> has been created as well, which you can use to login on the menu on the right and give Rosetta
-                immediately a try. If you run with the default docker-compose file (i.e. you just run <code>rosetta/setup</code>),
-                then you will also have a few demo computing and storage resources (beside the internal engine) already available
+                immediately a try. If you are using the default docker-compose file (i.e. you just ran <code>rosetta/setup</code>),
+                then you will also have a few demo computing and storage resources (beside the internal one) already available
                 and that you can play with, including a small Slurm cluster. Otherwise, you will need to setup your own ones
                 from the <a href="/admin">admin</a> section.
                 <br />

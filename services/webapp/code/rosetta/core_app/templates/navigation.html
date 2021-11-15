@@ -36,6 +36,9 @@
                 <a href="/account" onclick = $("#menu-close").click(); >Account</a>
             </li>           
             {% else %}
+            
+            
+            {% if LOCAL_AUTH_ENABLED %}        
             <li>
               <center>
                 <form class="form-signin" role="form" action='/login/' method='POST'>
@@ -44,19 +47,28 @@
                 <input type="password" class="form-control" placeholder="Password" name='password'>
                 <input type='submit' class="btn btn-lg ha-btn-lg" value='Login' />
                 </form>
-                {% if OPENID %}
-                {% endif %}
               </center>         
             </li>
+  
+            {% if OPENID_ENABLED %}
+            <center><div style="margin-top:15px;margin-bottom:10px"><font color="#a9a9a9"> — OR —</font></div></center>
+            {% endif %} 
+            
+            {% endif %}
             <center>
             {% if OPENID_ENABLED %}
-            <div style="margin-top:15px;margin-bottom:10px"><font color="#a9a9a9"> — OR —</font></div>
+            {% if LOCAL_AUTH_ENABLED %}  
             <li style="padding-left:0; text-indent: 0"> <a href="{% url 'oidc_authentication_init' %}" style="padding-left:0; text-indent: 0">Login with OpenID Connect</a></li>
+            {% else %}
+            <li style="padding-left:0; text-indent: 0"> <a href="{% url 'oidc_authentication_init' %}" style="padding-left:0; text-indent: 0">Login</a></li>
             {% endif %}
+            {% endif %}
+            {% if LOCAL_AUTH_ENABLED %}
             <div style="padding:10px;">
             <font color="gray">Forgot password? Just leave it empty to get a login link by email. 
             Or, <a href="/register" style="color: #c0c0c0" onclick = $("#menu-close").click(); >Register</a>.</font>
             </div>
+            {% endif %}
             </center>
             {% endif %}
 

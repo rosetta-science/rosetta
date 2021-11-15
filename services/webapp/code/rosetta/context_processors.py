@@ -8,7 +8,13 @@ def export_vars(request):
         data['OPENID_ENABLED'] = True
     else:
         data['OPENID_ENABLED'] = False
-    
+
+    # Set local auth enabled or not
+    if settings.DISABLE_LOCAL_AUTH:
+        data['LOCAL_AUTH_ENABLED'] = False
+    else:
+        data['LOCAL_AUTH_ENABLED'] = True
+
     # Set invitation code required or not
     if settings.INVITATION_CODE:
         data['INVITATION_CODE_ENABLED'] = True

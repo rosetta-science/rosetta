@@ -19,7 +19,7 @@
 
        <tr>
         <td>
-        <b>Account ID</b>
+        <b>ID</b>
         </td>
         <td>
         {{data.user.username}}
@@ -28,7 +28,7 @@
       
        <tr>
         <td>
-        <b>Account email</b>
+        <b>Email</b>
         </td>
         <td>
         {% if data.edit == 'email' %}    
@@ -39,14 +39,15 @@
           <input type="submit" value="Go">
           </td></tr></table>          
         {% else %}
-         {{data.user.email}} | <a href="/account/?edit=email">Change</a>
+         {{data.user.email}}{% if data.user.profile.auth == 'local' %} | <a href="/account/?edit=email">Change</a>{% endif %}
         {% endif %}
         </td>
        </tr>      
 
+       {% if data.user.profile.auth == 'local' %}
        <tr>
         <td>
-        <b>Account password</b>
+        <b>Password</b>
         </td>
         <td>
         {% if data.edit == 'password' %}    
@@ -60,7 +61,26 @@
          ******* | <a href="/account/?edit=password">Change</a>
         {% endif %}
         </td>
-       </tr>   
+       </tr>
+       {% endif %}  
+
+
+       <tr>
+        <td>
+        <b>Auth</b>
+        </td>
+        <td>
+        {% if data.user.profile.auth == 'local' %}
+        Local
+        {% elif data.user.profile.auth == 'oidc' %}
+        Open ID Connect
+        {% else %}
+        {{ data.user.profile.auth }}
+        {% endif %}
+        </td>    
+       </tr>
+
+
 
       </table>
       <br />
@@ -129,7 +149,7 @@
       </form>
       
       <div style="margin-left:10px; margin-top:40px">
-        {% if OPENID_ENABLED %}
+        {% if data.user.profile.auth == 'oidc' %}
         <form action="{% url 'oidc_logout' %}" method="post">
         {% csrf_token %}
         <input type="submit" value="logout">
