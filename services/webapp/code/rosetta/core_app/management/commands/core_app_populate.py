@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from ...models import Profile, Container, Computing, Storage, KeyPair, Text
+from ...models import Profile, Container, Computing, Storage, KeyPair, Page
 
 class Command(BaseCommand):
     help = 'Adds the admin superuser with \'a\' password.'
@@ -62,29 +62,70 @@ class Command(BaseCommand):
                   
 
         #=====================
-        #  Default home text
+        #  Default home page
         #=====================
-        default_home_text_content = '''
-<div class="span8 offset2" style="margin: 30px auto; max-width:800px">
-  Welcome to Rosetta!
-  <br/><br/>
-  This is the default home text loaded after populating the platform with the default/demo data.
-  To change it, head to the <a href="/admin">admin</a> page and edit the <code>Text</code> model.
-  <br/><br/>
-  The default installation provides a test user register with email <code>testuser@rosetta.platform</code>
-  and password <code>testpass</code>, which you can use to login on the menu on the rightand give Rosetta
-  a try immediately. If you run with the default docker-compose file (i.e. you just run 
-  <code>rosetta/setup</code>), then you will also have a few demo computing resources you can play with
-  out-of-the-box, including a small Slurm cluster. Otherwise, you will need to setup your own computing
-  resources either platform-wide or as user.
-</div>
+        default_home_page_content = '''
+<header id="top" class="header">
+    <div style="display:table-row">
+        <div class="text-vertical-center">
+            <h1>&nbsp;&nbsp;Rosetta <img src="/static/img/emoji_u1f6f0.png" style="height:84px; width:64px; padding-bottom:20px"></h1>
+            <h2 style="margin-top:10px; margin-left:25px; margin-right:25px; font-weight:100; line-height: 30px;"><i>A container-centric Science Platform<br></i></h2>
+        </div>
+    </div>   
+    <div class="container">
+        <div class="dashboard">
+            <div class="span8 offset2" style="margin: 30px auto; max-width:800px">
+                Welcome to Rosetta!
+                <br/><br/>
+                This is the default main page content loaded after populating the platform with the default/demo data.
+                To change it, head to the <a href="/admin">admin</a> section and edit the <code>Page</code> model with id "main".
+                <br/><br/>
+                A test user with admin rights registered with email <code>testuser@rosetta.platform</code> and password 
+                <code>testpass</code> has been created as well, which you can use to login on the menu on the right and give Rosetta
+                immediately a try. If you run with the default docker-compose file (i.e. you just run <code>rosetta/setup</code>),
+                then you will also have a few demo computing and storage resources (beside the internal engine) already available
+                and that you can play with, including a small Slurm cluster. Otherwise, you will need to setup your own ones
+                from the <a href="/admin">admin</a> section.
+                <br />
+                <br />
+                You can also create custom pages and access them under <code>/pages/page_id</code> should you need to provide
+                your users informations about the platform and its storage and computing resources. For example, see this
+                demo extra <a href="/pages/help">help page</a>. 
+            </div>
+        </div>
+    </div>          
+</header>
 '''
-        home_text = Text.objects.filter(id='home')
-        if home_text:
-            print('Not creating default home text as already present')
+        home_page = Page.objects.filter(id='main')
+        if home_page:
+            print('Not creating default main page content as already present')
         else:
-            print('Creating default home text...')
-            Text.objects.create(id='home', content=default_home_text_content)
+            print('Creating default main page content...')
+            Page.objects.create(id='main', content=default_home_page_content)
+
+        extra_help_page_content = '''
+<h1>Help!</h1>
+<hr>
+<p>
+This is a demo extra page (a help page, in this case). Here you could for example provide the instructions on how to set up SSH-based 
+computing resources using user keys, or who to contact to join a specific group to access its software and computing resources.
+</p>
+
+<p>
+In general, the part of the URL following the <code>/pages/</code> path is parsed as the page id, 
+so that if a page with that id exists in the database, its content will show up here.
+You can use this system for creating a mini-website inside the platform 
+to provide help, news and informations on your deployment. Or you can just ignore the whole thing and leave a plain logo in the main page. 
+</p>
+'''
+
+        extra_help_page = Page.objects.filter(id='help')
+        if home_page:
+            print('Not creating extra help page content as already present')
+        else:
+            print('Creating extra help page content...')
+            Page.objects.create(id='help', content=extra_help_page_content)
+
 
 
         #===================== 

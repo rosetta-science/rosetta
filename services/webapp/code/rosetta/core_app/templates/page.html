@@ -1,0 +1,28 @@
+{% load static %} 
+{% include "header.html" with title=data.page.title %}
+{% include "navigation.html"%}
+
+<br/>
+<br/>
+
+<div class="container">
+  <div class="dashboard">
+    <div class="span8 offset2">
+      <!-- <h1>Example title</h1>
+      <hr> -->
+      {{ data.page.content | safe }}
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+{% include "footer.html" %}
+
+
+

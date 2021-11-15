@@ -391,17 +391,17 @@ class KeyPair(models.Model):
 
 
 #=========================
-#  Texts 
+#  Page 
 #=========================
 
-class Text(models.Model):
-    '''A model to store some text contents for the platform, like the home page text'''
+class Page(models.Model):
+    '''A model to store pages for the platform, as custom a custom home page'''
 
-    id = models.CharField('Text id', max_length=16, primary_key=True)
-    content = models.TextField('Text content', blank=True, null=True)
+    id = models.CharField('Page id', max_length=16, primary_key=True)
+    content = models.TextField('Page content', blank=True, null=True)
 
     def __str__(self):
-        return str('Text with id "{}"'.format(self.id))
+        return str('Page "{}"'.format(self.id))
 
 
 
