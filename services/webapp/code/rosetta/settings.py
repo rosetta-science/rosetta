@@ -235,7 +235,9 @@ INVITATION_CODE = os.environ.get('INVITATION_CODE', None)
 #  Auth
 #===============================
 
-OIDC_RP_CLIENT_ID  = os.environ.get('OIDC_RP_CLIENT_ID', None)
+DISABLE_LOCAL_AUTH = booleanize(os.environ.get('DISABLE_LOCAL_AUTH', False))
+
+OIDC_RP_CLIENT_ID = os.environ.get('OIDC_RP_CLIENT_ID', None)
 
 if OIDC_RP_CLIENT_ID:
 
