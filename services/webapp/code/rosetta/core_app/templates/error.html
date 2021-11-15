@@ -1,6 +1,6 @@
 {% load static %} 
 {% include "header.html" %}
-{% include "navigation.html" with main_path='/main/' %}
+{% include "navigation.html" %}
 
 <br/>
 <br/>
@@ -13,11 +13,9 @@
       <br/>
       <br/><br/>
       <div class='centerbox-error-outer'> 
-        <a href="/main"> 
           <span class='centerbox-error-inner'>     
           {{data.error}}
           </span>
-        </a>
       </div>
 
       <br/>

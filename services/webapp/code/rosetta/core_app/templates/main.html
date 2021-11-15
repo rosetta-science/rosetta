@@ -2,7 +2,9 @@
 {% include "header.html" %}
 {% include "navigation.html"%}
 
-    <!-- Header -->
+    {% if data.page.content %}
+    {{ data.page.content | safe }}
+    {% else %}
     <header id="top" class="header">
         <div style="display:table-row">
             <div class="text-vertical-center">
@@ -13,19 +15,17 @@
         
         <div class="container">
             <div class="dashboard">
-                {% if data.home_text %}
-                {{ data.home_text | safe }}
-                {% else %}
                 <div class="span8 offset2" style="margin: 30px auto; max-width:800px">
                 <br/>
                 Welcome to Rosetta!
                 <br/><br/>
                 This is an empty installation. To load some demo data, run <code>rosetta/populate</code>.
                 </div>
-                {% endif %}
+                
             </div>
         </div>          
     </header>
+    {% endif %}
 
 {% include "footer.html" %}
 

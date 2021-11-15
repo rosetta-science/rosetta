@@ -5,11 +5,11 @@ import subprocess
 from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
-from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Text
+from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 # Task cache
 _task_cache = {}
 
+
+#====================
+#  Page views
+#====================
 
 @public_view
 def login_view(request):
@@ -186,17 +190,34 @@ def entrypoint(request):
 @public_view
 def main_view(request):
 
-    # Set data & render
+    # Init data
     data = {}
     
-    # Get homepage text if any
+    # Get custom home page if any
     try:
-        text = Text.objects.get(id='home')
-        data['home_text'] = text.content
-    except Text.DoesNotExist:
+        page = Page.objects.get(id='main')
+        data['page'] = page
+    except Page.DoesNotExist:
         pass
 
     return render(request, 'main.html', {'data': data})
+
+
+@public_view
+def page_view(request, page_id):
+
+    # Init data
+    data = {}
+    
+    # Get the page
+    try:
+        page = Page.objects.get(id=page_id)
+        data['page'] = page
+    except Page.DoesNotExist:
+        return HttpResponseNotFound('Page not found')
+
+    return render(request, 'page.html', {'data': data})
+
 
 
 #====================

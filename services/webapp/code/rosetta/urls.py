@@ -45,6 +45,8 @@ urlpatterns = [
     path('login/', core_app_views.login_view),
     path('logout/', core_app_views.logout_view),
     url(r'^register/$', core_app_views.register_view),
+    url(r'^pages/(?P<page_id>\w{0,36})/$', core_app_views.page_view),
+
     
     # Software    
     url(r'^software/$', core_app_views.software),
