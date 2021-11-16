@@ -94,18 +94,21 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         # Init run command #--cap-add=NET_ADMIN --cap-add=NET_RAW
         run_command  = 'sudo docker run  --network=rosetta_default --name {}'.format(task.uuid)
 
+        if task.container.interface_port == 22:
+            if not task.container.supports_custom_interface_port:
+                raise ErrorMessage('This task container use the port number 22 which often has issues on the internal computing resource, and does not support custom interface ports, so we cannot run it.')
+            else:
+                task_port = 2222
+                run_command += ' -eBASE_PORT={} '.format(task_port)
+        else:
+            task_port = task.container.interface_port
+
         # Pass if any
         if not task.requires_proxy and task.password:
             run_command += ' -eAUTH_PASS={} '.format(task.password)
 
         # User data volume
-        run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
-
-        # Set registry string
-        #if task.container.registry == 'local':
-        #    registry_string = 'localhost:5000/'
-        #else:
-        #    registry_string  = 'docker.io/'
+        #run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Host name, image entry command
         run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image, task.container.tag)
@@ -131,10 +134,12 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
             task.id = tid
             task.status = TaskStatuses.running
             task.interface_ip = task_ip
-            task.interface_port = task.container.interface_port
+            task.interface_port = task_port
 
             # Save
             task.save()
+        
+        # Wait 10 seconds to see if the task is still up...
 
 
     def _stop_task(self, task):
