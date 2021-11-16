@@ -155,7 +155,8 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      interface_protocol = 'http',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
-                                     supports_interface_auth = True)
+                                     supports_interface_auth = True,
+                                     interface_auth_user = None)
  
  
             # Jupyter Notebook 
@@ -171,12 +172,13 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      interface_protocol = 'http',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
-                                     supports_interface_auth = True)
+                                     supports_interface_auth = True,
+                                     interface_auth_user = None)
 
             # SSH server
             Container.objects.create(user     = None,
                                      name     = 'SSH server',
-                                     description = 'A SSH server supporting X forwarding as well.',
+                                     description = 'An SSH server supporting X forwarding as well.',
                                      registry = 'docker.io',
                                      image    = 'sarusso/ssh',
                                      tag      = 'v0.2.0',
@@ -186,7 +188,8 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      interface_protocol = 'ssh',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
-                                     supports_interface_auth = True)
+                                     supports_interface_auth = True,
+                                     interface_auth_user = 'metauser')
 
         #===================== 
         # Testuser containers

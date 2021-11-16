@@ -13,7 +13,16 @@
         <h2> Connecting to task <b>{{ data.task.name }}</b></h2>
         <p style="font-size: 16px;">
         <br />
+        
+        {% if not data.task.requires_proxy_auth %}
+        {% if data.task.container.interface_auth_user %}
+        User: <input style="margin-bottom:15px;" type="username" class="form-control" value="{{ data.task.container.interface_auth_user }}"name='username' readonly >        
+        {% else %}
+        
+        {% endif %}
+        {% else %}
         User: <input style="margin-bottom:15px;" type="username" class="form-control" value="{{ request.user.email }}"name='username' readonly >
+        {% endif %}
         
         
         {% if data.task.requires_proxy_auth %}
@@ -34,13 +43,21 @@
           Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
+          {% if not data.task.requires_proxy_auth and data.task.container.interface_auth_user %}
           This task will require to manually enter the above user and password token
+          {% else %}
+          This task will require to manually enter the above password token          
+          {% endif %}
           </p> 
           {% else %}
           Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' readonly>
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
+          {% if not data.task.requires_proxy_auth and data.task.container.interface_auth_user %}
           This task will require to manually enter the above user and the password set up when creating the task
+          {% else %}
+          This task will require to manually enter the password set up when creating the task          
+          {% endif %}
           </p> 
           {% endif %}
           
