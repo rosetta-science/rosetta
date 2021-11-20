@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 import subprocess
+import base64
 from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
@@ -10,7 +11,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation, get_md5
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
 
@@ -463,6 +464,14 @@ def new_task(request):
                 raise Exception('Consistency error, container with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_container_uuid, request.user.email))
         return task_container
 
+    # Get task container arch helper function
+    def get_task_container_arch(request):
+        container_arch = request.POST.get('task_container_arch', None)
+        if not container_arch:
+            # At the second step the task uuid is set via a GET request 
+            container_arch = request.GET.get('task_container_arch', None)
+        return container_arch
+
     # Get task computing helper function
     def get_task_computing(request):
         task_computing_uuid = request.POST.get('task_computing_uuid', None)
@@ -496,8 +505,9 @@ def new_task(request):
         
     elif step == 'two':
         
-        # Get software container
+        # Get software container and arch
         data['task_container'] = get_task_container(request)
+        data['task_container_arch'] = get_task_container_arch(request)
 
         # List all computing resources 
         data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
@@ -507,8 +517,9 @@ def new_task(request):
 
     elif step == 'three':
 
-        # Get software container
+        # Get software container and arch
         data['task_container'] = get_task_container(request)
+        data['task_container_arch'] = get_task_container_arch(request)
 
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
@@ -523,8 +534,9 @@ def new_task(request):
 
     elif step == 'last':
 
-        # Get software container
+        # Get software container and arch
         data['task_container'] = get_task_container(request)
+        data['task_container_arch'] = get_task_container_arch(request)
 
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
@@ -691,8 +703,11 @@ def software(request):
     data['profile'] = Profile.objects.get(user=request.user)
 
     # Get action if any
-    uuid   = request.GET.get('uuid', None)
+    container_uuid = request.GET.get('container_uuid', None)
+    container_family_id = request.GET.get('container_family_id', None)
     action = request.GET.get('action', None)
+    details = booleanize(request.GET.get('details', False))
+
 
     # Get filter/search if any
     search_text   = request.POST.get('search_text', '')
@@ -701,6 +716,7 @@ def software(request):
     # Set back to page data
     data['search_owner'] = search_owner
     data['search_text']  = search_text
+    data['details'] = details
 
     # Are we using this page as first step of a new task?
     data['mode'] = request.GET.get('mode', None)
@@ -708,14 +724,14 @@ def software(request):
         data['mode'] = request.POST.get('mode', None)
 
 
-    # Do we have to operate on a specific container?
-    if uuid:
+    # Do we have to operate on a specific container, or family of containers?
+    if container_uuid:
 
         try:
 
             # Get the container (raises if none available including no permission)
             try:
-                container = Container.objects.get(uuid=uuid)
+                container = Container.objects.get(uuid=container_uuid)
             except Container.DoesNotExist:
                 raise ErrorMessage('Container does not exists or no access rights')                
             if container.user and container.user != request.user:
@@ -735,26 +751,83 @@ def software(request):
             data['error'] = 'Error in getting the software container or performing the required action'
             logger.error('Error in getting container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
-
-
-    # Get containers (fitered by search term, or all)
-    if search_text:
-        search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image__icontains=search_text))
-        user_containers = Container.objects.filter(search_query, user=request.user)
-        platform_containers = Container.objects.filter(search_query, user=None)
-    else:
-        user_containers = Container.objects.filter(user=request.user)
-        platform_containers = Container.objects.filter(user=None)
     
-    # Filter by owner
+    # Or, do we have to operate on a container family?
+    elif container_family_id:
+        
+        # Get back name, registry and image from contsainer url
+        container_name, container_registry, container_image = base64.b64decode(container_family_id.encode('utf8')).decode('utf8').split('\t')
+      
+        # get containers from the DB
+        user_containers = Container.objects.filter(user=request.user, name=container_name, registry=container_registry, image=container_image)
+        platform_containers = Container.objects.filter(user=None, name=container_name, registry=container_registry, image=container_image)
+    
+    else:    
+        
+        # Get containers (fitered by search term, or all)
+        if search_text:
+            search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image__icontains=search_text))
+            user_containers = Container.objects.filter(search_query, user=request.user)
+            platform_containers = Container.objects.filter(search_query, user=None)
+        else:
+            user_containers = Container.objects.filter(user=request.user)
+            platform_containers = Container.objects.filter(user=None)
+
+        
+    # Ok, nilter by owner
     if search_owner != 'All':
         if search_owner == 'User':
             platform_containers =[]
         if search_owner == 'Platform':
             user_containers = []
-
+            
+    # Create all container list
     data['containers'] = list(user_containers) + list(platform_containers)
+        
+    # Merge containers with the same name, registry and image
+    data['container_families'] = {}
+    
+    # Container family support class
+    class ContainerFamily(object):
+    
+        def __init__(self, id, name, registry, image):
+            self.id = id
+            self.name = name
+            self.registry = registry
+            self.image = image
+            self.description = None
+            self.members = []
+            self.all_archs = []
+            self.container_by_tags_by_arch = {} 
 
+        def add(self, container):
+            self.members.append(container)
+
+            if not self.description:
+                self.description = container.description
+            
+            for arch in container.arch.split(','):
+                
+                if not arch in self.all_archs:
+                    self.all_archs.append(arch)
+                if not arch in self.container_by_tags_by_arch:
+                    self.container_by_tags_by_arch[arch]={}
+                self.container_by_tags_by_arch[arch][container.tag] = container
+        
+        @ property
+        def color(self):
+            try:
+                return self.members[0].color
+            except IndexError:
+                return '#000000'
+        
+    # Populate container families
+    for container in data['containers']:
+        container_family_id = base64.b64encode('{}\t{}\t{}'.format(container.name, container.registry, container.image).encode('utf8')).decode('utf8')
+        if container_family_id not in data['container_families']:
+            data['container_families'][container_family_id] = ContainerFamily(container_family_id, container.name, container.registry, container.image)
+        data['container_families'][container_family_id].add(container)    
+            
     return render(request, 'software.html', {'data': data})
 
 

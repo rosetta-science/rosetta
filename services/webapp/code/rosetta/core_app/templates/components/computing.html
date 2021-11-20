@@ -115,6 +115,7 @@
         {% csrf_token %}
         <input type="hidden" name="step" value="{{ data.next_step }}" />
         <input type="hidden" name="task_container_uuid" value="{{container.uuid}}">
+        <input type="hidden" name="task_container_arch" value="{{container_arch}}">
         <input type="hidden" name="task_computing_uuid" value="{{computing.uuid}}">
         <input type="submit" value="Choose" class="btn btn-connect">
         </form>

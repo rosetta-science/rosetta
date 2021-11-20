@@ -144,10 +144,9 @@ class Container(models.Model):
         user_str = self.user.email if self.user else None
         return str('Container "{}" of user "{}" with image "{}" and tag "{}" on registry "{}" '.format(self.name, user_str, self.image, self.tag, self.registry))
 
-
     @ property
     def color(self):
-        string_int_hash = hash_string_to_int(self.image + self.tag + self.registry)
+        string_int_hash = hash_string_to_int(self.name + self.registry + self.image)
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
 

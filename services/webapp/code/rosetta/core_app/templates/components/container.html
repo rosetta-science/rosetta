@@ -1,6 +1,6 @@
 
 
-      {% if details %}      
+      {% if details %}     
 
       <table class="dashboard" style="margin:10px; max-width:600px">
         
@@ -109,7 +109,7 @@
 
         
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
-        <a href="/software/?uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
+        <a href="/software/container_?uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
         </div>
         
         <div style="padding:10px; height: 110px; vertical-align: middle; ">
@@ -125,7 +125,7 @@
         <div class="image-version-box">
         <!-- <font style="font-family:monospace; font-size:1.2em"></font> -->
         <b>Image:</b> <code>{{ container.image }}</code><br/>
-        <b>Tag:</b> &nbsp;{{ container.tag }}
+        <b>Tag:</b> &nbsp;{{ container.tag }} &nbsp;<b>Arch:</b> {{container_arch}}
         </div> 
        
         </div>

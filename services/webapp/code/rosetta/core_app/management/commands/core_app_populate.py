@@ -159,7 +159,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      interface_auth_user = None)
  
  
-            # Jupyter Notebook 
+            # Jupyter Notebook
             Container.objects.create(user     = None,
                                      name     = 'Jupyter Notebook',
                                      description = 'A Jupyter Notebook server',
@@ -174,6 +174,37 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True,
                                      interface_auth_user = None)
+
+            # Official Jupyter Lab
+            Container.objects.create(user     = None,
+                                     name     = 'Jupyter Lab',
+                                     description = 'The official Jupyter Lab. The Scipy variant, which includes popular packages from the scientific Python ecosystem.',
+                                     registry = 'docker.io',
+                                     image    = 'jupyter/scipy-notebook',
+                                     tag      = 'lab-3.2.2',
+                                     arch = 'amd64,arm64',
+                                     os = 'linux',
+                                     interface_port     = '8888',
+                                     interface_protocol = 'http',
+                                     interface_transport = 'tcp/ip',
+                                     supports_custom_interface_port = True,
+                                     supports_interface_auth = True)
+
+            Container.objects.create(user     = None,
+                                     name     = 'Jupyter Lab',
+                                     description = 'The official Jupyter Lab. Includes popular packages from the scientific Python ecosystem.',
+                                     registry = 'docker.io',
+                                     image    = 'jupyter/scipy-notebook',
+                                     tag      = 'lab-3.1.17',
+                                     arch = 'amd64,arm64',
+                                     os = 'linux',
+                                     interface_port     = '8888',
+                                     interface_protocol = 'http',
+                                     interface_transport = 'tcp/ip',
+                                     supports_custom_interface_port = True,
+                                     supports_interface_auth = True)
+
+
 
             # SSH server
             Container.objects.create(user     = None,

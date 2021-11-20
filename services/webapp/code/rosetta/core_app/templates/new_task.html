@@ -24,7 +24,7 @@
       <div style="float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:20px">
           <h4>Software container</h4>
           <div class="row" style="padding:5px">
-          {% include "components/container.html" with container=data.task_container disable_play_button=True %}
+          {% include "components/container.html" with container=data.task_container container_arch=data.task_container_arch disable_play_button=True  %}
           </div>
       </div>
       {% endif %}
@@ -36,7 +36,7 @@
           <h4>Computing resource</h4>
           <div class="row" style="padding:5px">
           {% for computing in data.computings %}
-          {% include "components/computing.html" with container=data.task_container %}
+          {% include "components/computing.html" with container=data.task_container container_arch=data.task_container_arch %}
           {% endfor %}
           </div>
       </div>
@@ -76,6 +76,7 @@
           <form action="/new_task/" method="POST">
           {% csrf_token %}
           <input type="hidden" name="task_container_uuid" value="{{data.task_container.uuid}}">
+          <input type="hidden" name="task_container_arch" value="{{data.task_container_arch}}">          
           <input type="hidden" name="step" value="{{ data.next_step }}" />
           <input type="hidden" name="task_name" value="{{ data.task_name }}" />
           <input type="hidden" name="task_container_uuid" value="{{ data.task_container.uuid }}" />
