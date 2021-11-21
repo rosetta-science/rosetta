@@ -524,6 +524,21 @@ def new_task(request):
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
         
+        # Check that container required architecture is compatible with the computing resource
+        if data['task_container_arch'] != 'auto':
+            if data['task_container_arch'] != data['task_computing'].arch:
+                # TODO: support setting the container runtime when creating the task
+                # TODO: refactor and unroll this code
+                container_runtime = data['task_computing'].container_runtimes[0]
+                if container_runtime in data['task_computing'].emulated_archs and data['task_container_arch'] in data['task_computing'].emulated_archs[container_runtime]:
+                    data['arch_emulation'] = True
+                else:
+                    raise ErrorMessage('This computing resource does not support architecture "{}" nor as native or emulated'.format(data['task_container_arch']))
+
+        else:
+            raise ErrorMessage('Auto architectures are not supported yet')
+            
+        
         # Generate random auth token        
         data['task_auth_token'] = str(uuid.uuid4())
 

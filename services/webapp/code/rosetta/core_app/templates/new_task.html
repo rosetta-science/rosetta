@@ -166,6 +166,12 @@
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support custom interface ports and the computing resource you selected might use a container runtime which does not support port mapping (Singularity). In this case, if the container interface port is already allocated, the task will fail to start.
           </p></div>
           {% endif %}
+
+          {% if data.arch_emulation %}
+          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
+          <i class="fa fa-exclamation-triangle" style="color:orange"></i> The selected software container architecture ({{ data.task_container_arch}}) can only be emulated on this computing resource, meaning the it will probably run quite slow.
+          </p></div>
+          {% endif %}
           
           <!-- {% if data.task_container.interface_port and not data.task_container.supports_interface_auth %}
           <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">

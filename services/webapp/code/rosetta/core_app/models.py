@@ -164,16 +164,21 @@ class Computing(models.Model):
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
 
-    # Tye (standalone / cluster)
+    # Type (standalone / cluster) and arch
     type = models.CharField('Type', max_length=255, blank=False, null=False)
+    arch = models.CharField('Architecture', max_length=255, blank=False, null=False)
 
     # Interfce and interaction definition
     access_mode = models.CharField('Access (control) mode', max_length=36, blank=False, null=False)
     auth_mode   = models.CharField('Auth mode', max_length=36, blank=False, null=False)
     wms         = models.CharField('Workload management system', max_length=36, blank=True, null=True)
     
-    # Supported container runtimes
-    container_runtimes = models.CharField('Container runtimes', max_length=256, blank=False, null=False) 
+    # Supported container runtimes ['docker', 'singularity']
+    container_runtimes = JSONField('Container runtimes', blank=False, null=False)
+    #container_runtime = models.CharField('Container runtimes', max_length=256, blank=False, null=False)
+ 
+    # Emulated architectures, by container runtime {'docker': ['arm64', 'amd']    
+    emulated_archs = JSONField('Emulated architectures', blank=True, null=True) 
 
     # Conf
     conf = JSONField(blank=True, null=True)
@@ -202,6 +207,11 @@ class Computing(models.Model):
     @property
     def default_container_runtime(self):
         return str(self.container_runtimes).split(',')[0]
+    
+    @property
+    def arch(self):
+        return 'amd64'
+    
 
 
     #=======================
