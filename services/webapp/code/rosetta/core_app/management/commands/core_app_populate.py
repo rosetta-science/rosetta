@@ -129,7 +129,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
             
             # Minimal Desktop
             Container.objects.create(user     = None,
-                                     name     = 'Minimal Desktop ',
+                                     name     = 'Minimal Desktop',
                                      description = 'A minimal desktop environment providing basic window management functionalities and a terminal.',
                                      registry = 'docker.io',
                                      image_name = 'sarusso/minimaldesktop',

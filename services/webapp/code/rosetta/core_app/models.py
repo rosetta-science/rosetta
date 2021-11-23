@@ -157,8 +157,9 @@ class Container(models.Model):
 
     @property
     def family_id(self):
-        return base64.b64encode('{}\t{}\t{}'.format(self.name, self.registry, self.image_name).encode('utf8')).decode('utf8')
-
+        id_as_str = '{}\t{}\t{}'.format(self.name, self.registry, self.image_name)
+        id_as_base64_str = base64.b64encode(id_as_str.encode('utf8')).decode('utf8')
+        return id_as_base64_str
 
     @property
     def color(self):
