@@ -1,5 +1,6 @@
 import uuid
 import json
+import base64
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User, Group
@@ -110,19 +111,22 @@ class Container(models.Model):
     group = models.ForeignKey(Group, related_name='containers', on_delete=models.CASCADE, blank=True, null=True)
     # If a container has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
 
-
     # Generic attributes
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
     
-    # Registry-related attributes
+    # Registry
     registry = models.CharField('Registry', max_length=255, blank=False, null=False)
-    image    = models.CharField('Image', max_length=255, blank=False, null=False)
-    tag      = models.CharField('Tag', max_length=255, blank=False, null=False, default='latest')
 
-    # Platform-related
-    arch = models.CharField('Architecture', max_length=36, blank=False, null=False, default='x86_64')
-    os   = models.CharField('Operating system', max_length=36, blank=False, null=False, default='linux')
+    # Image name
+    image_name = models.CharField('Image', max_length=255, blank=False, null=False)
+    
+    # Image identifiers
+    image_tag  = models.CharField('Tag', max_length=255, blank=True, null=True, default='latest')
+    image_arch = models.CharField('Architecture', max_length=36, blank=True, null=True)
+    image_os   = models.CharField('Operating system', max_length=36, blank=True, null=True)
+    # -- OR --
+    image_digest  = models.CharField('SHA 256 digest', max_length=96, blank=True, null=True)
     
     # TODO: do we want more control with respect to kernel, CPUs, instruction sets? 
     # requires = i.e. kernel > 3, intel, AVX2
@@ -142,13 +146,27 @@ class Container(models.Model):
 
     def __str__(self):
         user_str = self.user.email if self.user else None
-        return str('Container "{}" of user "{}" with image "{}" and tag "{}" on registry "{}" '.format(self.name, user_str, self.image, self.tag, self.registry))
+        return str('Container "{}" of user "{}" with image name "{}" and image tag "{}" on registry "{}" '.format(self.name, user_str, self.image_name, self.image_tag, self.registry))
 
-    @ property
+    def save(self, *args, **kwargs):
+        # Check that digest starts with sha256:
+        if self.image_digest and not self.image_digest.startswith('sha256:'):
+            raise ValueError('The digest field must start with "sha256:"')
+        
+        super(Container, self).save(*args, **kwargs)
+
+    @property
+    def family_id(self):
+        return base64.b64encode('{}\t{}\t{}'.format(self.name, self.registry, self.image_name).encode('utf8')).decode('utf8')
+
+
+    @property
     def color(self):
-        string_int_hash = hash_string_to_int(self.name + self.registry + self.image)
+        string_int_hash = hash_string_to_int(self.name + self.registry + self.image_name)
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
+
+
 
 
 #=========================

@@ -507,7 +507,6 @@ def new_task(request):
         
         # Get software container and arch
         data['task_container'] = get_task_container(request)
-        data['task_container_arch'] = get_task_container_arch(request)
 
         # List all computing resources 
         data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
@@ -519,24 +518,27 @@ def new_task(request):
 
         # Get software container and arch
         data['task_container'] = get_task_container(request)
-        data['task_container_arch'] = get_task_container_arch(request)
 
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
         
         # Check that container required architecture is compatible with the computing resource
-        if data['task_container_arch'] != 'auto':
-            if data['task_container_arch'] != data['task_computing'].arch:
+        if data['task_container'].image_arch:
+            if data['task_container'].image_arch != data['task_computing'].arch:
                 # TODO: support setting the container runtime when creating the task
                 # TODO: refactor and unroll this code
-                container_runtime = data['task_computing'].container_runtimes[0]
-                if container_runtime in data['task_computing'].emulated_archs and data['task_container_arch'] in data['task_computing'].emulated_archs[container_runtime]:
-                    data['arch_emulation'] = True
+                # TODO: add support for setting the container runtime
+                if data['task_computing'].emulated_archs:
+                    container_runtime = data['task_computing'].container_runtimes[0]
+                    if container_runtime in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_runtime]:
+                        data['arch_emulation'] = True
+                    else:
+                        raise ErrorMessage('This computing resource does not support architecture "{}" nor as native or emulated'.format(data['task_container'].image_arch))
                 else:
-                    raise ErrorMessage('This computing resource does not support architecture "{}" nor as native or emulated'.format(data['task_container_arch']))
+                    raise ErrorMessage('This computing resource does not support architecture "{}" nor as native or emulated'.format(data['task_container'].image_arch))
 
         else:
-            raise ErrorMessage('Auto architectures are not supported yet')
+            raise ErrorMessage('Auto detecting architectures is not supported yet')
             
         
         # Generate random auth token        
@@ -767,82 +769,92 @@ def software(request):
             logger.error('Error in getting container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
     
-    # Or, do we have to operate on a container family?
-    elif container_family_id:
-        
-        # Get back name, registry and image from contsainer url
-        container_name, container_registry, container_image = base64.b64decode(container_family_id.encode('utf8')).decode('utf8').split('\t')
-      
-        # get containers from the DB
-        user_containers = Container.objects.filter(user=request.user, name=container_name, registry=container_registry, image=container_image)
-        platform_containers = Container.objects.filter(user=None, name=container_name, registry=container_registry, image=container_image)
-    
-    else:    
-        
-        # Get containers (fitered by search term, or all)
-        if search_text:
-            search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image__icontains=search_text))
-            user_containers = Container.objects.filter(search_query, user=request.user)
-            platform_containers = Container.objects.filter(search_query, user=None)
-        else:
-            user_containers = Container.objects.filter(user=request.user)
-            platform_containers = Container.objects.filter(user=None)
-
-        
-    # Ok, nilter by owner
-    if search_owner != 'All':
-        if search_owner == 'User':
-            platform_containers =[]
-        if search_owner == 'Platform':
-            user_containers = []
+    else:
+        # Ddo we have to operate on a container family?
+        if container_family_id:
             
-    # Create all container list
-    data['containers'] = list(user_containers) + list(platform_containers)
+            # Get back name, registry and image from contsainer url
+            container_name, container_registry, container_image_name = base64.b64decode(container_family_id.encode('utf8')).decode('utf8').split('\t')
+          
+            # get containers from the DB
+            user_containers = Container.objects.filter(user=request.user, name=container_name, registry=container_registry, image_name=container_image_name)
+            platform_containers = Container.objects.filter(user=None, name=container_name, registry=container_registry, image_name=container_image_name)
         
-    # Merge containers with the same name, registry and image
-    data['container_families'] = {}
-    
-    # Container family support class
-    class ContainerFamily(object):
-    
-        def __init__(self, id, name, registry, image):
-            self.id = id
-            self.name = name
-            self.registry = registry
-            self.image = image
-            self.description = None
-            self.members = []
-            self.all_archs = []
-            self.container_by_tags_by_arch = {} 
-
-        def add(self, container):
-            self.members.append(container)
-
-            if not self.description:
-                self.description = container.description
+        else:    
             
-            for arch in container.arch.split(','):
+            # Get containers (fitered by search term, or all)
+            if search_text:
+                search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image_name__icontains=search_text))
+                user_containers = Container.objects.filter(search_query, user=request.user)
+                platform_containers = Container.objects.filter(search_query, user=None)
+            else:
+                user_containers = Container.objects.filter(user=request.user)
+                platform_containers = Container.objects.filter(user=None)
+    
+            
+        # Ok, nilter by owner
+        if search_owner != 'All':
+            if search_owner == 'User':
+                platform_containers =[]
+            if search_owner == 'Platform':
+                user_containers = []
                 
-                if not arch in self.all_archs:
-                    self.all_archs.append(arch)
-                if not arch in self.container_by_tags_by_arch:
-                    self.container_by_tags_by_arch[arch]={}
-                self.container_by_tags_by_arch[arch][container.tag] = container
-        
-        @ property
-        def color(self):
-            try:
-                return self.members[0].color
-            except IndexError:
-                return '#000000'
-        
-    # Populate container families
-    for container in data['containers']:
-        container_family_id = base64.b64encode('{}\t{}\t{}'.format(container.name, container.registry, container.image).encode('utf8')).decode('utf8')
-        if container_family_id not in data['container_families']:
-            data['container_families'][container_family_id] = ContainerFamily(container_family_id, container.name, container.registry, container.image)
-        data['container_families'][container_family_id].add(container)    
+        # Create all container list
+        data['containers'] = list(user_containers) + list(platform_containers)
             
+        # Merge containers with the same name, registry and image name
+        data['container_families'] = {}
+        
+        # Container family support class
+        class ContainerFamily(object):
+        
+            def __init__(self, id, name, registry, image_name):
+                self.id = id
+                self.name = name
+                self.registry = registry
+                self.image_name = image_name
+                self.description = None
+                self.members = []
+                self.all_archs = []
+                self.container_by_tags_by_arch = {} 
+    
+            def add(self, container):
+                self.members.append(container)
+    
+                if not self.description:
+                    self.description = container.description
+    
+                if not container.image_arch in self.all_archs:
+                    self.all_archs.append(container.image_arch)
+    
+                if not container.image_arch in self.container_by_tags_by_arch:
+                    self.container_by_tags_by_arch[container.image_arch]={}
+                self.container_by_tags_by_arch[container.image_arch][container.image_tag] = container
+                
+                # Lastly, add the container to the "all tags"
+                #if None not in self.container_by_tags_by_arch:
+                #    self.container_by_tags_by_arch[None]={}
+                #self.container_by_tags_by_arch[None][container.image_tag] = container
+    
+            
+            @ property
+            def color(self):
+                try:
+                    return self.members[0].color
+                except IndexError:
+                    return '#000000'
+            
+        # Populate container families
+        for container in data['containers']:
+            if container.family_id not in data['container_families']:
+                data['container_families'][container.family_id] = ContainerFamily(container.family_id, container.name, container.registry, container.image_name)
+            data['container_families'][container.family_id].add(container)
+        # Finalize the families
+        #for container.family_id in data['container_families']:
+        #    if len(data['container_families'][container.family_id].all_archs) == 1:
+        #        if data['container_families'][container.family_id].all_archs[0] != None:
+        #            data['container_families'][container.family_id].container_by_tags_by_arch.pop(None)
+                
     return render(request, 'software.html', {'data': data})
 
 
@@ -869,17 +881,17 @@ def add_software(request):
         # Container registry
         container_registry = request.POST.get('container_registry', None)
 
-        # Container image
-        container_image = request.POST.get('container_image',None)
+        # Container image name
+        container_image_name = request.POST.get('container_image_name',None)
         
         # Container tag
-        container_tag = request.POST.get('container_tag', None)
+        container_image_tag = request.POST.get('container_image_tag', None)
 
         # Container architecture
-        container_arch = request.POST.get('container_arch')
+        container_image_arch = request.POST.get('container_image_arch')
 
         # Container operating system
-        container_os = request.POST.get('container_os')
+        container_image_os = request.POST.get('container_image_os')
 
         # Container interface port
         container_interface_port = request.POST.get('container_interface_port', None) 
@@ -921,10 +933,10 @@ def add_software(request):
                                  name        = container_name,
                                  description = container_description,
                                  registry    = container_registry,
-                                 image       = container_image,
-                                 tag         = container_tag,
-                                 arch        = container_arch,
-                                 os          = container_os,
+                                 image_name  = container_image_name,
+                                 image_tag   = container_image_tag,
+                                 image_arch  = container_image_arch,
+                                 image_os    = container_image_os,
                                  interface_port      = container_interface_port,
                                  interface_protocol  = container_interface_protocol,
                                  interface_transport = container_interface_transport,

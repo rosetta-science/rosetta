@@ -27,23 +27,60 @@
         {% endif %}
         
         <div class="image-version-box">
-        <b>Image:</b> <code>{{ container_family.image }}</code><br/>
+        <b>Image:</b> <code>{{ container_family.image_name }}</code><br/>
         <div style="margin-top:2px">
         
-        <span style="vertical-align:top;"><b>Tag:</b>&nbsp;</span>
+        <!-- <span style="vertical-align:top;"><b>Tag:</b>&nbsp;</span>
         <select name="task_container_uuid" style="font-size:0.8em">
         {% for container in container_family.members %}
-        <option value="{{ container.uuid }}">{{ container.tag }}</option>
+        <option value="{{ container.uuid }}">{{ container.image_tag }} ({{ container.image_arch }})</option>
         {% endfor %}
-        </select>
+        </select> -->
 
-        <span style="vertical-align:top; margin-left:5px"><b>Arch:</b>&nbsp;</span>
-        <select name="task_container_arch" style="font-size:0.8em">
-        <option value="auto" selected>auto</option>
-
-        {% for arch in container_family.all_archs %}
-        <option value="{{ arch }}">{{ arch }}</option>
+        <!--<span style="vertical-align:top; margin-left:0px"><b>Tag:</b>&nbsp;</span>
+        <select name="task_container" style="font-size:0.8em">
+        {% for arch,container_by_tags in container_family.container_by_tags_by_arch.items %}
+        {% if not arch %}
+        {% for tag,container in container_by_tags.items %}
+        <option value="family:{{ container_family_id }},tag:{{ tag }}">{{ tag }}</option>
         {% endfor %}
+        {% endif %}
+        {% endfor %}
+
+        {% for arch,container_by_tags in container_family.container_by_tags_by_arch.items %}
+        {% if arch %}
+        <optgroup label="{{ arch }}">
+        {% for tag,container in container_by_tags.items %}
+        <option value="uuid:{{ container.uuid }}">{{ tag }}</option>
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+        </optgroup>-->
+
+
+        <span style="vertical-align:top; margin-left:0px"><b>Tag:</b>&nbsp;</span>
+        <select name="task_container_uuid" style="font-size:0.8em">
+        {% for arch,container_by_tags in container_family.container_by_tags_by_arch.items %}
+        {% if not arch %}
+        {% for tag,container in container_by_tags.items %}
+        <option value="{{container.uuid}}">{{ tag }}</option>
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+
+        {% for arch,container_by_tags in container_family.container_by_tags_by_arch.items %}
+        {% if arch %}
+        <optgroup label="{{ arch }}">
+        {% for tag,container in container_by_tags.items %}
+        <option value="{{container.uuid}}">{{ tag }}</option>
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+        </optgroup>
+
+
+   
+
         </select>
 
             

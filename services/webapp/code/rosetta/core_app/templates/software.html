@@ -9,11 +9,11 @@
   <div class="dashboard">
     <div class="span8 offset2">
       
-      {% if data.details %}
+      {% if data.details or data.container %}
       {% if data.container_families %}
       <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / {{ data.containers.0.name }}</span></h1>
-      {% else %}
-      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / {{ data.container.name }}</span></h1>
+      {% else %}      
+      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / <a href="/software/?container_family_id={{data.container.family_id}}&details=True">{{ data.container.name }}</a> / {{ data.container.image_tag}}</span></h1>
       {% endif %}
       {% else %}
       {% if data.mode == 'new_task' %}
