@@ -1,4 +1,4 @@
-ubuntu@rosetta# Rosetta 🛰️
+# Rosetta 🛰️
 
 
 _A container-centric Science Platform_
