@@ -878,14 +878,17 @@ def add_software(request):
         # Container image name
         container_image_name = request.POST.get('container_image_name',None)
         
-        # Container tag
+        # Container image tag
         container_image_tag = request.POST.get('container_image_tag', None)
 
-        # Container architecture
-        container_image_arch = request.POST.get('container_image_arch')
+        # Container image architecture
+        container_image_arch = request.POST.get('container_image_arch', None)
 
-        # Container operating system
-        container_image_os = request.POST.get('container_image_os')
+        # Container image OS 
+        container_image_os = request.POST.get('container_image_os', None)
+
+        # Container image digest
+        container_image_digest = request.POST.get('container_image_digest', None)
 
         # Container interface port
         container_interface_port = request.POST.get('container_interface_port', None) 
@@ -923,14 +926,15 @@ def add_software(request):
         #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
 
         # Create
-        Container.objects.create(user        = request.user,
-                                 name        = container_name,
-                                 description = container_description,
-                                 registry    = container_registry,
-                                 image_name  = container_image_name,
-                                 image_tag   = container_image_tag,
-                                 image_arch  = container_image_arch,
-                                 image_os    = container_image_os,
+        Container.objects.create(user         = request.user,
+                                 name         = container_name,
+                                 description  = container_description,
+                                 registry     = container_registry,
+                                 image_name   = container_image_name,
+                                 image_tag    = container_image_tag,
+                                 image_arch   = container_image_arch,
+                                 image_os     = container_image_os,
+                                 image_digest = container_image_digest,
                                  interface_port      = container_interface_port,
                                  interface_protocol  = container_interface_protocol,
                                  interface_transport = container_interface_transport,

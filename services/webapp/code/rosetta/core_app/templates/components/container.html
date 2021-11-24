@@ -71,8 +71,14 @@
        </tr>
 
        <tr>
-        <td><b>Image digest</b></td>
-        <td>{{ container.image_digest }}</td>
+        <td><b>Image&nbsp;digest</b></td>
+        <td>
+        {% if container.image_digest %}
+        <input type="text" style="margin:0 "size=25 class="form-control" placeholder="" value="{{ container.image_digest }}" name='digest' readonly>
+        {% else %}
+        None
+        {% endif %}
+        </td>
        </tr>
 
        <tr><td colspan=2><hr style="margin:5px"></td></tr>
