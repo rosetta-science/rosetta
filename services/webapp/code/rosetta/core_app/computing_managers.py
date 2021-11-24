@@ -242,7 +242,7 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
             
 
         else:
-            raise NotImplementedError('Container {} not supported'.format(task.container.type))
+            raise NotImplementedError('Container runtime {} not supported'.format(self.computing.default_container_runtime))
 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:
@@ -380,7 +380,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             run_command+='docker://{}/{}:{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(task.container.registry, task.container.image_name, task.container.image_tag, task.uuid, task.uuid, sbatch_args, task.uuid)
 
         else:
-            raise NotImplementedError('Default container runtime "{}" not supported'.format(task.computing.default_container_runtime))
+            raise NotImplementedError('Container runtime {} not supported'.format(task.computing.default_container_runtime))
 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:

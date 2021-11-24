@@ -228,7 +228,7 @@ class Computing(models.Model):
 
     @property
     def default_container_runtime(self):
-        return str(self.container_runtimes).split(',')[0]
+        return self.container_runtimes[0]
     
 
     #=======================
