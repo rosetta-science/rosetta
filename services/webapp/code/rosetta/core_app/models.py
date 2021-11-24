@@ -230,11 +230,6 @@ class Computing(models.Model):
     def default_container_runtime(self):
         return str(self.container_runtimes).split(',')[0]
     
-    @property
-    def arch(self):
-        return 'amd64'
-    
-
 
     #=======================
     # Computing manager
