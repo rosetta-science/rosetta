@@ -1,8 +1,13 @@
 
 
-      {% if details %}      
+      {% if details %}     
 
-      <table class="dashboard" style="margin:10px; max-width:600px">
+      <div style="width:400px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
+      <table class="dashboard" style="margin:0px; border:0px; width:398px">
+
+       <tr>
+        <td colspan=2 align=center style="padding:10px; font-size:1.2em"><a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }} <font style="font-size:0.9em">({{ container.image_tag }})</font></a></td>
+       </tr>
         
        <tr>
         <td colspan="2" style="background:{{ container.color }}; height:15px"></td>
@@ -10,11 +15,11 @@
 
        <tr><td colspan=2 style="height:5px"></td></tr>
 
-
        <tr>
-        <td><b>Name</b></td>
-        <td>{{ container.name }}</td>
+        <td colspan=2>{{ container.description }}</td>
        </tr>
+
+       <tr><td colspan=2><hr style="margin:5px"></td></tr>
 
        <tr>
         <td><b>Owner</b></td>
@@ -22,29 +27,24 @@
        </tr>
 
        <tr>
-        <td><b>Description</b></td>
-        <td>{{ container.description }}</td>
-       </tr>
-
-       <tr><td colspan=2><hr style="margin:5px"></td></tr>
-
-       <tr>
         <td><b>Registry</b></td>
         <td>{{ container.registry }}</td>
        </tr>
 
        <tr>
-        <td><b>Image</b></td>
-        <td><code>{{ container.image }}</code></td>
+        <td><b>Image&nbsp;name</b></td>
+        <td><code>{{ container.image_name }}</code></td>
        </tr>
 
        <tr>
-        <td><b>Tag</b></td>
-        <td>{{ container.tag }}</td>
+        <td><b>Image tag</b></td>
+        <td><span class="badge badge-secondary">{{ container.image_tag }}</span></td>
        </tr>
 
        <tr><td colspan=2><hr style="margin:5px"></td></tr>
-
+       </table>
+       
+      <table class="dashboard" style="margin:0px; border:0px;">
        <tr>
         <td><b>Interface protocol</b></td>
         <td>{{ container.interface_protocol }}</td>
@@ -61,13 +61,24 @@
        </tr>
 
        <tr>
-        <td><b>Architecture</b></td>
-        <td>{{ container.arch }}</td>
+        <td><b>Image arch</b></td>
+        <td>{{ container.image_arch }}</td>
        </tr>
 
        <tr>
-        <td><b>Operating System</b></td>
-        <td>{{ container.os }}</td>
+        <td><b>Image OS</b></td>
+        <td>{{ container.image_os }}</td>
+       </tr>
+
+       <tr>
+        <td><b>Image&nbsp;digest</b></td>
+        <td>
+        {% if container.image_digest %}
+        <input type="text" style="margin:0 "size=25 class="form-control" placeholder="" value="{{ container.image_digest }}" name='digest' readonly>
+        {% else %}
+        None
+        {% endif %}
+        </td>
        </tr>
 
        <tr><td colspan=2><hr style="margin:5px"></td></tr>
@@ -101,7 +112,7 @@
        </tr>
        {% endif %}
       </table>
-      <br/>
+      </div>
       
       
       {% else %}
@@ -109,7 +120,7 @@
 
         
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
-        <a href="/software/?uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
+        <a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
         </div>
         
         <div style="padding:10px; height: 110px; vertical-align: middle; ">
@@ -124,8 +135,13 @@
         
         <div class="image-version-box">
         <!-- <font style="font-family:monospace; font-size:1.2em"></font> -->
-        <b>Image:</b> <code>{{ container.image }}</code><br/>
-        <b>Tag:</b> &nbsp;{{ container.tag }}
+        <b>Image:</b> <code>{{ container.image_name }}</code><br/>
+        <b>Tag:</b> &nbsp;<span class="badge badge-secondary" style="margin-right:3px">{{ container.image_tag }}</span>
+        {% if container.image_arch %}
+        <font style="font-size:0.9em">({{ container.image_arch }})</font>
+        {% endif %}
+        
+        <!--  &nbsp; <b>Arch:</b> {{ container.image_arch }} -->
         </div> 
        
         </div>

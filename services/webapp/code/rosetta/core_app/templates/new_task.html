@@ -24,7 +24,7 @@
       <div style="float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:20px">
           <h4>Software container</h4>
           <div class="row" style="padding:5px">
-          {% include "components/container.html" with container=data.task_container disable_play_button=True %}
+          {% include "components/container.html" with container=data.task_container container_arch=data.task_container_arch disable_play_button=True  %}
           </div>
       </div>
       {% endif %}
@@ -36,7 +36,7 @@
           <h4>Computing resource</h4>
           <div class="row" style="padding:5px">
           {% for computing in data.computings %}
-          {% include "components/computing.html" with container=data.task_container %}
+          {% include "components/computing.html" with container=data.task_container container_arch=data.task_container_arch %}
           {% endfor %}
           </div>
       </div>
@@ -76,6 +76,7 @@
           <form action="/new_task/" method="POST">
           {% csrf_token %}
           <input type="hidden" name="task_container_uuid" value="{{data.task_container.uuid}}">
+          <input type="hidden" name="task_container_arch" value="{{data.task_container_arch}}">          
           <input type="hidden" name="step" value="{{ data.next_step }}" />
           <input type="hidden" name="task_name" value="{{ data.task_name }}" />
           <input type="hidden" name="task_container_uuid" value="{{ data.task_container.uuid }}" />
@@ -163,6 +164,18 @@
           {% if data.task_computing.default_container_runtime == 'singularity' and not data.task_container.supports_custom_interface_port %}
           <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support custom interface ports and the computing resource you selected might use a container runtime which does not support port mapping (Singularity). In this case, if the container interface port is already allocated, the task will fail to start.
+          </p></div>
+          {% endif %}
+
+          {% if data.arch_emulation %}
+          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
+          <i class="fa fa-exclamation-triangle" style="color:orange"></i> The selected software container architecture ({{ data.task_container_arch}}) can only be emulated on this computing resource, meaning the it will probably run quite slow.
+          </p></div>
+          {% endif %}
+
+          {% if data.arch_auto_selection %}
+          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
+          <i class="fa fa-exclamation-triangle" style="color:orange"></i> The selected software container does not specify any architecture. This will leave to the container runtime either to auto-select the right image architecture on the registry, or to fallback on emulation if not found. Beware of potential incompatibilities or slowdowns.
           </p></div>
           {% endif %}
           

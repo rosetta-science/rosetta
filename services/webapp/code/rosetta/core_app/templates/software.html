@@ -9,8 +9,12 @@
   <div class="dashboard">
     <div class="span8 offset2">
       
-      {% if data.container %}
-      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / {{ data.container.name }}</span></h1>
+      {% if data.details or data.container %}
+      {% if data.container_families %}
+      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / {{ data.containers.0.name }}</span></h1>
+      {% else %}      
+      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / <a href="/software/?container_family_id={{data.container.family_id}}&details=True">{{ data.container.name }}</a> / {{ data.container.image_tag}}</span></h1>
+      {% endif %}
       {% else %}
       {% if data.mode == 'new_task' %}
       <h1>New Task</h1>
@@ -65,10 +69,16 @@
       <div class="row" style="padding:5px">
       {% if data.container %}
       {% include "components/container.html" with container=data.container details=True %}
-      {% else %} 
+      {% else %}     
+      {% if data.container_families %}
+      {% for container_family_id, container_family in data.container_families.items %}
+      {% include "components/container_family.html" with container_family=container_family container_family_id=container_family_id%}
+      {% endfor %}
+      {% else %}
       {% for container in data.containers %}
       {% include "components/container.html" with container=container %}
       {% endfor %}
+      {% endif  %}      
       {% endif %}
       </div>
       

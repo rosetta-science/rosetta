@@ -129,15 +129,15 @@ to provide help, news and informations on your deployment. Or you can just ignor
             
             # Minimal Desktop
             Container.objects.create(user     = None,
-                                     name     = 'Minimal Desktop ',
+                                     name     = 'Minimal Desktop',
                                      description = 'A minimal desktop environment providing basic window management functionalities and a terminal.',
                                      registry = 'docker.io',
-                                     image    = 'sarusso/minimaldesktop',
-                                     tag      = 'v0.2.0',
-                                     arch = 'x86_64',
-                                     os = 'linux',
-                                     interface_port     = '8590',
-                                     interface_protocol = 'http',
+                                     image_name = 'sarusso/minimaldesktop',
+                                     image_tag  = 'v0.2.0',
+                                     image_arch = 'amd64',
+                                     image_os   = 'linux',
+                                     interface_port      = '8590',
+                                     interface_protocol  = 'http',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True)
@@ -147,43 +147,76 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      name     = 'Basic Desktop',
                                      description = 'A basic desktop environment. Provides a terminal, a file manager, a web browser and other generic applications.',
                                      registry = 'docker.io',
-                                     image    = 'sarusso/basicdesktop',
-                                     tag      = 'v0.2.0',
-                                     arch = 'x86_64',
-                                     os = 'linux',
-                                     interface_port     = '8590',
-                                     interface_protocol = 'http',
+                                     image_name = 'sarusso/basicdesktop',
+                                     image_tag  = 'v0.2.0',
+                                     image_arch = 'amd64',
+                                     image_os   = 'linux',
+                                     interface_port      = '8590',
+                                     interface_protocol  = 'http',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True,
                                      interface_auth_user = None)
  
  
-            # Jupyter Notebook 
+            # Jupyter Notebook
             Container.objects.create(user     = None,
                                      name     = 'Jupyter Notebook',
                                      description = 'A Jupyter Notebook server',
                                      registry = 'docker.io',
-                                     image    = 'sarusso/jupyternotebook',
-                                     tag      = 'v0.2.0',
-                                     arch = 'x86_64',
-                                     os = 'linux',
-                                     interface_port     = '8888',
-                                     interface_protocol = 'http',
+                                     image_name = 'sarusso/jupyternotebook',
+                                     image_tag  = 'v0.2.0',
+                                     image_arch = 'amd64',
+                                     image_os   = 'linux',
+                                     interface_port      = '8888',
+                                     interface_protocol  = 'http',
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True,
                                      interface_auth_user = None)
+
+            # Official Jupyter containers
+            for tag in ['lab-3.2.2', 'lab-3.1.17']:
+                
+                Container.objects.create(user     = None,
+                                         name     = 'Jupyter Data Science Lab',
+                                         description = 'The official Jupyter Lab. The Data Science variant, which includes libraries for data analysis from the Julia, Python, and R communities.',
+                                         registry = 'docker.io',
+                                         image_name = 'jupyter/scipy-notebook',
+                                         image_tag  = tag,
+                                         image_arch = None,
+                                         image_os   = None,
+                                         interface_port      = '8888',
+                                         interface_protocol  = 'http',
+                                         interface_transport = 'tcp/ip',
+                                         supports_custom_interface_port = True,
+                                         supports_interface_auth = True)
+                
+                for arch in ['amd64', 'arm64']:
+                    Container.objects.create(user     = None,
+                                             name     = 'Jupyter Lab',
+                                             description = 'The official Jupyter Lab. The Scipy variant, which includes popular packages from the scientific Python ecosystem.',
+                                             registry = 'docker.io',
+                                             image_name = 'jupyter/scipy-notebook',
+                                             image_tag  = tag,
+                                             image_arch = arch,
+                                             image_os   = 'linux',
+                                             interface_port      = '8888',
+                                             interface_protocol  = 'http',
+                                             interface_transport = 'tcp/ip',
+                                             supports_custom_interface_port = True,
+                                             supports_interface_auth = True)
+
 
             # SSH server
             Container.objects.create(user     = None,
                                      name     = 'SSH server',
                                      description = 'An SSH server supporting X forwarding as well.',
                                      registry = 'docker.io',
-                                     image    = 'sarusso/ssh',
-                                     tag      = 'v0.2.0',
-                                     arch = 'x86_64',
-                                     os = 'linux',
+                                     image_name = 'sarusso/ssh',
+                                     image_tag  = 'v0.2.0',
+                                     image_arch = 'amd64',
+                                     image_os   = 'linux',
                                      interface_port     = '22',
                                      interface_protocol = 'ssh',
                                      interface_transport = 'tcp/ip',
@@ -232,7 +265,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      access_mode = 'internal',
                                      auth_mode = 'internal',
                                      wms = None,
-                                     container_runtimes = 'docker')
+                                     container_runtimes = ['docker'])
 
             
             # Demo standalone computing plus conf
@@ -243,7 +276,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                                  auth_mode = 'user_keys',
                                                                  wms = None,
                                                                  conf = {'host': 'slurmclusterworker-one'},
-                                                                 container_runtimes = 'singularity')
+                                                                 container_runtimes = ['singularity'])
     
             # Add testuser extra conf for this computing resource
             testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_singlenode_computing, value= 'slurmtestuser')
@@ -256,7 +289,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                             auth_mode = 'user_keys',
                                                             wms = 'slurm',
                                                             conf = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1'},
-                                                            container_runtimes = 'singularity')
+                                                            container_runtimes = ['singularity'])
            
             # Add testuser extra conf for this computing resource
             testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_slurm_computing, value= 'slurmtestuser')

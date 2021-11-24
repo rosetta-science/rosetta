@@ -111,7 +111,7 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
         #run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Host name, image entry command
-        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image, task.container.tag)
+        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image_name, task.container.image_tag)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -238,7 +238,7 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
             # Container part
-            run_command+='docker://{}/{}:{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(task.container.registry, task.container.image, task.container.tag, task.uuid)
+            run_command+='docker://{}/{}:{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(task.container.registry, task.container.image_name, task.container.image_tag, task.uuid)
             
 
         else:
@@ -377,7 +377,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
             # Double to escape for Python, six for shell (double times three as \\\ escapes a single slash in shell)
-            run_command+='docker://{}/{}:{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(task.container.registry, task.container.image, task.container.tag, task.uuid, task.uuid, sbatch_args, task.uuid)
+            run_command+='docker://{}/{}:{} &> \$HOME/{}.log\\" > \$HOME/{}.sh && sbatch {} \$HOME/{}.sh"\''.format(task.container.registry, task.container.image_name, task.container.image_tag, task.uuid, task.uuid, sbatch_args, task.uuid)
 
         else:
             raise NotImplementedError('Default container runtime "{}" not supported'.format(task.computing.default_container_runtime))

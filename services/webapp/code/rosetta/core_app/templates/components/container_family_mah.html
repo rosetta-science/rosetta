@@ -1,0 +1,64 @@
+
+
+      <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
+        <form action="/aaa" method=GET>
+        
+        
+        <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
+        <a href="/software/?container_family={{ family_id }}">{{ container_family.name }}</a>&nbsp; 
+        </div>
+        
+        <div style="padding:10px; height: 125px; ">
+        <!-- <div style="position: relative; top: 50%; transform: translateY(-50%);"> -->
+        
+        {% if container_family.description %} 
+        <div class="description-box" title="{{ container_family.description }}">
+        {{ container_family.description }}
+        </div>
+        {% else %}
+        <br/>  
+        {% endif %}
+        
+        <div class="image-version-box">
+        <b>Image:</b> <code>{{ container_family.image }}</code><br/>
+        <div style="margin-top:2px">
+        
+        <span style="vertical-align:top;"><b>Tag:</b>&nbsp;</span>
+        <select name="task_container_uuid_and_arch" style="font-size:0.8em">
+        {% for arch,container_by_tags in container_family.container_by_tags_by_arch.items %}
+        <optgroup label={{ arch }}>
+        {% for tag,container in container_by_tags.items %}
+        <option value="{{ container.uuid }}-{{ arch }}">{{ tag }}</option>
+        {% endfor %}
+        </optgroup>
+        {% endfor %}
+        </select>
+             
+        </div>
+        </div>
+        <!-- </div> -->
+        </div>
+        
+        <div style="margin-bottom:8px; margin-top: 3px; text-align:center">
+        {% if not disable_play_button %}
+        
+               
+        <button type="submit" onclick="myFunction()" class="btn-link btn btn-light" style="border: #c0c0c0 1px solid">
+        &nbsp;<i class="fa fa-play" style="color:green"></i>
+        </button>
+        
+        {% endif %}
+        </form>
+        </div>    
+      
+      
+      
+      </div>
+      
+
+
+
+
+
+
+      

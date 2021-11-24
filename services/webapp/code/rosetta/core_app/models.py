@@ -1,5 +1,6 @@
 import uuid
 import json
+import base64
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User, Group
@@ -110,19 +111,22 @@ class Container(models.Model):
     group = models.ForeignKey(Group, related_name='containers', on_delete=models.CASCADE, blank=True, null=True)
     # If a container has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
 
-
     # Generic attributes
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
     
-    # Registry-related attributes
+    # Registry
     registry = models.CharField('Registry', max_length=255, blank=False, null=False)
-    image    = models.CharField('Image', max_length=255, blank=False, null=False)
-    tag      = models.CharField('Tag', max_length=255, blank=False, null=False, default='latest')
 
-    # Platform-related
-    arch = models.CharField('Architecture', max_length=36, blank=False, null=False, default='x86_64')
-    os   = models.CharField('Operating system', max_length=36, blank=False, null=False, default='linux')
+    # Image name
+    image_name = models.CharField('Image', max_length=255, blank=False, null=False)
+    
+    # Image identifiers
+    image_tag  = models.CharField('Tag', max_length=255, blank=False, null=False, default='latest')
+    image_arch = models.CharField('Architecture', max_length=36, blank=True, null=True)
+    image_os   = models.CharField('Operating system', max_length=36, blank=True, null=True)
+    # -- OR --
+    image_digest  = models.CharField('SHA 256 digest', max_length=96, blank=True, null=True)
     
     # TODO: do we want more control with respect to kernel, CPUs, instruction sets? 
     # requires = i.e. kernel > 3, intel, AVX2
@@ -142,14 +146,28 @@ class Container(models.Model):
 
     def __str__(self):
         user_str = self.user.email if self.user else None
-        return str('Container "{}" of user "{}" with image "{}" and tag "{}" on registry "{}" '.format(self.name, user_str, self.image, self.tag, self.registry))
+        return str('Container "{}" of user "{}" with image name "{}" and image tag "{}" on registry "{}" '.format(self.name, user_str, self.image_name, self.image_tag, self.registry))
 
+    def save(self, *args, **kwargs):
+        # Check that digest starts with sha256:
+        if self.image_digest and not self.image_digest.startswith('sha256:'):
+            raise ValueError('The digest field must start with "sha256:"')
+        
+        super(Container, self).save(*args, **kwargs)
 
-    @ property
+    @property
+    def family_id(self):
+        id_as_str = '{}\t{}\t{}'.format(self.name, self.registry, self.image_name)
+        id_as_base64_str = base64.b64encode(id_as_str.encode('utf8')).decode('utf8')
+        return id_as_base64_str
+
+    @property
     def color(self):
-        string_int_hash = hash_string_to_int(self.image + self.tag + self.registry)
+        string_int_hash = hash_string_to_int(self.name + self.registry + self.image_name)
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
+
+
 
 
 #=========================
@@ -165,16 +183,24 @@ class Computing(models.Model):
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
 
-    # Tye (standalone / cluster)
+    # Type (standalone / cluster) and arch (i.e. amd64)
     type = models.CharField('Type', max_length=255, blank=False, null=False)
+    arch = models.CharField('Architecture', max_length=255, blank=False, null=False)
 
     # Interfce and interaction definition
     access_mode = models.CharField('Access (control) mode', max_length=36, blank=False, null=False)
     auth_mode   = models.CharField('Auth mode', max_length=36, blank=False, null=False)
     wms         = models.CharField('Workload management system', max_length=36, blank=True, null=True)
     
-    # Supported container runtimes
-    container_runtimes = models.CharField('Container runtimes', max_length=256, blank=False, null=False) 
+    # Supported container runtimes ['docker', 'singularity']
+    container_runtimes = JSONField('Container runtimes', blank=False, null=False)
+    #container_runtime = models.CharField('Container runtimes', max_length=256, blank=False, null=False)
+ 
+    # Supported architectures (i.e. 386 for amd64), as list: ['386']
+    supported_archs = JSONField('Supported architectures', blank=True, null=True) 
+
+    # Emulated architectures, by container runtime: {'docker': ['arm64/v7', 'arm64/v8']    
+    emulated_archs = JSONField('Emulated architectures', blank=True, null=True) 
 
     # Conf
     conf = JSONField(blank=True, null=True)
@@ -203,7 +229,7 @@ class Computing(models.Model):
     @property
     def default_container_runtime(self):
         return str(self.container_runtimes).split(',')[0]
-
+    
 
     #=======================
     # Computing manager

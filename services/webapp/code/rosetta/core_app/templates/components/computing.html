@@ -23,7 +23,7 @@
         <td><b>Type</b></td>
         <td>{{ data.computing.type }}</td>
        </tr>
-
+       
        <tr>
         <td><b>Access mode</b></td>
         <td>{{ data.computing.access_mode }}</td>
@@ -40,10 +40,19 @@
        </tr>
 
        <tr>
+        <td><b>Arch</b></td>
+        <td>{{ data.computing.arch }}</td>
+       </tr>
+
+       <tr>
         <td><b>Container runtimes</b></td>
         <td>{{ data.computing.container_runtimes }}</td>
        </tr>
 
+       <tr>
+        <td><b>Emulated archs</b></td>
+        <td>{{ data.computing.emulated_archs }}</td>
+       </tr>
 
        <tr>
         <td><b>Storages</b></td>
@@ -85,11 +94,7 @@
         {% endif %}
         <div class="image-version-box">
         <b>Type:</b> {{ computing.type }}<br/>
-        <!--  -->{% if computing.auth_mode == 'user_keys' %}
-        <b>Access:</b> user keys
-        {% else %}
-        <b>Access:</b> open
-        {% endif %}
+        <b>Arch:</b> {{ computing.arch }}
         <br/>
         <b>Storages:</b>
         {% if not computing.storages.all %}
@@ -115,6 +120,7 @@
         {% csrf_token %}
         <input type="hidden" name="step" value="{{ data.next_step }}" />
         <input type="hidden" name="task_container_uuid" value="{{container.uuid}}">
+        <input type="hidden" name="task_container_arch" value="{{container_arch}}">
         <input type="hidden" name="task_computing_uuid" value="{{computing.uuid}}">
         <input type="submit" value="Choose" class="btn btn-connect">
         </form>
