@@ -172,6 +172,12 @@
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> The selected software container architecture ({{ data.task_container_arch}}) can only be emulated on this computing resource, meaning the it will probably run quite slow.
           </p></div>
           {% endif %}
+
+          {% if data.arch_auto_selection %}
+          <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
+          <i class="fa fa-exclamation-triangle" style="color:orange"></i> The selected software container does not specify any architecture. This will leave to the container runtime either to auto-select the right image architecture on the registry, or to fallback on emulation if not found. Beware of potential incompatibilities or slowdowns.
+          </p></div>
+          {% endif %}
           
           <!-- {% if data.task_container.interface_port and not data.task_container.supports_interface_auth %}
           <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">

@@ -464,14 +464,6 @@ def new_task(request):
                 raise Exception('Consistency error, container with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_container_uuid, request.user.email))
         return task_container
 
-    # Get task container arch helper function
-    def get_task_container_arch(request):
-        container_arch = request.POST.get('task_container_arch', None)
-        if not container_arch:
-            # At the second step the task uuid is set via a GET request 
-            container_arch = request.GET.get('task_container_arch', None)
-        return container_arch
-
     # Get task computing helper function
     def get_task_computing(request):
         task_computing_uuid = request.POST.get('task_computing_uuid', None)
@@ -523,24 +515,27 @@ def new_task(request):
         data['task_computing'] = get_task_computing(request)
         
         # Check that container required architecture is compatible with the computing resource
+        # TODO: support setting the container runtime when creating the task
+        # TODO: refactor and unroll this code
         if data['task_container'].image_arch:
-            if data['task_container'].image_arch != data['task_computing'].arch:
-                # TODO: support setting the container runtime when creating the task
-                # TODO: refactor and unroll this code
-                # TODO: add support for setting the container runtime
+            if (data['task_container'].image_arch != data['task_computing'].arch) and (data['task_container'].image_arch not in data['task_computing'].supported_archs):
+
                 if data['task_computing'].emulated_archs:
                     container_runtime = data['task_computing'].container_runtimes[0]
+                    
                     if container_runtime in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_runtime]:
                         data['arch_emulation'] = True
+                        
                     else:
-                        raise ErrorMessage('This computing resource does not support architecture "{}" nor as native or emulated'.format(data['task_container'].image_arch))
+                        raise ErrorMessage('This computing resource does not support architecture \'{}\' nor as native or emulated'.format(data['task_container'].image_arch))
+                
                 else:
-                    raise ErrorMessage('This computing resource does not support architecture "{}" nor as native or emulated'.format(data['task_container'].image_arch))
+                    raise ErrorMessage('This computing resource does not support architecture \'{}\' nor as native or emulated'.format(data['task_container'].image_arch))
 
         else:
-            raise ErrorMessage('Auto detecting architectures is not supported yet')
-            
-        
+            data['arch_auto_selection'] = True
+            #raise ErrorMessage('Auto selecting architectures is not supported yet')
+
         # Generate random auth token        
         data['task_auth_token'] = str(uuid.uuid4())
 
@@ -553,7 +548,6 @@ def new_task(request):
 
         # Get software container and arch
         data['task_container'] = get_task_container(request)
-        data['task_container_arch'] = get_task_container_arch(request)
 
         # Get computing resource
         data['task_computing'] = get_task_computing(request)

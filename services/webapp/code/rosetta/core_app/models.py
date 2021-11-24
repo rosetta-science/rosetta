@@ -122,7 +122,7 @@ class Container(models.Model):
     image_name = models.CharField('Image', max_length=255, blank=False, null=False)
     
     # Image identifiers
-    image_tag  = models.CharField('Tag', max_length=255, blank=True, null=True, default='latest')
+    image_tag  = models.CharField('Tag', max_length=255, blank=False, null=False, default='latest')
     image_arch = models.CharField('Architecture', max_length=36, blank=True, null=True)
     image_os   = models.CharField('Operating system', max_length=36, blank=True, null=True)
     # -- OR --
@@ -183,7 +183,7 @@ class Computing(models.Model):
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
 
-    # Type (standalone / cluster) and arch
+    # Type (standalone / cluster) and arch (i.e. amd64)
     type = models.CharField('Type', max_length=255, blank=False, null=False)
     arch = models.CharField('Architecture', max_length=255, blank=False, null=False)
 
@@ -196,7 +196,10 @@ class Computing(models.Model):
     container_runtimes = JSONField('Container runtimes', blank=False, null=False)
     #container_runtime = models.CharField('Container runtimes', max_length=256, blank=False, null=False)
  
-    # Emulated architectures, by container runtime {'docker': ['arm64', 'amd']    
+    # Supported architectures (i.e. 386 for amd64), as list: ['386']
+    supported_archs = JSONField('Supported architectures', blank=True, null=True) 
+
+    # Emulated architectures, by container runtime: {'docker': ['arm64/v7', 'arm64/v8']    
     emulated_archs = JSONField('Emulated architectures', blank=True, null=True) 
 
     # Conf
