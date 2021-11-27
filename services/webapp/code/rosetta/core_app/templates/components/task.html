@@ -64,7 +64,7 @@
             <!-- Connect -->
             {% if task.interface_port %}
             {% if task.status == "running" %}
-            <a href="/task_connect/?uuid={{task.uuid}}" class="btn btn-connect">Connect</a>
+            <a href="/task_connect/?uuid={{task.uuid}}" class="btn btn-connect" target="_blank">Connect</a>
             {% else %}
             <a href="" class="btn btn-disabled">Connect</a>  
             {% endif %}
