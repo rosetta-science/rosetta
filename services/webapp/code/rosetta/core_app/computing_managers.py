@@ -111,7 +111,7 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
         #run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Host name, image entry command
-        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -294,7 +294,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += '{} docker run -p \$TASK_PORT:{} {} {} '.format(prefix, task.container.interface_port, authstring, binds)        
-            run_command += '-h task-{} -d -t {}/{}:{}'.format(task.uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+            run_command += '-h task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
             run_command += '"\''
             
         else:

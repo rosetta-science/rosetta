@@ -332,6 +332,10 @@ class Task(models.Model):
         return str('Task "{}" of user "{}" running on "{}" in status "{}" created at "{}"'.format(self.name, self.user.email, self.computing, self.status, self.created))
 
     @property
+    def short_uuid(self):
+        return str(self.uuid)[0:8]
+
+    @property
     def color(self):
         string_int_hash = hash_string_to_int(self.name)
         color_map_index = string_int_hash % len(color_map)
@@ -339,7 +343,7 @@ class Task(models.Model):
     
     @property
     def sharable_link(self):
-        return 'https://{}/t/{}'.format(settings.ROSETTA_HOST, str(self.uuid)[0:8])
+        return 'https://{}/t/{}'.format(settings.ROSETTA_HOST, self.short_uuid)
     
     @property
     def tcp_tunnel_host(self):
