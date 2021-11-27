@@ -21,6 +21,7 @@ services:
     privileged: true
     volumes:
       - ./data/shared:/shared
+      - /var/run/docker.sock:/var/run/docker.sock
 
   dregistry:
     container_name: dregistry

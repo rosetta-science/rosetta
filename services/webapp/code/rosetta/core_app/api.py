@@ -323,18 +323,34 @@ print(port)
             logger.info('Setting task "{}" to ip "{}" and port "{}"'.format(task.uuid, task_interface_ip, task_interface_port))
             task.status = TaskStatuses.running
             task.interface_ip = task_interface_ip
-            if task.container.supports_custom_interface_port:
+            
+            # Get container runtime
+            container_runtime = None
+            if task.computing_options:
+                container_runtime = task.computing_options.get('container_runtime', None)
+            if not container_runtime:
+                container_runtime = task.computing.default_container_runtime
+            
+            if container_runtime=='singularity':
+                # For Singularity, set this only if the container supports custom interface ports
+                if task.container.supports_custom_interface_port:
+                    task.interface_port = int(task_interface_port)
+            else:
+                # For all other container runtimes, set it in any case
                 task.interface_port = int(task_interface_port)
+            
+            # Save the task
             task.save()
                     
             # Notify the user that the task called back home
-            logger.info('Sending task ready mail notification to "{}"'.format(task.user.email))
-            mail_subject = 'Your Task "{}" is now starting up'.format(task.container.name)
-            mail_text = 'Hello,\n\nyour Task "{}" on {} is now starting up. Check logs or connect here: https://{}/tasks/?uuid={}\n\nThe Rosetta notifications bot.'.format(task.container.name, task.computing, settings.ROSETTA_HOST, task.uuid)
-            try:
-                send_email(to=task.user.email, subject=mail_subject, text=mail_text)
-            except Exception as e:
-                logger.error('Cannot send task ready email: "{}"'.format(e))
+            if settings.DJANGO_EMAIL_APIKEY:
+                logger.info('Sending task ready mail notification to "{}"'.format(task.user.email))
+                mail_subject = 'Your Task "{}" is now starting up'.format(task.container.name)
+                mail_text = 'Hello,\n\nyour Task "{}" on {} is now starting up. Check logs or connect here: https://{}/tasks/?uuid={}\n\nThe Rosetta notifications bot.'.format(task.container.name, task.computing, settings.ROSETTA_HOST, task.uuid)
+                try:
+                    send_email(to=task.user.email, subject=mail_subject, text=mail_text)
+                except Exception as e:
+                    logger.error('Cannot send task ready email: "{}"'.format(e))
             return HttpResponse('OK')
             
 
