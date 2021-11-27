@@ -342,15 +342,16 @@ print(port)
             # Save the task
             task.save()
                     
-            # Notify the user that the task called back home
-            if settings.DJANGO_EMAIL_APIKEY:
-                logger.info('Sending task ready mail notification to "{}"'.format(task.user.email))
-                mail_subject = 'Your Task "{}" is now starting up'.format(task.container.name)
-                mail_text = 'Hello,\n\nyour Task "{}" on {} is now starting up. Check logs or connect here: https://{}/tasks/?uuid={}\n\nThe Rosetta notifications bot.'.format(task.container.name, task.computing, settings.ROSETTA_HOST, task.uuid)
-                try:
-                    send_email(to=task.user.email, subject=mail_subject, text=mail_text)
-                except Exception as e:
-                    logger.error('Cannot send task ready email: "{}"'.format(e))
+            # Notify the user that the task called back home if using a WMS
+            if task.computing.wms:
+                if settings.DJANGO_EMAIL_APIKEY:
+                    logger.info('Sending task ready mail notification to "{}"'.format(task.user.email))
+                    mail_subject = 'Your Task "{}" is now starting up'.format(task.container.name)
+                    mail_text = 'Hello,\n\nyour Task "{}" on {} is now starting up. Check logs or connect here: https://{}/tasks/?uuid={}\n\nThe Rosetta notifications bot.'.format(task.container.name, task.computing, settings.ROSETTA_HOST, task.uuid)
+                    try:
+                        send_email(to=task.user.email, subject=mail_subject, text=mail_text)
+                    except Exception as e:
+                        logger.error('Cannot send task ready email: "{}"'.format(e))
             return HttpResponse('OK')
             
 
