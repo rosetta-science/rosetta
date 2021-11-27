@@ -239,19 +239,19 @@ class Computing(models.Model):
     def manager(self):
         from . import computing_managers
         
-        # Instantiate the computing manager based on type (if not already done)
+        # Hash table mapping
+        managers_mapping = {}
+        managers_mapping['cluster'+'ssh+cli'+'user_keys'+'slurm'] = computing_managers.SlurmSSHClusterComputingManager
+        managers_mapping['standalone'+'ssh+cli'+'user_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
+        managers_mapping['standalone'+'internal'+'internal'+'None'] = computing_managers.InternalStandaloneComputingManager
+        
+        # Instantiate the computing manager and return (if not already done)
         try:
             return self._manager
         except AttributeError:
-            if self.type == 'cluster' and self.access_mode == 'ssh+cli' and self.auth_mode == 'user_keys' and self.wms == 'slurm':
-                self._manager = computing_managers.SlurmSSHClusterComputingManager(self)
-            elif self.type == 'standalone' and self.access_mode == 'ssh+cli' and self.auth_mode == 'user_keys' and self.wms is None:
-                self._manager = computing_managers.SSHSingleNodeComputingManager(self)
-            elif self.type == 'standalone' and self.access_mode == 'internal' and self.auth_mode == 'internal' and self.wms is None:
-                self._manager = computing_managers.InternalSingleNodeComputingManager(self)
-            else:
-                raise ConsistencyException('Don\'t know how to instantiate a computing manager for computing resource of type "{}", access mode "{}" and WMS "{}"'.format(self.type, self.access_mode, self.wms))
+            self._manager = managers_mapping[self.type+self.access_mode+self.auth_mode+str(self.wms)](self)
             return self._manager
+
     
 
 #=========================
@@ -332,6 +332,10 @@ class Task(models.Model):
         return str('Task "{}" of user "{}" running on "{}" in status "{}" created at "{}"'.format(self.name, self.user.email, self.computing, self.status, self.created))
 
     @property
+    def short_uuid(self):
+        return str(self.uuid)[0:8]
+
+    @property
     def color(self):
         string_int_hash = hash_string_to_int(self.name)
         color_map_index = string_int_hash % len(color_map)
@@ -339,7 +343,7 @@ class Task(models.Model):
     
     @property
     def sharable_link(self):
-        return 'https://{}/t/{}'.format(settings.ROSETTA_HOST, str(self.uuid)[0:8])
+        return 'https://{}/t/{}'.format(settings.ROSETTA_HOST, self.short_uuid)
     
     @property
     def tcp_tunnel_host(self):

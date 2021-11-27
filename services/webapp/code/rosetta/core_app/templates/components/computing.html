@@ -93,8 +93,8 @@
         <br/>  
         {% endif %}
         <div class="image-version-box">
-        <b>Type:</b> {{ computing.type }}<br/>
-        <b>Arch:</b> {{ computing.arch }}
+        <b>Type:</b> {{ computing.type }} <font style="font-size:0.9em">({{ computing.arch }})</font>
+        <!-- <br/><b>Arch:</b> {{ computing.arch }} -->
         <br/>
         <b>Storages:</b>
         {% if not computing.storages.all %}

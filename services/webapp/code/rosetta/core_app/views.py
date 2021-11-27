@@ -586,7 +586,7 @@ def new_task(request):
         task.requires_tcp_tunnel = True
         
         # Task access method
-        access_method = request.POST.get('access_method', None)
+        access_method = request.POST.get('access_method', 'auto')
         if access_method and access_method != 'auto' and not request.user.profile.is_power_user:
             raise ErrorMessage('Sorry, only power users can set a task access method other than \'auto\'.')
         if access_method == 'auto':
@@ -605,12 +605,21 @@ def new_task(request):
         else:
             raise ErrorMessage('Unknown access method "{}"'.format(access_method))
 
-        # Computing options # TODO: This is hardcoded thinking about Slurm and Singularity
+        # Computing options
+        computing_options = {}
+        
+        # Container runtime if any set
+        container_runtime = request.POST.get('container_runtime', None)
+        if container_runtime:
+            if not container_runtime in data['task_computing'].container_runtimes:
+                raise ErrorMessage('Unknown container runtime  "{}"'.format(container_runtime))
+            computing_options['container_runtime'] = container_runtime
+
+        # CPUs, memory and partition if set 
         computing_cpus = request.POST.get('computing_cpus', None)
         computing_memory = request.POST.get('computing_memory', None)
         computing_partition = request.POST.get('computing_partition', None)
         
-        computing_options = {}
         if computing_cpus:
             try:
                 int(computing_cpus)

@@ -91,7 +91,12 @@
            </tr>
            
            <tr>
-            <td valign="top"><b>Task&nbsp;password</b></td>
+            <td valign="top">
+            {% if request.user.profile.is_power_user %} 
+            <b>Task&nbsp;password</b></td>
+            {% else %}
+            <b>Auth&nbsp;token</b></td>
+            {% endif %}
             <td>
 
              <input type="hidden" name="task_auth_token" value="{{data.task_auth_token}}">
@@ -121,25 +126,20 @@
              </select>
             </td>
            </tr>
-           {% else %}
+           {% endif %}
+
+           {% if data.task_computing.container_runtimes|length > 1 %}
            <tr>
-            <td><b>Access method</b></td><td>
-             <select name="access_method" >
-             <option value="auto" selected>Auto</option>
+            <td><b>Container&nbsp;runtime</b></td><td>
+             <select name="container_runtime" >
+             <option value="" selected>Default</option>
+             {% for container_runtime in data.task_computing.container_runtimes %}
+             <option value="{{container_runtime}}">{{container_runtime}}</option>
+             {% endfor %}
              </select>
             </td>
            </tr>
            {% endif %}
-
-           <tr>
-            <td><b>Container runtime</b></td><td>
-             <select name="run_using" >
-             <option value="default" selected>Default</option>
-             <!-- <option value="docker" selected>default</option> -->
-             <!-- <option value="singularity">Singularity</option> -->
-             </select>
-            </td>
-           </tr>
            
            {% if data.task_computing.wms == 'slurm' %}
            <tr>

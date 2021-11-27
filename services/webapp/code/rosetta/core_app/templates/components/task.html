@@ -107,9 +107,14 @@
             <td>{{ task.name }}</td>
            </tr> -->
 
-           <tr>
+           <!-- <tr>
             <td><b>ID</b></td>
             <td>{{ task.id }}</td>
+           </tr> -->
+
+           <tr>
+            <td><b>Short ID</b></td>
+            <td>{{ task.short_uuid }}</td>
            </tr>
 
            <tr>
@@ -143,6 +148,13 @@
             <td>{{ task.auth_token }}</td>
            </tr>
            {% endif %}
+           
+           {% if task.computing_options %}
+           <tr>
+            <td><b>Computing options</b></td>
+            <td>{{ task.computing_options }}</td>
+           </tr>
+           {% endif %}           
 
 
             <!-- <tr><td style="padding-right:0"><b>Direct link</b>
