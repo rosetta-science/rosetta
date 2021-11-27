@@ -73,7 +73,7 @@ class ComputingManager(object):
         return self._get_task_log(task, **kwargs)
 
 
-class SingleNodeComputingManager(ComputingManager):
+class StandaloneComputingManager(ComputingManager):
     pass
 
 
@@ -87,7 +87,7 @@ class SSHComputingManager(ComputingManager):
 
 
 
-class InternalSingleNodeComputingManager(SingleNodeComputingManager):
+class InternalStandaloneComputingManager(StandaloneComputingManager):
     
     def _start_task(self, task):
 
@@ -176,7 +176,7 @@ class InternalSingleNodeComputingManager(SingleNodeComputingManager):
 
 
 
-class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingManager):
+class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingManager):
     
     def _start_task(self, task, **kwargs):
         logger.debug('Starting a remote task "{}"'.format(self.computing))
@@ -188,8 +188,11 @@ class SSHSingleNodeComputingManager(SingleNodeComputingManager, SSHComputingMana
         from.utils import get_webapp_conn_string
         webapp_conn_string = get_webapp_conn_string()
             
-        # Handle container runtime 
-        if self.computing.default_container_runtime == 'singularity':
+        # Handle container runtime
+        container_runtime = task.computing_options.get('container_runtime', task.computing.default_container_runtime)
+
+        # Runtime-specific part 
+        if container_runtime == 'singularity':
 
             #if not task.container.supports_custom_interface_port:
             #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
@@ -327,8 +330,11 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         # Set output and error files
         sbatch_args += ' --output=\$HOME/{}.log --error=\$HOME/{}.log '.format(task.uuid, task.uuid)
 
-        # Submit the job
-        if task.computing.default_container_runtime == 'singularity':
+        # Handle container runtime
+        container_runtime = task.computing_options.get('container_runtime', task.computing.default_container_runtime)
+
+        # Runtime-specific part 
+        if container_runtime == 'singularity':
 
             #if not task.container.supports_custom_interface_port:
             #     raise Exception('This task does not support dynamic port allocation and is therefore not supported using singularity on Slurm')
