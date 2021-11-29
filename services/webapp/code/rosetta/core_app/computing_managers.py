@@ -288,7 +288,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                         binds += ' -v{}:{}'.format(expanded_base_path, expanded_bind_path)
             
             # TODO: remove this hardcoding
-            prefix = 'sudo' if computing_host == 'slurmclusterworker-one' else ''
+            prefix = 'sudo' if computing_host == 'slurmclusterworker' else ''
             
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
@@ -334,7 +334,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             internal_stop_command = 'kill -9 {}'.format(task.id)            
         elif container_runtime=='docker':
             # TODO: remove this hardcoding
-            prefix = 'sudo' if computing_host == 'slurmclusterworker-one' else ''
+            prefix = 'sudo' if computing_host == 'slurmclusterworker' else ''
             internal_stop_command = '{} docker stop {} && {} docker rm {}'.format(prefix,task.id,prefix,task.id)
         else:
             raise NotImplementedError('Container runtime {} not supported'.format(container_runtime))
@@ -368,7 +368,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             internal_view_log_command = 'cat /tmp/{}_data/task.log'.format(task.uuid)            
         elif container_runtime=='docker':
             # TODO: remove this hardcoding
-            prefix = 'sudo' if computing_host == 'slurmclusterworker-one' else ''
+            prefix = 'sudo' if computing_host == 'slurmclusterworker' else ''
             internal_view_log_command = '{} docker logs {}'.format(prefix,task.id)
         else:
             raise NotImplementedError('Container runtime {} not supported'.format(container_runtime))

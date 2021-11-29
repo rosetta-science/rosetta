@@ -1,10 +1,10 @@
 version: '3'
 services:
 
-  slurmclustermaster-main:
+  slurmclustermaster:
     image: "rosetta/slurmclustermaster"
-    container_name: slurmclustermaster-main
-    hostname: slurmclustermaster-main
+    container_name: slurmclustermaster
+    hostname: slurmclustermaster
     environment:
       - SAFEMODE=False
     privileged: true
@@ -12,12 +12,21 @@ services:
       - ./data/shared:/shared
       # - ./data/singularity_cache:/rosetta/.singularity/cache # Not working, check permissions...
 
-  slurmclusterworker-one:
+  slurmclusterworker:
     image: "rosetta/slurmclusterworker"
-    container_name: slurmclusterworker-one
-    hostname: slurmclusterworker-one
+    container_name: slurmclusterworker
+    hostname: slurmclusterworker
     environment:
       - SAFEMODE=False
+    privileged: true
+    volumes:
+      - ./data/shared:/shared
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  standaloneworker:
+    image: "rosetta/standaloneworker"
+    container_name: standaloneworker
+    hostname: standaloneworker
     privileged: true
     volumes:
       - ./data/shared:/shared

@@ -275,11 +275,11 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                                  access_mode = 'ssh+cli',
                                                                  auth_mode = 'user_keys',
                                                                  wms = None,
-                                                                 conf = {'host': 'slurmclusterworker-one'},
-                                                                 container_runtimes = ['singularity'])
+                                                                 conf = {'host': 'standaloneworker'},
+                                                                 container_runtimes = ['singularity','podman'])
     
             # Add testuser extra conf for this computing resource
-            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_singlenode_computing, value= 'slurmtestuser')
+            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_singlenode_computing, value= 'testuser')
 
             #  Demo cluster computing plus conf
             demo_slurm_computing = Computing.objects.create(name = 'Demo Cluster',
@@ -288,7 +288,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                             access_mode = 'ssh+cli',
                                                             auth_mode = 'user_keys',
                                                             wms = 'slurm',
-                                                            conf = {'host': 'slurmclustermaster-main', 'default_partition': 'partition1'},
+                                                            conf = {'host': 'slurmclustermaster', 'default_partition': 'partition1'},
                                                             container_runtimes = ['singularity'])
            
             # Add testuser extra conf for this computing resource
