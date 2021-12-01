@@ -119,4 +119,7 @@ Run Web App unit tests (with Rosetta running)
 
     SINGULARITY_TMPDIR=/...
     .singularity in user home with limited space
+    
+    Some Docker versions (e.g. old-ish on Mac) do not let podman work due to fuse permissions
+    SSH computing resources require python3 and wget installed, or will raise (empty) errors when submitting tasks. . Check 127 error codes.
 
