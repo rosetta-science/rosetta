@@ -248,7 +248,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             run_command+='docker://{}/{}:{} &>> /tmp/{}_data/task.log & echo \$!"\''.format(task.container.registry, task.container.image_name, task.container.image_tag, task.uuid)
 
 
-        elif container_runtime == 'docker':
+        elif container_runtime in ['docker', 'podman']:
 
             # Set pass if any
             authstring = ''
@@ -288,12 +288,15 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                         binds += ' -v{}:{}'.format(expanded_base_path, expanded_bind_path)
             
             # TODO: remove this hardcoding
-            prefix = 'sudo' if computing_host == 'slurmclusterworker' else ''
+            prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_runtime=='docker') else ''
             
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
-            run_command += '{} docker run -p \$TASK_PORT:{} {} {} '.format(prefix, task.container.interface_port, authstring, binds)        
+            run_command += '{} {} run -p \$TASK_PORT:{} {} {} '.format(prefix, container_runtime, task.container.interface_port, authstring, binds)        
+            if container_runtime == 'podman':
+                run_command += '--network=private --uts=private '
+            #run_command += '-d -t {}/{}:{}'.format(task.container.registry, task.container.image_name, task.container.image_tag)
             run_command += '-h task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
             run_command += '"\''
             
@@ -332,10 +335,10 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
 
         if container_runtime=='singularity':
             internal_stop_command = 'kill -9 {}'.format(task.id)            
-        elif container_runtime=='docker':
+        elif container_runtime in ['docker', 'podman']:
             # TODO: remove this hardcoding
-            prefix = 'sudo' if computing_host == 'slurmclusterworker' else ''
-            internal_stop_command = '{} docker stop {} && {} docker rm {}'.format(prefix,task.id,prefix,task.id)
+            prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_runtime=='docker') else ''
+            internal_stop_command = '{} {} stop {} && {} {} rm {}'.format(prefix,container_runtime,task.id,prefix,container_runtime,task.id)
         else:
             raise NotImplementedError('Container runtime {} not supported'.format(container_runtime))
 
@@ -366,10 +369,10 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
 
         if container_runtime=='singularity':
             internal_view_log_command = 'cat /tmp/{}_data/task.log'.format(task.uuid)            
-        elif container_runtime=='docker':
+        elif container_runtime in ['docker','podman']:
             # TODO: remove this hardcoding
-            prefix = 'sudo' if computing_host == 'slurmclusterworker' else ''
-            internal_view_log_command = '{} docker logs {}'.format(prefix,task.id)
+            prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_runtime=='docker') else ''
+            internal_view_log_command = '{} {} logs {}'.format(prefix,container_runtime,task.id)
         else:
             raise NotImplementedError('Container runtime {} not supported'.format(container_runtime))
             
