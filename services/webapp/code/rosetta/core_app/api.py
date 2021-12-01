@@ -292,9 +292,10 @@ logger.info(' - ports: "{},{},{}"'.format(port, port+1, port+2))
 
 response = urlopen("'''+webapp_conn_string+'''/api/v1/base/agent/?task_uuid={}&action=set_ip_port&ip={}&port={}".format(task_uuid, ip, port))
 response_content = response.read() 
-if response_content != 'OK':
+if response_content not in ['OK', b'OK']:
     logger.error(response_content)
     logger.info('Not everything OK, exiting with status code =1')
+    import sys
     sys.exit(1)
 else:
     logger.info('Everything OK')
