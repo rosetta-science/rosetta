@@ -517,6 +517,9 @@ def new_task(request):
         # Check that container required architecture is compatible with the computing resource
         # TODO: support setting the container runtime when creating the task
         # TODO: refactor and unroll this code
+        if data['task_computing'].supported_archs is None: data['task_computing'].supported_archs=[]
+        if data['task_computing'].emulated_archs is None: data['task_computing'].emulated_archs={}
+        
         if data['task_container'].image_arch:
             if (data['task_container'].image_arch != data['task_computing'].arch) and (data['task_container'].image_arch not in data['task_computing'].supported_archs):
 
