@@ -133,7 +133,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      description = 'A minimal desktop environment providing basic window management functionalities and a terminal.',
                                      registry = 'git.ia2.inaf.it:5050',
                                      image_name = 'exact/swc/minimaldesktop',
-                                     image_tag  = 'v0.2.0',
+                                     image_tag  = 'v0.3.0',
                                      image_arch = 'amd64',
                                      image_os   = 'linux',
                                      interface_port      = '8590',
