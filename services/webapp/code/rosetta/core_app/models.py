@@ -418,7 +418,11 @@ class KeyPair(models.Model):
 
 
     def __str__(self):
-        return str('KeyPair of user "{}" (default={})'.format( self.user.email, self.default))
+        if self.user:
+            return str('KeyPair of user "{}" (default={})'.format( self.user.email, self.default))
+        else:
+            return str('KeyPair of user Platform (default={})'.format(self.default))
+            
 
 
 
