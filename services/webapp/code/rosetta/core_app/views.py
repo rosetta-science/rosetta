@@ -515,21 +515,38 @@ def new_task(request):
         data['task_computing'] = get_task_computing(request)
         
         # Check that container required architecture is compatible with the computing resource
-        # TODO: support setting the container runtime when creating the task
+        # TODO: support setting the container engine/engine when creating the task
         # TODO: refactor and unroll this code
         if data['task_computing'].supported_archs is None: data['task_computing'].supported_archs=[]
         if data['task_computing'].emulated_archs is None: data['task_computing'].emulated_archs={}
+        data['arch_emulation'] = False
         
         if data['task_container'].image_arch:
             if (data['task_container'].image_arch != data['task_computing'].arch) and (data['task_container'].image_arch not in data['task_computing'].supported_archs):
 
+                # Does container engines/engines support emulated archs?
                 if data['task_computing'].emulated_archs:
-                    container_runtime = data['task_computing'].container_runtimes[0]
+                                        
+                    # For now by default our container engine is the first one
+                    container_engine = data['task_computing'].container_engines[0]
                     
-                    if container_runtime in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_runtime]:
+                    # Check for emulation against the engine
+                    if container_engine in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_engine]:
                         data['arch_emulation'] = True
+
+                    # Check for emulation against the engine
+                    def get_engines(container_engine):
+                        if not '[' in container_engine:
+                            return None
+                        else:
+                            container_engines = container_engine.split('[')[1].replace(']','').split(',')
+                            return container_engines
                         
-                    else:
+                    for container_engine in get_engines(container_engine):
+                        if container_engine in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_engine]:
+                            data['arch_emulation'] = True
+
+                    if not data['arch_emulation']:
                         raise ErrorMessage('This computing resource does not support architecture \'{}\' nor as native or emulated'.format(data['task_container'].image_arch))
                 
                 else:
@@ -611,12 +628,12 @@ def new_task(request):
         # Computing options
         computing_options = {}
         
-        # Container runtime if any set
-        container_runtime = request.POST.get('container_runtime', None)
-        if container_runtime:
-            if not container_runtime in data['task_computing'].container_runtimes:
-                raise ErrorMessage('Unknown container runtime  "{}"'.format(container_runtime))
-            computing_options['container_runtime'] = container_runtime
+        # Container engine if any set
+        container_engine = request.POST.get('container_engine', None)
+        if container_engine:
+            if not container_engine in data['task_computing'].container_engines:
+                raise ErrorMessage('Unknown container engine "{}"'.format(container_engine))
+            computing_options['container_engine'] = container_engine
 
         # CPUs, memory and partition if set 
         computing_cpus = request.POST.get('computing_cpus', None)

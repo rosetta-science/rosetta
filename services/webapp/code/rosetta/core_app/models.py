@@ -192,8 +192,8 @@ class Computing(models.Model):
     auth_mode   = models.CharField('Auth mode', max_length=36, blank=False, null=False)
     wms         = models.CharField('Workload management system', max_length=36, blank=True, null=True)
     
-    # Supported container runtimes ['docker', 'singularity']
-    container_runtimes = JSONField('Container runtimes', blank=False, null=False)
+    # Supported container engines (e.g. ['docker', 'singularity', 'podman'])
+    container_engines = JSONField('Container engines/runtimes', blank=False, null=False)
     #container_runtime = models.CharField('Container runtimes', max_length=256, blank=False, null=False)
  
     # Supported architectures (i.e. 386 for amd64), as list: ['386']
@@ -227,8 +227,8 @@ class Computing(models.Model):
         return color_map[color_map_index]
 
     @property
-    def default_container_runtime(self):
-        return self.container_runtimes[0]
+    def default_container_engine(self):
+        return self.container_engines[0]
     
 
     #=======================

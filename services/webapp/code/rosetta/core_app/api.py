@@ -325,19 +325,19 @@ print(port)
             task.status = TaskStatuses.running
             task.interface_ip = task_interface_ip
             
-            # Get container runtime
-            container_runtime = None
+            # Get container engine
+            container_engine = None
             if task.computing_options:
-                container_runtime = task.computing_options.get('container_runtime', None)
-            if not container_runtime:
-                container_runtime = task.computing.default_container_runtime
+                container_engine = task.computing_options.get('container_engine', None)
+            if not container_engine:
+                container_engine = task.computing.default_container_engine
             
-            if container_runtime=='singularity':
+            if container_engine=='singularity':
                 # For Singularity, set this only if the container supports custom interface ports
                 if task.container.supports_custom_interface_port:
                     task.interface_port = int(task_interface_port)
             else:
-                # For all other container runtimes, set it in any case
+                # For all other container engines, set it in any case
                 task.interface_port = int(task_interface_port)
             
             # Save the task

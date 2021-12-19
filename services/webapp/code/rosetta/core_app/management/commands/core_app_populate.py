@@ -267,7 +267,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      access_mode = 'internal',
                                      auth_mode = 'internal',
                                      wms = None,
-                                     container_runtimes = ['docker'])
+                                     container_engines = ['docker'])
 
             
             # Demo standalone computing plus conf
@@ -280,7 +280,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                                  auth_mode = 'user_keys',
                                                                  wms = None,
                                                                  conf = {'host': 'standaloneworker'},
-                                                                 container_runtimes = ['singularity','podman'])
+                                                                 container_engines = ['singularity','podman'])
     
             # Add testuser extra conf for this computing resource
             testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_singlenode_computing, value= 'testuser')
@@ -295,7 +295,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                             auth_mode = 'user_keys',
                                                             wms = 'slurm',
                                                             conf = {'host': 'slurmclustermaster', 'default_partition': 'partition1'},
-                                                            container_runtimes = ['singularity'])
+                                                            container_engines = ['singularity'])
            
             # Add testuser extra conf for this computing resource
             testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_slurm_computing, value= 'slurmtestuser')

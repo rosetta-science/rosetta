@@ -45,8 +45,8 @@
        </tr>
 
        <tr>
-        <td><b>Container runtimes</b></td>
-        <td>{{ data.computing.container_runtimes }}</td>
+        <td><b>Container engines</b></td>
+        <td>{{ data.computing.container_engines }}</td>
        </tr>
 
        <tr>
@@ -110,10 +110,10 @@
         </div>
         <!-- ><b>Access:</b> {{ computing.access_mode }}<br/> --
         <!-- <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/> -->
-        <!--  <b>Runtimes:</b> {{ computing.container_runtimes }} -->
+        <!--  <b>Engines:</b> {{ computing.container_engines }} -->
         
-        <!-- {% if 'docker' in computing.container_runtimes %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
-        {% if 'singularity' in computing.container_runtimes %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}-->
+        <!-- {% if 'docker' in computing.container_engines %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
+        {% if 'singularity' in computing.container_engines %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}-->
         {% if container %}
         <div style="margin:0px; margin-top:2px; text-align:center; padding:5px">
         <form action="/new_task/" method="POST">
