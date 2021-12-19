@@ -298,7 +298,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                             container_engines = ['singularity'])
            
             # Add testuser extra conf for this computing resource
-            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_slurm_computing, value= 'slurmtestuser')
+            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_slurm_computing, value= 'testuser')
 
         #===================== 
         # Storages

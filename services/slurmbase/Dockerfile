@@ -23,11 +23,11 @@ COPY slurm.conf /etc/slurm-llnl/slurm.conf
 RUN ln -s /var/lib/slurm-llnl /var/lib/slurm-wlm 
 RUN ln -s /var/log/slurm-llnl /var/log/slurm-wlm
 
-# Add slurmtestuser user
-RUN useradd slurmtestuser
-RUN mkdir -p /home/slurmtestuser/.ssh
-RUN cat /rosetta/.ssh/id_rsa.pub >> /home/slurmtestuser/.ssh/authorized_keys
-RUN chown -R slurmtestuser:slurmtestuser /home/slurmtestuser   
+# Add testuser user
+RUN useradd testuser
+RUN mkdir -p /home/testuser/.ssh
+RUN cat /rosetta/.ssh/id_rsa.pub >> /home/testuser/.ssh/authorized_keys
+RUN chown -R testuser:testuser /home/testuser   
 
 # Add prestartup
 COPY prestartup_slurmbase.sh /prestartup/
