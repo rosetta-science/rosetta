@@ -4,8 +4,9 @@
 # (see https://stackoverflow.com/questions/4381618/exit-a-script-on-error)
 set -e
 
-# Fix FUSE permissions
+# Fix FUSE and TUN permissions
 chmod 777 /dev/fuse
+chmod 777 /dev/net/tun
 
 #---------------------
 #  Entrypoint command
