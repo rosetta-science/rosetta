@@ -333,9 +333,12 @@ print(port)
                 container_engine = task.computing.default_container_engine
             
             if container_engine=='singularity':
-                # For Singularity, set this only if the container supports custom interface ports
+                # For Singularity, set this only if the container supports custom
+                # interface ports. Otherwise, use the task container interface port.
                 if task.container.supports_custom_interface_port:
                     task.interface_port = int(task_interface_port)
+                else:
+                    task.interface_port = task.container.interface_port
             else:
                 # For all other container engines, set it in any case
                 task.interface_port = int(task_interface_port)
