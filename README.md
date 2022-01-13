@@ -43,7 +43,7 @@ Clean
 
 ### Configuration
 
-Example Webapp configuraion
+Example Webapp configuraion:
 
       - SAFEMODE=False
       - DJANGO_DEV_SERVER=True
@@ -64,6 +64,13 @@ Example Webapp configuraion
       - OIDC_OP_AUTHORIZATION_ENDPOINT=""
       - OIDC_OP_TOKEN_ENDPOINT=""
       - OIDC_OP_JWKS_ENDPOINT=""
+ 
+In Rosetta, only power users can:
+
+   - set custom task passwords
+   - choose task access methods other than the default one (bypassing HTTP proxy + auth)
+   - add containers with interface protocols other than the HTTP
+   
 
 
 ### Extras
