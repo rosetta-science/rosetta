@@ -1,5 +1,5 @@
 from .models import TaskStatuses, KeyPair, Task, Storage
-from .utils import os_shell, get_ssh_access_mode_credentials
+from .utils import os_shell, get_ssh_access_mode_credentials, sanitize_container_env_vars
 from .exceptions import ErrorMessage, ConsistencyException
 from django.conf import settings
 
@@ -107,6 +107,15 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
         if not task.requires_proxy and task.password:
             run_command += ' -eAUTH_PASS={} '.format(task.password)
 
+        # Env vars if any
+        if task.container.env_vars:
+            
+            # Sanitize again just in case the DB got somehow compromised:
+            env_vars = sanitize_container_env_vars(task.container.env_vars)
+            
+            for env_var in env_vars:
+                run_command += ' -e{}={} '.format(env_var, env_vars[env_var])
+
         # User data volume
         #run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
@@ -204,8 +213,19 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             # Set pass if any
             authstring = ''
             if not task.requires_proxy_auth and task.password:
-                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
+                authstring = ' && export SINGULARITYENV_AUTH_PASS={} '.format(task.password)
+
+            # Env vars if any
+            if task.container.env_vars:
+                varsstring = ''
+                # Sanitize again just in case the DB got somehow compromised:
+                env_vars = sanitize_container_env_vars(task.container.env_vars)
                 
+                for env_var in env_vars:
+                    varsstring += ' && export SINGULARITYENV_{}={} '.format(env_var, env_vars[env_var])
+            else:
+                varsstring = ''
+                    
             # Handle storages (binds)
             binds = ''
             storages = Storage.objects.filter(computing=self.computing)
@@ -241,7 +261,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp && mkdir -p /tmp/{}_data/home && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export BASE_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
-            run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT && {} '.format(authstring)
+            run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT {} {} &&'.format(authstring, varsstring)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
             # Container part
@@ -254,7 +274,18 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             authstring = ''
             if not task.requires_proxy_auth and task.password:
                 authstring = ' -e AUTH_PASS={} '.format(task.password)
+
+            # Env vars if any
+            if task.container.env_vars:
+                varsstring = ''
+                # Sanitize again just in case the DB got somehow compromised:
+                env_vars = sanitize_container_env_vars(task.container.env_vars)
                 
+                for env_var in env_vars:
+                    varsstring += ' -e {}={} '.format(env_var, env_vars[env_var])
+            else:
+                varsstring = ''
+         
             # Handle storages (binds)
             binds = ''
             storages = Storage.objects.filter(computing=self.computing)
@@ -293,7 +324,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
-            run_command += '{} {} run -p \$TASK_PORT:{} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, binds)        
+            run_command += '{} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)        
             if container_engine == 'podman':
                 run_command += '--network=private --uts=private '
             #run_command += '-d -t {}/{}:{}'.format(task.container.registry, task.container.image_name, task.container.image_tag)
@@ -435,8 +466,19 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
             # Set pass if any
             authstring = ''
             if not task.requires_proxy_auth and task.password:
-                authstring = ' export SINGULARITYENV_AUTH_PASS={} && '.format(task.password)
+                authstring = ' && export SINGULARITYENV_AUTH_PASS={} '.format(task.password)
+
+            # Env vars if any
+            if task.container.env_vars:
+                varsstring = ''
+                # Sanitize again just in case the DB got somehow compromised:
+                env_vars = sanitize_container_env_vars(task.container.env_vars)
                 
+                for env_var in env_vars:
+                    varsstring += ' && export SINGULARITYENV_{}={} '.format(env_var, env_vars[env_var])
+            else:
+                varsstring = ''
+        
             # Handle storages (binds)
             binds = ''
             storages = Storage.objects.filter(computing=self.computing)
@@ -471,7 +513,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
 
             run_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '\'bash -c "echo \\"#!/bin/bash\nwget {}/api/v1/base/agent/?task_uuid={} -O \$HOME/agent_{}.py &> \$HOME/{}.log && export BASE_PORT=\\\\\\$(python \$HOME/agent_{}.py 2> \$HOME/{}.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
-            run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\\\\\\$BASE_PORT && {} '.format(authstring)
+            run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\\\\\\$BASE_PORT {} {} && '.format(authstring, varsstring)
             run_command += 'rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp &>> \$HOME/{}.log && mkdir -p /tmp/{}_data/home &>> \$HOME/{}.log && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             

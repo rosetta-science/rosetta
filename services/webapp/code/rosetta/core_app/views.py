@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, debug_param, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation, get_md5
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation, sanitize_container_env_vars
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
 
@@ -951,6 +951,11 @@ def add_software(request):
         else:
             container_supports_pass_auth = False
 
+        # Environment variables
+        container_env_vars = request.POST.get('container_env_vars', None)
+        if container_env_vars:
+            container_env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
+
         # Log
         #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
 
@@ -968,7 +973,8 @@ def add_software(request):
                                  interface_protocol  = container_interface_protocol,
                                  interface_transport = container_interface_transport,
                                  supports_custom_interface_port = container_supports_custom_interface_port,
-                                 supports_interface_auth = container_supports_pass_auth)
+                                 supports_interface_auth = container_supports_pass_auth,
+                                 env_vars = container_env_vars)
         # Set added switch
         data['added'] = True
 
