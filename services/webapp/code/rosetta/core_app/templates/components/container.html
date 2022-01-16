@@ -104,6 +104,12 @@
          {% endif %}        </td>
        </tr>
 
+       {% if container.env_vars %}
+       <tr>
+        <td><b>Env vars</b></td>
+        <td><pre>{{container.env_vars}}</pre></td>
+       </tr>
+       {% endif %}
        
        {% if container.user %}
        <tr>

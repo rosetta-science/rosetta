@@ -1,4 +1,5 @@
 import os
+import re
 import hashlib
 import traceback
 import hashlib
@@ -732,8 +733,13 @@ def get_ssh_access_mode_credentials(computing, user):
 
 
 
+def sanitize_container_env_vars(env_vars):
+    
+    for env_var in env_vars:
+        
+        # Check only alphanumeric chars, slashed, dashes and underscores
+        if not re.match("^[/A-Za-z0-9_-]*$", env_vars[env_var]):
+            raise ValueError('Value "{}" for env var "{}" is not valid: only alphanumeric, slashes, dashes and underscores are.'.format(env_vars[env_var], env_var))
 
-
-
-
+    return env_vars
 
