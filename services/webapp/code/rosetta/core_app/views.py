@@ -36,6 +36,11 @@ def login_view(request):
     # If authenticated user reloads the main URL
     if request.method == 'GET' and request.user.is_authenticated:
         return HttpResponseRedirect('/main/')
+    else:
+        # If local auth disabled, just render login page
+        # (will be rendered an open id connect url only)
+        if settings.DISABLE_LOCAL_AUTH:
+            return render(request, 'login.html', {'data': data})
 
     # If unauthenticated user tries to log in
     if request.method == 'POST':

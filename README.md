@@ -64,6 +64,7 @@ Example Webapp configuraion:
       - OIDC_OP_AUTHORIZATION_ENDPOINT=""
       - OIDC_OP_TOKEN_ENDPOINT=""
       - OIDC_OP_JWKS_ENDPOINT=""
+      - DISABLE_LOCAL_AUTH=False
  
 In Rosetta, only power users can:
 
