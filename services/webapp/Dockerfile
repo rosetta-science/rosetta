@@ -14,7 +14,7 @@ RUN apt-get update
 RUN apt-get install curl -y
 
 # Download get-pip script
-RUN curl -O https://bootstrap.pypa.io/get-pip.py
+RUN curl -O https://bootstrap.pypa.io/pip/3.6/get-pip.py
 
 # Install Python3 and Pip3 (python3-distutils required for pip3)
 RUN apt-get install python3 python3-distutils -y 
