@@ -21,6 +21,11 @@ RUN mkdir /home/testuser/.ssh
 COPY keys/id_rsa.pub /home/testuser/.ssh/authorized_keys
 RUN dnf install -y python wget
 
+# Install iputils (ping)
+RUN dnf install -y iputils
+
+# Copy registries.conf to allow insecure access to dregistry
+COPY registries.conf /etc/containers/registries.conf
 
 #----------------------
 # Entrypoint

@@ -8,6 +8,10 @@ set -e
 chmod 777 /dev/fuse
 chmod 777 /dev/net/tun
 
+# Add rosetta.platform entry to /etc/hosts
+#PROXY_IP=$(ping proxy -c1 | head -n1 | cut -d '(' -f2 | cut -d')' -f1)
+#echo "$PROXY_IP rosetta.platform" >> /etc/hosts
+
 #---------------------
 #  Entrypoint command
 #---------------------

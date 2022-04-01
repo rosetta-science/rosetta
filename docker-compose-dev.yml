@@ -38,8 +38,6 @@ services:
     image: "rosetta/dregistry"
     volumes:
       - ./data/dregistry:/var/lib/registry
-    ports:
-      - "5000:5000"
 
   postgres:
     image: "rosetta/postgres"
@@ -70,6 +68,7 @@ services:
       - TASK_PROXY_HOST=localhost
       - TASK_TUNNEL_HOST=localhost
       - ROSETTA_HOST=localhost
+      - REGISTRY_HOST=proxy     # Use same value as ROSETTA_HOST for production or to use "real" computing resurces 
     ports:
       - "8080:8080"
       - "7000-7020:7000-7020"
@@ -79,7 +78,6 @@ services:
       - ./data/webapp/log:/var/log/webapp
       - /var/run/docker.sock:/var/run/docker.sock
       #- ./services/webapp/code:/opt/code
-      
 
   proxy:
     image: "rosetta/proxy"
@@ -92,6 +90,7 @@ services:
       - "80:80"
       - "443:443"
       - "9000-9020:9000-9020"
+      - "5000:5000"
     volumes:
       - ./data/shared:/shared   
 
