@@ -60,7 +60,13 @@
           </select>
           {% csrf_token %}
           <button type="submit" class="btn btn-secondary">Go</button>
+          
+          &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/add_software">Add new...</a>
+          
         </form>
+        
+        
+              
       </div>
       
       
@@ -81,12 +87,6 @@
       {% endif  %}      
       {% endif %}
       </div>
-      
-      {% if not data.container %}
-      <div class="row" style="padding:10px; padding-left:15px">   
-      <a href="/add_software">Add new...</a>
-      </div>
-      {% endif %}
         
       <br/>
       <br/>
