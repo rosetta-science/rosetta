@@ -12,7 +12,9 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_task_tunnel_host, get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation, sanitize_container_env_vars
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_task_tunnel_host
+from .utils import get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
+from .utils import sanitize_container_env_vars, get_or_create_container_from_repository
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
 
@@ -898,89 +900,109 @@ def add_software(request):
     # Init data
     data = {}
     data['user'] = request.user
+    
+    # Loop back the new container mode in the page to handle the switch
+    data['new_container_from'] = request.GET.get('new_container_from', 'registry')
 
     # Container name if setting up a new container
     container_name = request.POST.get('container_name', None)
 
     if container_name:
-
-        # Container description
-        container_description = request.POST.get('container_description', None)
-
-        # Container registry
-        container_registry = request.POST.get('container_registry', None)
-
-        # Container image name
-        container_image_name = request.POST.get('container_image_name',None)
         
-        # Container image tag
-        container_image_tag = request.POST.get('container_image_tag', None)
+        # How do we have to add this new container?
+        new_container_from = request.POST.get('new_container_from', None)
 
-        # Container image architecture
-        container_image_arch = request.POST.get('container_image_arch', None)
+        if new_container_from == 'registry':
+    
+            # Container description
+            container_description = request.POST.get('container_description', None)
+    
+            # Container registry
+            container_registry = request.POST.get('container_registry', None)
+    
+            # Container image name
+            container_image_name = request.POST.get('container_image_name',None)
+            
+            # Container image tag
+            container_image_tag = request.POST.get('container_image_tag', None)
+    
+            # Container image architecture
+            container_image_arch = request.POST.get('container_image_arch', None)
+    
+            # Container image OS 
+            container_image_os = request.POST.get('container_image_os', None)
+    
+            # Container image digest
+            container_image_digest = request.POST.get('container_image_digest', None)
+    
+            # Container interface port
+            container_interface_port = request.POST.get('container_interface_port', None) 
+            if container_interface_port:       
+                try:
+                    container_interface_port = int(container_interface_port)
+                except:
+                    raise ErrorMessage('Invalid container port "{}"')
+            else:
+                container_interface_port = None
+    
+            # Container interface protocol 
+            container_interface_protocol = request.POST.get('container_interface_protocol', None)
+    
+            if container_interface_protocol and not container_interface_protocol in ['http','https']:
+                raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
+    
+            # Container interface transport 
+            container_interface_transport = request.POST.get('container_interface_transport')
+    
+            # Capabilities
+            container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
+            if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':
+                container_supports_custom_interface_port = True
+            else:
+                container_supports_custom_interface_port = False
+    
+            container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
+            if container_supports_interface_auth and container_supports_interface_auth == 'True':
+                container_supports_pass_auth = True
+            else:
+                container_supports_pass_auth = False
+    
+            # Environment variables
+            container_env_vars = request.POST.get('container_env_vars', None)
+            if container_env_vars:
+                container_env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
+    
+            # Log
+            #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
+    
+            # Create
+            Container.objects.create(user         = request.user,
+                                     name         = container_name,
+                                     description  = container_description,
+                                     registry     = container_registry,
+                                     image_name   = container_image_name,
+                                     image_tag    = container_image_tag,
+                                     image_arch   = container_image_arch,
+                                     image_os     = container_image_os,
+                                     image_digest = container_image_digest,
+                                     interface_port      = container_interface_port,
+                                     interface_protocol  = container_interface_protocol,
+                                     interface_transport = container_interface_transport,
+                                     supports_custom_interface_port = container_supports_custom_interface_port,
+                                     supports_interface_auth = container_supports_pass_auth,
+                                     env_vars = container_env_vars)
+            
+        elif new_container_from == 'repository':
 
-        # Container image OS 
-        container_image_os = request.POST.get('container_image_os', None)
+            container_description = request.POST.get('container_description', None)
+            repository_url = request.POST.get('repository_url', None)
+            repository_tag = request.POST.get('repository_tag', None)
+            
+            # The return type here is a container, not created
+            get_or_create_container_from_repository(request.user, repository_url, repository_tag=repository_tag, container_name=container_name, container_description=container_description)
 
-        # Container image digest
-        container_image_digest = request.POST.get('container_image_digest', None)
-
-        # Container interface port
-        container_interface_port = request.POST.get('container_interface_port', None) 
-        if container_interface_port:       
-            try:
-                container_interface_port = int(container_interface_port)
-            except:
-                raise ErrorMessage('Invalid container port "{}"')
         else:
-            container_interface_port = None
-
-        # Container interface protocol 
-        container_interface_protocol = request.POST.get('container_interface_protocol', None)
-
-        if container_interface_protocol and not container_interface_protocol in ['http','https']:
-            raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
-
-        # Container interface transport 
-        container_interface_transport = request.POST.get('container_interface_transport')
-
-        # Capabilities
-        container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
-        if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':
-            container_supports_custom_interface_port = True
-        else:
-            container_supports_custom_interface_port = False
-
-        container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
-        if container_supports_interface_auth and container_supports_interface_auth == 'True':
-            container_supports_pass_auth = True
-        else:
-            container_supports_pass_auth = False
-
-        # Environment variables
-        container_env_vars = request.POST.get('container_env_vars', None)
-        if container_env_vars:
-            container_env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
-
-        # Log
-        #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
-
-        # Create
-        Container.objects.create(user         = request.user,
-                                 name         = container_name,
-                                 description  = container_description,
-                                 registry     = container_registry,
-                                 image_name   = container_image_name,
-                                 image_tag    = container_image_tag,
-                                 image_arch   = container_image_arch,
-                                 image_os     = container_image_os,
-                                 image_digest = container_image_digest,
-                                 interface_port      = container_interface_port,
-                                 interface_protocol  = container_interface_protocol,
-                                 interface_transport = container_interface_transport,
-                                 supports_custom_interface_port = container_supports_custom_interface_port,
-                                 supports_interface_auth = container_supports_pass_auth,
-                                 env_vars = container_env_vars)
+            raise Exception('Unknown new container mode "{}"'.format(new_container_from)) 
         # Set added switch
         data['added'] = True
 
@@ -1167,101 +1189,6 @@ def sharable_link_handler(request, short_uuid):
     return redirect(redirect_string)
 
 
-def get_or_create_container_from_repository(repository_url, repository_tag=None): 
-    repository_name = '{}/{}'.format(repository_url.split('/')[-2],repository_url.split('/')[-1])
-    
-    logger.debug('Called get_or_create_container_from_repository with repository_url="{}" and repository_tag="{}"'.format(repository_url,repository_tag))
-
-    # If building:
-    #{"message": "Successfully built 5a2089b2c334\n", "phase": "building"}
-    #{"message": "Successfully tagged r2dhttps-3a-2f-2fgithub-2ecom-2fnorvig-2fpytudes5e745c3:latest\n", "phase": "building"}
-    
-    # If reusing:
-    #{"message": "Reusing existing image (r2dhttps-3a-2f-2fgithub-2ecom-2fnorvig-2fpytudes5e745c3), not building."}
-    
-    # Build the Docker container for this repo
-    if repository_tag:
-        command = 'sudo jupyter-repo2docker --ref {} --user-id 1000 --user-name rosetta --no-run --json-logs {}'.format(repository_tag, repository_url)
-    else:
-        command = 'sudo jupyter-repo2docker --user-id 1000 --user-name rosetta --no-run --json-logs {}'.format(repository_url)
-    out = os_shell(command, capture=True)
-    if out.exit_code != 0:
-        logger.error(out.stderr)
-        raise ErrorMessage('Something went wrong when creating the Dockerfile for repository "{}"'.format(repository_url))   
-
-    # Convert output to lines
-    out_lines = out.stderr.split('\n')
-
-    # Get rep2docker image name from output
-    last_line_message = json.loads(out_lines[-1])['message']
-    if 'Reusing existing image' in last_line_message:
-        repo2docker_image_name = last_line_message.split('(')[1].split(')')[0]
-    elif 'Successfully tagged' in last_line_message:
-        repo2docker_image_name = last_line_message.split(' ')[2]                
-    else:
-        raise Exception('Cannot build')
-
-    # Set image registry, name and tag, Use "strip()" as sometimes the newline chars might jump in.
-    registry = os.environ.get('REGISTRY_HOST','proxy:5000').strip()
-    image_name = repository_name.lower().strip()
-    image_tag = repo2docker_image_name[-7:].strip() # The last part of the image name generated by repo2docker is the git short hash
-
-    # Re-tag image taking into account that if we are using the proxy as registry we use localhost or it won't work
-    if registry == 'proxy:5000':
-        push_registry = 'localhost:5000'
-    else:
-        push_registry = registry
-        
-    out = os_shell('sudo docker tag {} {}/{}:{}'.format(repo2docker_image_name,push_registry,image_name,image_tag) , capture=True)
-    if out.exit_code != 0:
-        logger.error(out.stderr)
-        raise ErrorMessage('Something went wrong when tagging the container for repository "{}"'.format(repository_url))   
-
-    # Push image to the (local) registry
-    out = os_shell('sudo docker push {}/{}:{}'.format(push_registry,image_name,image_tag) , capture=True)
-    if out.exit_code != 0:
-        logger.error(out.stderr)
-        raise ErrorMessage('Something went wrong when pushing the container for repository "{}"'.format(repository_url))   
-
-    # Create the container if not already existent
-    try:
-        container = Container.objects.get(registry=registry, image_name=image_name, image_tag=image_tag)
-    except Container.DoesNotExist:
-
-        # Set default container name and description
-        container_name = repository_name
-        container_description = 'Built from {}'.format(repository_url)
-            
-        # Get name repo name and description from GitHub (if repo is there)
-        if repository_url.startswith('https://github.com'):
-            try:
-                response = requests.get('https://api.github.com/repos/{}'.format(repository_name))
-                json_content = json.loads(response.content)
-                container_name = json_content['name'].title()
-                container_description = json_content['description']
-                if not container_description.endswith('.'):
-                    container_description+='.'
-                container_description += ' Built from {}'.format(repository_url)
-            except:
-                pass
-
-        container = Container.objects.create(user = None,
-                                             name = container_name,
-                                             description = container_description,
-                                             registry = registry,
-                                             image_name = image_name,
-                                             image_tag  = image_tag,
-                                             image_arch = 'amd64',
-                                             image_os = 'linux',
-                                             interface_port = '8888',
-                                             interface_protocol = 'http',
-                                             interface_transport = 'tcp/ip',
-                                             supports_custom_interface_port = False,
-                                             supports_interface_auth = False)
-    return container
-
-
-
 #=========================
 #  New Binder Task
 #=========================
@@ -1280,7 +1207,7 @@ def new_binder_task(request, repository):
     repository_tag = repository.split('/')[-1]
     repository_url = repository.replace('/'+repository_tag, '')
 
-    container = get_or_create_container_from_repository(repository_url, repository_tag)
+    container = get_or_create_container_from_repository(request.user, repository_url, repository_tag)
     
     # Set the container
     data['task_container'] = container

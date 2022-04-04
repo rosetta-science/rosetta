@@ -13,12 +13,23 @@
 
       {% if not data.added %}
 
-          <h4>Container basics</h4> 
+          Here you can add a new software container on the platform. You can add containers from image registries
+          as <a href="https://hub.docker.com/">Docker Hub </a>or by importing Git repositories, provided that they
+          are compatible with <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.          
+          <br/>
+          <br/>
+          
+          {% if data.new_container_from == 'registry' %}
+          <div style="font-size:1.2em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from registry</div>
+          <div style="font-size:1.2em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">New container from Git repository</a></div>         
+          <hr style="margin-top:0;">
+
+          <h4>Basics</h4> 
                     
           <form action="#" method="POST">
           {% csrf_token %}
 
-          <table class="dashboard" style="width:360px; margin-bottom:25px">
+          <table class="dashboard" style="width:400px; margin-bottom:25px">
 
            <tr>
             <td><b>Name</b></td>
@@ -35,8 +46,6 @@
             </td>
            </tr>
     
-    
-
            <tr>
             <td><b>Registry</b></td><td>
              <input type="text" name="container_registry" value="docker.io" size="23" required />
@@ -61,8 +70,8 @@
 
 
 
-          <h4>Container interface </h4> 
-          <table class="dashboard" style="width:360px; margin-bottom:25px">
+          <h4>Interface </h4> 
+          <table class="dashboard" style="width:400px; margin-bottom:25px">
 
            <tr>
             <td><b>Interface port</b></td>
@@ -88,10 +97,10 @@
            <a href="javascript:void(0);" id="show_button" onclick="toggle_visibility('advanced_div')">Advanced...</a>
            
 
-           <div id="advanced_div" style="display:none; width:360px;">
-           <h4>Container advanced settings <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('advanced_div')" style="display:none">hide</a></font></h4>
+           <div id="advanced_div" style="display:none; width:400px;">
+           <h4>Advanced <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('advanced_div')" style="display:none">hide</a></font></h4>
   
-           <table class="dashboard" style="width:360px; margin-bottom:25px">
+           <table class="dashboard" style="width:400px; margin-bottom:25px">
 
            <tr>
             <td><b>Image arch</b></td><td>
@@ -145,13 +154,77 @@
           </table>
           </div>
           
-          <table style="width:360px; border:0; background:#ffffff; margin-top:20px">
+          <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
           <tr><td align="center">
           <input type="submit" value="Add">
           </td></tr>
           </table>
-                    
+
+          <input type="hidden" name="new_container_from" value="registry">
+     
           </form>
+
+
+          {% else %}
+          <div style="font-size:1.2em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=registry">New container from registry</a></div>
+          <div style="font-size:1.2em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from Git repository</div>         
+          <hr style="margin-top:0;">
+
+          <h4>Basics</h4> 
+                    
+          <form action="#" method="POST">
+          {% csrf_token %}
+
+          <table class="dashboard" style="width:400px; margin-bottom:25px">
+
+           <tr>
+            <td><b>Name</b></td>
+            <td>
+             <input type="text" name="container_name" value="" placeholder="" size="23" required />
+            </td>
+           </tr>
+
+           <tr>
+            <td><b>Description</b></td>
+            <td>
+             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
+             ​<textarea name="container_description" rows="3" cols="22"></textarea>
+            </td>
+           </tr>
+    
+           <tr>
+            <td><b>Repository URL</b></td><td>
+             <input type="text" name="repository_url" size="23" required />
+            </td>
+           </tr>
+
+
+           <tr>
+            <td><b>Repository tag</b></td>
+            <td>
+             <input type="text" name="repository_tag" placeholder="Tag or hash, optional" value="" size="23" />
+            </td>
+           </tr>
+
+           </table>
+
+
+                    
+          <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
+          <tr><td align="center">
+          <input type="submit" value="Add">
+          </td></tr>
+          </table>
+          
+          <input type="hidden" name="new_container_from" value="repository">
+                 
+          </form>          
+          
+          
+          
+          {% endif %}
+
+
 
           <br/>          
           <br/>
