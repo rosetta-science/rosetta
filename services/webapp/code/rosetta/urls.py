@@ -85,6 +85,10 @@ urlpatterns = [
     path('api/v1/base/agent/', core_app_api.agent_api.as_view(), name='agent_api'),
     path('api/v1/filemanager/', core_app_api.FileManagerAPI.as_view(), name='filemanager_api'),
 
+    # Binder compatibility
+    path('v2/git/<path:repository>', core_app_views.new_binder_task),
+
+
 ]
 
 

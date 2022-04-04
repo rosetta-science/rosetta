@@ -68,7 +68,7 @@ services:
       - TASK_PROXY_HOST=localhost
       - TASK_TUNNEL_HOST=localhost
       - ROSETTA_HOST=localhost
-      - REGISTRY_HOST=proxy     # Use same value as ROSETTA_HOST for production or to use "real" computing resurces 
+      - REGISTRY_HOST=proxy:5000     # Use same value as ROSETTA_HOST for production or to use "real" computing resurces 
     ports:
       - "8080:8080"
       - "7000-7020:7000-7020"
