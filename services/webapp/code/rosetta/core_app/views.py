@@ -35,10 +35,17 @@ _task_cache = {}
 def login_view(request):
 
     data = {}
+    
+    # Set post login page
+    post_login_page = request.COOKIES.get('post_login_redirect')
+    if post_login_page is None:
+        post_login_page = '/main'
 
     # If authenticated user reloads the main URL
     if request.method == 'GET' and request.user.is_authenticated:
-        return HttpResponseRedirect('/main/')
+        response = HttpResponseRedirect(post_login_page)
+        response.delete_cookie('post_login_redirect')
+        return response
     else:
         # If local auth disabled, just render login page
         # (will be rendered an open id connect url only)
@@ -73,7 +80,9 @@ def login_view(request):
                 user = authenticate(username=username, password=password)
                 if user:
                     login(request, user)
-                    return HttpResponseRedirect('/main')
+                    response = HttpResponseRedirect(post_login_page)
+                    response.delete_cookie('post_login_redirect')
+                    return response
                 else:
                     raise ErrorMessage('Check email and password')
             else:
@@ -138,8 +147,9 @@ def login_view(request):
             loginToken.delete()
 
             # Now redirect to site
-            return HttpResponseRedirect('/main/')
-
+            response = HttpResponseRedirect(post_login_page)
+            response.delete_cookie('post_login_redirect')
+            return response
 
     # All other cases, render the login page again with no other data than title
     return render(request, 'login.html', {'data': data})

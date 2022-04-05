@@ -264,6 +264,9 @@ if OIDC_RP_CLIENT_ID:
     # Optional
     OIDC_USE_NONCE =  booleanize(os.environ.get('OIDC_USE_NONCE', False))
     OIDC_TOKEN_USE_BASIC_AUTH = booleanize(os.environ.get('OIDC_TOKEN_USE_BASIC_AUTH', False))
+
+    # Custom callback to enable session-based post-login redirects
+    OIDC_CALLBACK_CLASS = 'rosetta.auth.RosettaOIDCAuthenticationCallbackView'
     
     # Non-customizable stuff
     LOGIN_REDIRECT_URL = '/'
@@ -274,6 +277,8 @@ if OIDC_RP_CLIENT_ID:
     # Required for the Open ID connect redirects to work properly
     USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+
 
 
 

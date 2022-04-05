@@ -132,5 +132,8 @@ def private_view(wrapped_view):
 
         else:
             log_user_activity("DEBUG", "Redirecting to login since not authenticated", request)
-            return HttpResponseRedirect('/login')
+            logger.debug('Setting cookie-based post login redirect to "%s"', request.build_absolute_uri())
+            response = HttpResponseRedirect('/login')
+            response.set_cookie('post_login_redirect', request.build_absolute_uri())
+            return response
     return private_view_wrapper
