@@ -263,7 +263,7 @@ if OIDC_RP_CLIENT_ID:
 
     # Optional
     OIDC_USE_NONCE =  booleanize(os.environ.get('OIDC_USE_NONCE', False))
-    OIDC_TOKEN_USE_BASIC_AUTH = booleanize(os.environ.get('OIDC_TOKEN_USE_BASIC_AUTH', True))
+    OIDC_TOKEN_USE_BASIC_AUTH = booleanize(os.environ.get('OIDC_TOKEN_USE_BASIC_AUTH', False))
     
     # Non-customizable stuff
     LOGIN_REDIRECT_URL = '/'
