@@ -144,7 +144,7 @@ def finalize_user_creation(user, auth='local'):
     # Just an extra check
     try:
         Profile.objects.get(user=user)
-    except Profile.DoesNotExists:
+    except Profile.DoesNotExist:
         pass
     else:
         raise Exception('Consistency error: already found a profile for user "{}"'.format(user))
