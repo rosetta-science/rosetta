@@ -47,10 +47,9 @@ def login_view(request):
         response.delete_cookie('post_login_redirect')
         return response
     else:
-        # If local auth disabled, just render login page
-        # (will be rendered an open id connect url only)
+        # If local auth disabled, just redirect to OIDC
         if settings.DISABLE_LOCAL_AUTH:
-            return render(request, 'login.html', {'data': data})
+            return HttpResponseRedirect('/oidc/authenticate/')
 
     # If unauthenticated user tries to log in
     if request.method == 'POST':
