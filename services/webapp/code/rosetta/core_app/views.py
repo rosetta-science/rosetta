@@ -1218,7 +1218,15 @@ def new_binder_task(request, repository):
     # Set repository name/tag/url        
     repository_tag = repository.split('/')[-1]
     repository_url = repository.replace('/'+repository_tag, '')
+
+    # I have no idea why the https:// of the repo part of the url gets transfrmed in https:/
+    # Here i work around this, but TODO: understand what the hell is going on.
+    if 'https:/' in repository_url and not 'https://' in repository_url:
+        repository_url = repository_url.replace('https:/', 'https://')
     
+    if not repository_tag:
+        repository_tag='HEAD'
+
     data['repository_url'] = repository_url
     data['repository_tag'] = repository_tag
     
@@ -1240,10 +1248,18 @@ def import_repository(request):
     data={}
     data['user']  = request.user
     
-    data['repository_url'] = request.GET.get('repository_url', None)
-    data['repository_tag'] = request.GET.get('repository_tag', 'HEAD')
-    if not data['repository_tag']:
-        data['repository_tag']='HEAD'
+    repository_url = request.GET.get('repository_url', None)
+    # I have no idea why the https:// of the repo part of the url gets transfrmed in https:/
+    # Here i work around this, but TODO: understand what the hell is going on.
+    if 'https:/' in repository_url and not 'https://' in repository_url:
+        repository_url = repository_url.replace('https:/', 'https://')
+    
+    repository_tag= request.GET.get('repository_tag', None)
+    if not repository_tag:
+        repository_tag='HEAD'
+        
+    data['repository_url'] = repository_url
+    data['repository_tag'] = repository_tag
 
     data['container_name'] = request.GET.get('container_name', None)
     data['container_description'] = request.GET.get('container_description', None)
