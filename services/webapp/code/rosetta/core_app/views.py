@@ -1005,11 +1005,14 @@ def add_software(request):
         elif new_container_from == 'repository':
 
             container_description = request.POST.get('container_description', None)
-            repository_url = request.POST.get('repository_url', None)
-            repository_tag = request.POST.get('repository_tag', None)
             
+            repository_url = request.POST.get('repository_url', None)
+            repository_tag = request.POST.get('repository_tag', 'HEAD')
+
+            return HttpResponseRedirect('/import_repository/?repository_url={}&repository_tag={}&container_name={}&container_description={}'.format(repository_url,repository_tag,container_name,container_description))
+        
             # The return type here is a container, not created
-            get_or_create_container_from_repository(request.user, repository_url, repository_tag=repository_tag, container_name=container_name, container_description=container_description)
+            #get_or_create_container_from_repository(request.user, repository_url, repository_tag=repository_tag, container_name=container_name, container_description=container_description)
 
         else:
             raise Exception('Unknown new container mode "{}"'.format(new_container_from)) 
@@ -1216,21 +1219,39 @@ def new_binder_task(request, repository):
     # Set repository name/tag/url        
     repository_tag = repository.split('/')[-1]
     repository_url = repository.replace('/'+repository_tag, '')
-
-    container = get_or_create_container_from_repository(request.user, repository_url, repository_tag)
     
-    # Set the container
-    data['task_container'] = container
+    data['repository_url'] = repository_url
+    data['repository_tag'] = repository_tag
+    
+    data['mode'] = 'new_task' #new container
 
-    # List all computing resources 
-    data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
-        
-    data['step'] = 'two'
-    data['next_step'] = 'three'
-
-    # Render the new task page and handle the rest from there
-    return render(request, 'new_task.html', {'data': data})
+    # Render the import page. This will call an API, and when the import is done, it
+    # will automatically redirect to the page "new_task/?step=two&task_container_uuid=..."
+    return render(request, 'import_repository.html', {'data': data})
 
 
+#=========================
+#  Import repository
+#=========================
 
+@private_view
+def import_repository(request):
+
+    # Init data
+    data={}
+    data['user']  = request.user
+    
+    data['repository_url'] = request.GET.get('repository_url', None)
+    data['repository_tag'] = request.GET.get('repository_tag', 'HEAD')
+    if not data['repository_tag']:
+        data['repository_tag']='HEAD'
+
+    data['container_name'] = request.GET.get('container_name', None)
+    data['container_description'] = request.GET.get('container_description', None)
+
+    data['mode'] = 'new_container'
+
+    # Render the import page. This will call an API, and when the import is done, it
+    # will automatically say "Ok, crrated, go to software".
+    return render(request, 'import_repository.html', {'data': data})
 

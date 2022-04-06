@@ -51,6 +51,7 @@ urlpatterns = [
     # Software    
     url(r'^software/$', core_app_views.software),
     url(r'^add_software/$', core_app_views.add_software),    
+    url(r'^import_repository/$', core_app_views.import_repository),    
     
     #Computing
     url(r'^computing/$', core_app_views.computing),
@@ -84,6 +85,7 @@ urlpatterns = [
     path('api/v1/base/logout/', core_app_api.logout_api.as_view(), name='logout_api'),
     path('api/v1/base/agent/', core_app_api.agent_api.as_view(), name='agent_api'),
     path('api/v1/filemanager/', core_app_api.FileManagerAPI.as_view(), name='filemanager_api'),
+    path('api/v1/import_repository/', core_app_api.ImportRepositoryAPI.as_view(), name='import_repository_api'),
 
     # Binder compatibility
     path('v2/git/<path:repository>', core_app_views.new_binder_task),

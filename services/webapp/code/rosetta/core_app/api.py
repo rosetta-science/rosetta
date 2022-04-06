@@ -11,7 +11,7 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
-from .utils import format_exception, send_email, os_shell, now_t, get_ssh_access_mode_credentials
+from .utils import format_exception, send_email, os_shell, now_t, get_ssh_access_mode_credentials, get_or_create_container_from_repository
 from .models import Profile, Task, TaskStatuses, Computing, Storage, KeyPair
 from .exceptions import ConsistencyException
 import json
@@ -1093,6 +1093,43 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return ok200('ok')
 
 
+#==============================
+#  Import repository APIs
+#==============================
+
+class ImportRepositoryAPI(PrivateGETAPI):
+    """
+    get:
+    Import a repository as a container and get the container uuid.
+
+    """
+
+    def _get(self, request):
+        
+        repository_url = request.GET.get('repository_url', None)
+        repository_tag = request.GET.get('repository_tag', None)
+        container_name = request.GET.get('container_name', None)
+        container_description = request.GET.get('container_description', None)
+
+        if not repository_url:
+            return error400('Missing "repository_url"')
+
+        if not repository_tag:
+            return error400('Missing "repository_tag"')
+  
+        logger.debug('Importing repository "%s" with tag "%s"', repository_url, repository_tag)
+
+        results = {}
+        try:     
+            container = get_or_create_container_from_repository(request.user, repository_url, repository_tag, container_name, container_description)
+        except Exception as e:
+            results['import_succeded'] = False
+            results['error_message'] = str(e)
+        else:
+            results['import_succeded'] = True
+            results['container_uuid'] = str(container.uuid)
+             
+        return ok200(results) 
 
 
 
