@@ -715,13 +715,13 @@ def get_ssh_access_mode_credentials(computing, user):
     except AttributeError:
         computing_host = None
     if not computing_host:
-        raise Exception('No computing host?!')
+        raise ValueError('No computing host?!')
             
     # Get computing user and keys
     if computing.auth_mode == 'user_keys':
         computing_user = user.profile.get_extra_conf('computing_user', computing)
         if not computing_user:
-            raise Exception('Computing resource \'{}\' user is not configured'.format(computing.name))
+            raise ValueError('No \'computing_user\' parameter found for computing resource \'{}\' in user profile'.format(computing.name))
         # Get user key
         computing_keys = KeyPair.objects.get(user=user, default=True)
     elif computing.auth_mode == 'platform_keys':        
@@ -730,7 +730,7 @@ def get_ssh_access_mode_credentials(computing, user):
     else:
         raise NotImplementedError('Auth modes other than user_keys and platform_keys not supported.')
     if not computing_user:
-        raise Exception('No computing user?!')
+            raise ValueError('No \'user\' parameter found for computing resource \'{}\' in its configuration'.format(computing.name))
     return (computing_user, computing_host, computing_keys)
 
 

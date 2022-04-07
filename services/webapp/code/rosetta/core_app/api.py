@@ -441,7 +441,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 if computing.auth_mode == 'user_keys':
                     computing_user = user.profile.get_extra_conf('computing_user', storage.computing)
                     if not computing_user:
-                        raise Exception('Computing resource \'{}\' user is not configured'.format(storage.computing.name))
+                        raise ValueError('No \'computing_user\' parameter found for computing resource \'{}\' in user profile'.format(storage.computing.name))
                     base_path_expanded = base_path_expanded.replace('$SSH_USER', computing_user)
                 else:
                     base_path_expanded = base_path_expanded.replace('$SSH_USER', computing.conf.get('user'))
