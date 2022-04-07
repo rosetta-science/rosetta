@@ -246,14 +246,20 @@ class Computing(models.Model):
         managers_mapping = {}
         managers_mapping['cluster'+'ssh+cli'+'user_keys'+'slurm'] = computing_managers.SlurmSSHClusterComputingManager
         managers_mapping['standalone'+'ssh+cli'+'user_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
+        managers_mapping['standalone'+'ssh+cli'+'platform_keys'+'None'] = computing_managers.SSHStandaloneComputingManager        
         managers_mapping['standalone'+'internal'+'internal'+'None'] = computing_managers.InternalStandaloneComputingManager
         
         # Instantiate the computing manager and return (if not already done)
         try:
             return self._manager
         except AttributeError:
-            self._manager = managers_mapping[self.type+self.access_mode+self.auth_mode+str(self.wms)](self)
-            return self._manager
+            try:
+                self._manager = managers_mapping[self.type+self.access_mode+self.auth_mode+str(self.wms)](self)
+            except KeyError:
+                raise ValueError('No computing resource manager for type="{}", access_mode="{}", auth_mode="{}", wms="{}"'
+                                 .format(self.type, self.access_mode, self.auth_mode, self.wms)) from None
+            else:
+                return self._manager
 
     
 

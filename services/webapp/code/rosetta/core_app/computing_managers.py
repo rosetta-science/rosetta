@@ -71,6 +71,9 @@ class ComputingManager(object):
         
         # Call actual get task log logic
         return self._get_task_log(task, **kwargs)
+    
+    def is_configured_for(self, user):
+        return True
 
 
 class StandaloneComputingManager(ComputingManager):
@@ -82,8 +85,14 @@ class ClusterComputingManager(ComputingManager):
 
 
 class SSHComputingManager(ComputingManager):
-    # SSH-f + keys utils here
-    pass
+    
+    def is_configured_for(self, user):
+        try:
+            get_ssh_access_mode_credentials(self.computing, user)
+        except:
+            return False
+        else:
+            return True
 
 
 
@@ -240,7 +249,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_base_path:
-                        expanded_base_path = expanded_base_path.replace('$USER', self.task.user.name)
+                        expanded_base_path = expanded_base_path.replace('$USER', task.user.username)
                         
                     # Expand the bind_path
                     expanded_bind_path = storage.bind_path        
@@ -250,7 +259,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_bind_path:
-                        expanded_bind_path = expanded_bind_path.replace('$USER', self.task.user.name)
+                        expanded_bind_path = expanded_bind_path.replace('$USER', task.user.username)
                         
                     # Add the bind
                     if not binds:
@@ -300,7 +309,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_base_path:
-                        expanded_base_path = expanded_base_path.replace('$USER', self.task.user.name)
+                        expanded_base_path = expanded_base_path.replace('$USER', task.user.username)
                         
                     # Expand the bind_path
                     expanded_bind_path = storage.bind_path        
@@ -310,7 +319,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_bind_path:
-                        expanded_bind_path = expanded_bind_path.replace('$USER', self.task.user.name)
+                        expanded_bind_path = expanded_bind_path.replace('$USER', task.user.username)
                         
                     # Add the bind
                     if not binds:
@@ -376,7 +385,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
         stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_keys.private_key_file, computing_user, computing_host, internal_stop_command)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
-            if ('No such process' in out.stderr) or ('No such container' in out.stderr):
+            if ('No such process' in out.stderr) or ('No such container' in out.stderr) or ('no container' in out.stderr):
                 pass
             else:
                 raise Exception(out.stderr)
@@ -493,7 +502,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_base_path:
-                        expanded_base_path = expanded_base_path.replace('$USER', self.task.user.name)
+                        expanded_base_path = expanded_base_path.replace('$USER', task.user.username)
                         
                     # Expand the bind_path
                     expanded_bind_path = storage.bind_path        
@@ -503,7 +512,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
                         else:
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_bind_path:
-                        expanded_bind_path = expanded_bind_path.replace('$USER', self.task.user.name)
+                        expanded_bind_path = expanded_bind_path.replace('$USER', task.user.username)
                         
                     # Add the bind
                     if not binds:

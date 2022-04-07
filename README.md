@@ -43,30 +43,40 @@ Clean
 
 ### Configuration
 
-Example Webapp configuraion:
+Webapp service configuraion parameters and their defaults:
 
-      - SAFEMODE=False
-      - DJANGO_DEV_SERVER=True
-      - DJANGO_DEBUG=True
+      - SAFEMODE=false
+      - DJANGO_DEV_SERVER=true
+      - DJANGO_DEBUG=true
       - DJANGO_LOG_LEVEL=ERROR
       - ROSETTA_LOG_LEVEL=ERROR
-      - ROSETTA_TUNNEL_HOST=localhost # Not http or https
-      - ROSETTA_WEBAPP_HOST= 
+      - ROSETTA_HOST=localhost
+      - ROSETTA_TUNNEL_HOST=localhost
+      - ROSETTA_WEBAPP_HOST=""
       - ROSETTA_WEBAPP_PORT=8080
-      - LOCAL_DOCKER_REGISTRY_HOST=
-      - LOCAL_DOCKER_REGISTRY_PORT=5000
+      - ROSETTA_REGISTRY_HOST=proxy
+      - ROSETTA_REGISTRY_PORT=5000
       - DJANGO_EMAIL_SERVICE=Sendgrid
-      - DJANGO_EMAIL_APIKEY=
+      - DJANGO_EMAIL_APIKEY=""
       - DJANGO_EMAIL_FROM="Rosetta <notifications@rosetta.local>"
-      - DJANGO_PUBLIC_HTTP_HOST=http://localhost # Public facing, with http or https
+      - INVITATION_CODE=""
       - OIDC_RP_CLIENT_ID=""
       - OIDC_RP_CLIENT_SECRET=""
       - OIDC_OP_AUTHORIZATION_ENDPOINT=""
       - OIDC_OP_TOKEN_ENDPOINT=""
       - OIDC_OP_JWKS_ENDPOINT=""
-      - DISABLE_LOCAL_AUTH=False
- 
-In Rosetta, only power users can:
+      - DISABLE_LOCAL_AUTH=false
+
+Notes:
+
+ - `ROSETTA_TUNNEL_HOST` must not include http:// or https://
+ - `ROSETTA_REGISTRY_HOST` should be set to the same value as `ROSETTA_HOST` for production scenarios, in order to be secured unders SSL. The `standaloneworker` is configured to treat the following hosts (and ports) as unsecure registies, where it can connect without a valid certificate: `proxy:5000`,`dregistry:5000` and `rosetta.platform:5000`.
+ - `ROSETTA_WEBAPP_HOST` is used for let the agent know where to connect, and it is differentiated from `ROSETTA_HOST` as it can be on an internal Docker network. It is indeed defaulted to the `webapp` container IP address.
+
+
+
+### User types 
+In Rosetta there are two user types: standard users and power users. Their type is set in their user profile, and only power users can:
 
    - set custom task passwords
    - choose task access methods other than the default one (bypassing HTTP proxy + auth)
