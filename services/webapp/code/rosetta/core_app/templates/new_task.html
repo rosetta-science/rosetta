@@ -132,7 +132,7 @@
            <tr>
             <td><b>Container&nbsp;engine</b></td><td>
              <select name="container_engine" >
-             <option value="" selected>Default</option>
+             <option value="" selected>Default ({{data.task_computing.container_engines.0}})</option>
              {% for container_engine in data.task_computing.container_engines %}
              <option value="{{container_engine}}">{{container_engine}}</option>
              {% endfor %}
