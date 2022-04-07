@@ -24,10 +24,31 @@ RUN dnf install -y python wget
 # Install iputils (fpr ping) and openssh-clients (for scp)
 RUN dnf install -y iputils openssh-clients
 
-# TODO: Add the rosettta user
 
 # Copy registries.conf to allow insecure access to dregistry
 COPY registries.conf /etc/containers/registries.conf
+
+
+#------------------------
+# Rosetta user
+#------------------------
+
+# Add group. We chose GID 65527 to try avoiding conflicts.
+RUN groupadd -g 65527 rosetta
+
+# Add user. We chose UID 65527 to try avoiding conflicts.
+RUN useradd rosetta -d /rosetta -u 65527 -g 65527 -m -s /bin/bash
+
+# Add rosetta user to sudoers
+RUN usermod -aG wheel rosetta
+
+# Passwordless sudo
+RUN sed -e 's;^# \(%wheel.*NOPASSWD.*\);\1;g' -i /etc/sudoers
+
+# Authorized keys
+RUN mkdir /rosetta/.ssh
+COPY keys/id_rsa.pub /rosetta/.ssh/authorized_keys
+
 
 #----------------------
 # Entrypoint
