@@ -291,7 +291,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                                  access_mode = 'ssh+cli',
                                                                  auth_mode = 'platform_keys',
                                                                  wms = None,
-                                                                 conf = {'host': 'standaloneworker', 'user': 'testuser'}, # TODO: use a dedicated user?
+                                                                 conf = {'host': 'standaloneworker', 'user': 'rosetta'},
                                                                  container_engines = ['podman','singularity'])
 
             # Add testuser extra conf for this computing resource
@@ -336,7 +336,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
              
  
             for computing in demo_computing_resources:
-                # Demo shared computing plus conf
+                # Demo shared storage
                 Storage.objects.create(computing = computing,
                                        access_through_computing = True,
                                        name = 'Shared',
@@ -346,7 +346,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                        base_path = '/shared/data/shared',
                                        bind_path = '/storages/shared')
      
-                # Demo shared computing plus conf
+                # Demo personal storage
                 Storage.objects.create(computing = computing,
                                        access_through_computing = True,
                                        name = 'Personal',
@@ -355,7 +355,24 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                        auth_mode = 'user_keys',
                                        base_path = '/shared/data/users/$SSH_USER',
                                        bind_path = '/storages/personal')
- 
+
+
+            try:
+                demo_standalone_computing = Computing.objects.get(name='Demo Standalone Platform')
+                demo_computing_resources.append(demo_standalone_computing)
+
+                # Demo personal storage
+                Storage.objects.create(computing = computing,
+                                       access_through_computing = True,
+                                       name = 'Personal',
+                                       type = 'generic_posix',
+                                       access_mode = 'ssh+cli',
+                                       auth_mode = 'user_keys',
+                                       base_path = '/shared/data/users/$SSH_USER',
+                                       bind_path = '/storages/personal')
+
+            except:
+                pass
 
 
 
