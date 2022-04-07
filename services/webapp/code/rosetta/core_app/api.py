@@ -516,7 +516,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             
             # Did we just get a "cannot stat - No such file or directory error?
             if 'No such file or directory' in out.stderr:
-                pass
+                if path == '/':
+                    self.mkdir(self.sanitize_and_prepare_shell_path('/', storage, user), user, storage, force=True)
+                else:
+                    return data
             else:
                 raise Exception(out.stderr)
                             
@@ -630,12 +633,15 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return out.stdout
 
 
-    def mkdir(self, path, user, storage):
+    def mkdir(self, path, user, storage, force=False):
         
         path = self.sanitize_and_prepare_shell_path(path, storage, user)
         
         # Prepare command
-        command = self.ssh_command('mkdir {}'.format(path), user, storage.computing)
+        if force:
+            command = self.ssh_command('mkdir -p {}'.format(path), user, storage.computing)
+        else:
+            command = self.ssh_command('mkdir {}'.format(path), user, storage.computing)
         
         # Execute_command
         out = os_shell(command, capture=True)
