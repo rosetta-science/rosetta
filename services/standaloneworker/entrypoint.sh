@@ -12,6 +12,20 @@ chmod 777 /dev/net/tun
 #PROXY_IP=$(ping proxy -c1 | head -n1 | cut -d '(' -f2 | cut -d')' -f1)
 #echo "$PROXY_IP rosetta.platform" >> /etc/hosts
 
+# Create shared data directories
+mkdir -p /shared/scratch
+chmod 777 /shared/scratch
+
+mkdir -p /shared/data/shared
+chmod 777 /shared/data/shared
+
+mkdir -p /shared/data/users
+chown rosetta:rosetta /shared/data/users/
+
+mkdir -p /shared/data/users/testuser
+chown testuser:testuser /shared/data/users/testuser
+
+
 #---------------------
 #  Entrypoint command
 #---------------------
