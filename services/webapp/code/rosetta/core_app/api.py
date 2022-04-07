@@ -321,7 +321,7 @@ print(port)
                 return HttpResponse('Port not valid (got "{}")'.format(task_interface_port))
               
             # Set fields
-            logger.info('Setting task "{}" to ip "{}" and port "{}"'.format(task.uuid, task_interface_ip, task_interface_port))
+            logger.info('Agent API setting task "{}" to ip "{}" and port "{}"'.format(task.uuid, task_interface_ip, task_interface_port))
             task.status = TaskStatuses.running
             task.interface_ip = task_interface_ip
             
@@ -349,7 +349,7 @@ print(port)
             # Notify the user that the task called back home if using a WMS
             if task.computing.wms:
                 if settings.DJANGO_EMAIL_APIKEY:
-                    logger.info('Sending task ready mail notification to "{}"'.format(task.user.email))
+                    logger.info('Agent API sending task ready mail notification to "{}"'.format(task.user.email))
                     mail_subject = 'Your Task "{}" is now starting up'.format(task.container.name)
                     mail_text = 'Hello,\n\nyour Task "{}" on {} is now starting up. Check logs or connect here: https://{}/tasks/?uuid={}\n\nThe Rosetta notifications bot.'.format(task.container.name, task.computing, settings.ROSETTA_HOST, task.uuid)
                     try:
@@ -449,7 +449,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             else:
                 raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
         if '$USER' in base_path_expanded:
-            base_path_expanded = base_path_expanded.replace('$USER', user.name)
+            base_path_expanded = base_path_expanded.replace('$USER', user.username)
 
         # If the path is not starting with the base path, do it
         if not path.startswith(base_path_expanded):
@@ -755,6 +755,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                     
                     # For now, we only support generic posix, SSH-based storages
                     if not storage.type=='generic_posix'  and storage.access_mode=='ssh+cli':
+                        continue
+                    
+                    if storage.access_through_computing and not storage.computing.manager.is_configured_for(user=request.user):
                         continue
                     
                     data['data'].append({
