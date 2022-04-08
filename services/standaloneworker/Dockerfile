@@ -1,58 +1,48 @@
 FROM quay.io/podman/stable:v3.2.3
 
+#RUN dnf repolist 
+#RUN dnf update --refresh
+
 # This is necessary due to some base image permission errors.
 RUN chown -R podman:podman /home/podman
 
-# Change user
-RUN usermod -l testuser podman
-RUN usermod -d /home/testuser testuser
-RUN ln -s /home/podman /home/testuser
-RUN groupmod -n testuser podman
+# Change user, from podman to rosetta
+RUN usermod -l rosetta podman
+RUN usermod -d /rosetta rosetta
+RUN ln -s /home/podman /rosetta
+RUN groupmod -n rosetta podman
 
-# Replace uid/gid mapping from podman to testuser user
+# Replace uid/gid mapping from podman to rosetta user
 COPY subuid /etc/subuid
 COPY subgid /etc/subgid
 
-#RUN dnf repolist 
-#RUN dnf update --refresh
-RUN dnf install -y docker singularity openssh-server
-RUN ssh-keygen -A
-RUN mkdir /home/testuser/.ssh
-COPY keys/id_rsa.pub /home/testuser/.ssh/authorized_keys
-RUN dnf install -y python wget
+# Authorized keys for rosetta
+RUN mkdir /rosetta/.ssh
+COPY keys/id_rsa.pub /rosetta/.ssh/authorized_keys
 
-# Install iputils (fpr ping) and openssh-clients (for scp)
-RUN dnf install -y iputils openssh-clients
-
-
-# Copy registries.conf to allow insecure access to dregistry
-COPY registries.conf /etc/containers/registries.conf
-
-
-#------------------------
-# Rosetta user
-#------------------------
-
-# Add group. We chose GID 1001 as higher GIDs (i.e. 65527) raise issues with Podman GIDs namespace mapping.
-RUN groupadd -g 1001 rosetta
-
-# Add user. We chose UID 1001 as higher UIDs (i.e. 65527) raise issues with Podman UIDs namespace mapping.
-RUN useradd rosetta -d /rosetta -u 1001 -g 1001 -m -s /bin/bash
+#RUN ssh-keygen -A
 
 # Add rosetta user to sudoers
 RUN usermod -aG wheel rosetta
 
-# Passwordless sudo
+# Passwordless sudo (for everyone)
 RUN sed -e 's;^# \(%wheel.*NOPASSWD.*\);\1;g' -i /etc/sudoers
 
-# Authorized keys
-RUN mkdir /rosetta/.ssh
-COPY keys/id_rsa.pub /rosetta/.ssh/authorized_keys
+# Add testuser user
+RUN groupadd -g 1001 testuser
+RUN useradd testuser -d /home/testuser -u 1001 -g 1001 -m -s /bin/bash
+
+# Authorized keys for testuser
+RUN mkdir /home/testuser/.ssh
+COPY keys/id_rsa.pub /home/testuser/.ssh/authorized_keys
 
 
-#----------------------
-# Entrypoint
-#----------------------
+
+# Install Docker, Singularity, various utilities including iputils (for ping) and openssh-clients (for scp)
+RUN dnf install -y docker singularity openssh-server python wget iputils openssh-clients
+
+# Copy registries.conf to allow insecure access to internal/dev registries
+COPY registries.conf /etc/containers/registries.conf
 
 # Copy entrypoint
 COPY entrypoint.sh /
