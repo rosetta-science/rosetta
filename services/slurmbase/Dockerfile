@@ -1,6 +1,52 @@
 FROM rosetta/base
 MAINTAINER Stefano Alberto Russo <stefano.russo@gmail.com>
 
+#----------------------
+#  Singularity
+#----------------------
+
+# Dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libssl-dev \
+    uuid-dev \
+    libgpgme11-dev \
+    squashfs-tools \
+    libseccomp-dev \
+    pkg-config \
+    cryptsetup-bin \
+    wget
+
+# Install GO
+RUN cd /tmp && wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz
+RUN cd /tmp && tar -zxf go1.11.linux-amd64.tar.gz && mv go /usr/local
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/root/go
+ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+
+COPY singularity-3.4.1.tar.gz /tmp
+
+# Install Singularity
+RUN mkdir -p /usr/local/var/singularity/mnt && \
+    mkdir -p $GOPATH/src/github.com/sylabs && \
+    cd $GOPATH/src/github.com/sylabs && \
+    mv /tmp/singularity-3.4.1.tar.gz ./ && \
+    tar -xzvf singularity-3.4.1.tar.gz
+RUN cd $GOPATH/src/github.com/sylabs/singularity && \
+    ./mconfig -p /usr/local && \
+    make -C builddir && \
+    make -C builddir install
+
+# Build test image
+RUN mkdir /singularity_images && chmod 777 /singularity_images
+COPY testimage.def /singularity_images/testimage.def
+RUN singularity build /singularity_images/testimage.simg /singularity_images/testimage.def
+
+
+#----------------------
+#  Slurm
+#----------------------
+
 # Install Slurm
 RUN apt-get -y install slurm-wlm
 
@@ -22,6 +68,12 @@ COPY slurm.conf /etc/slurm-llnl/slurm.conf
 # TODO: why do we need this?
 RUN ln -s /var/lib/slurm-llnl /var/lib/slurm-wlm 
 RUN ln -s /var/log/slurm-llnl /var/log/slurm-wlm
+
+
+#----------------------
+#  Test user and
+#   prestartup
+#----------------------
 
 # Add testuser user
 RUN useradd testuser
