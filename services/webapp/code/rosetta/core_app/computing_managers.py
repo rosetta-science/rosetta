@@ -333,12 +333,12 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
-            run_command += '{} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)        
+            run_command += 'exec nohup {} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)        
             if container_engine == 'podman':
                 run_command += '--network=private --uts=private --userns=keep-id '
             #run_command += '-d -t {}/{}:{}'.format(task.container.registry, task.container.image_name, task.container.image_tag)
-            run_command += '-h task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
-            run_command += '"\''
+            run_command += '-h task-{} -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+            run_command += '&>> /tmp/{}_data/task.log & echo \$!"\''.format(task.uuid)
             
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
@@ -411,8 +411,9 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             internal_view_log_command = 'cat /tmp/{}_data/task.log'.format(task.uuid)            
         elif container_engine in ['docker','podman']:
             # TODO: remove this hardcoding
-            prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
-            internal_view_log_command = '{} {} logs {}'.format(prefix,container_engine,task.id)
+            #prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
+            #internal_view_log_command = '{} {} logs {}'.format(prefix,container_engine,task.id)
+            internal_view_log_command = 'cat /tmp/{}_data/task.log'.format(task.uuid)
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
             
