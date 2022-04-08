@@ -763,9 +763,9 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
     
     # Build the Docker container for this repo
     if repository_tag:
-        command = 'sudo jupyter-repo2docker --ref {} --user-id 1000 --user-name rosetta --no-run --json-logs {}'.format(repository_tag, repository_url)
+        command = 'sudo jupyter-repo2docker --ref {} --user-id 1000 --user-name jovyan --no-run --json-logs {}'.format(repository_tag, repository_url)
     else:
-        command = 'sudo jupyter-repo2docker --user-id 1000 --user-name rosetta --no-run --json-logs {}'.format(repository_url)
+        command = 'sudo jupyter-repo2docker --user-id 1000 --user-name jovyan --no-run --json-logs {}'.format(repository_url)
     out = os_shell(command, capture=True)
     if out.exit_code != 0:
         logger.error(out.stderr)
