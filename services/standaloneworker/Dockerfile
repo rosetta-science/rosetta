@@ -33,11 +33,11 @@ COPY registries.conf /etc/containers/registries.conf
 # Rosetta user
 #------------------------
 
-# Add group. We chose GID 65527 to try avoiding conflicts.
-RUN groupadd -g 65527 rosetta
+# Add group. We chose GID 1001 as higher GIDs (i.e. 65527) raise issues with Podman GIDs namespace mapping.
+RUN groupadd -g 1001 rosetta
 
-# Add user. We chose UID 65527 to try avoiding conflicts.
-RUN useradd rosetta -d /rosetta -u 65527 -g 65527 -m -s /bin/bash
+# Add user. We chose UID 1001 as higher UIDs (i.e. 65527) raise issues with Podman UIDs namespace mapping.
+RUN useradd rosetta -d /rosetta -u 1001 -g 1001 -m -s /bin/bash
 
 # Add rosetta user to sudoers
 RUN usermod -aG wheel rosetta
