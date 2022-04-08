@@ -335,7 +335,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += '{} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)        
             if container_engine == 'podman':
-                run_command += '--network=private --uts=private '
+                run_command += '--network=private --uts=private --userns=keep-id '
             #run_command += '-d -t {}/{}:{}'.format(task.container.registry, task.container.image_name, task.container.image_tag)
             run_command += '-h task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
             run_command += '"\''
