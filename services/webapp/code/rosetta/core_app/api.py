@@ -1064,6 +1064,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # Set support vars
             storage = self.get_storage_from_path(path, request)
             path = '/'+'/'.join(path.split('/')[2:])
+            
+            # Bug workaround?
+            if not path.endswith('/'):
+                path += '/' 
 
             # Get the file upload
             file_upload = request.FILES['files']
