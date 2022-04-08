@@ -516,10 +516,14 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             
             # Did we just get a "cannot stat - No such file or directory error?
             if 'No such file or directory' in out.stderr:
+                
+                # Create the folder if this was the root for the user (storage base path)
                 if path == '/':
                     self.mkdir(self.sanitize_and_prepare_shell_path('/', storage, user), user, storage, force=True)
-                else:
-                    return data
+                
+                # Return (empty) data
+                return data
+            
             else:
                 raise Exception(out.stderr)
                             
