@@ -46,6 +46,22 @@
 {% include "footer.html" %}
 
 
-
+<script>
+function toggle_visibility(id) {
+      var x = document.getElementById(id);
+      var y = document.getElementById('show_button');
+      var z = document.getElementById('hide_button');
+      if (x.style.display === "none") {
+        x.style.display = "block";
+        y.style.display = "none"
+        z.style.display= "inline"
+        
+      } else {
+        x.style.display = "none";
+        y.style.display= "inline"
+        z.style.display = "none"
+      }
+    }
+</script>
 
 

@@ -3,7 +3,7 @@
           <center>
           <div style="width:350px; display:block; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
             <div style="margin-top:5px; padding:10px; text-align:center; border-bottom: #f8f8f8 solid 1px; ">
-            Task <b>{{data.task.name}}</b> summary
+            <b>{{data.task.name}}</b>
             </div>
             <hr style="margin:0">
             
@@ -33,14 +33,14 @@
             <!-- <b>Container:</b> {{ task.container.name }} <span style="font-size:14px; background-color:{{task.container.color}}">&nbsp;&nbsp;&nbsp;&nbsp;</span> <br/>
             <b>Computing:</b> {{ task.computing.name }} <span style="font-size:14px; background-color:{{task.computing.color}}">&nbsp;&nbsp;&nbsp;&nbsp;</span><br/> -->
 
-            <b>Software container:</b>
+            <b>Software:</b>
             <a href="/software/?container_uuid={{ task.container.uuid }}" style="color:{{task.container.color}}">{{ task.container.name }}</a>
             {% if task.container.type == 'docker' %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
             {% if task.container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
 
             <br/>
             
-            <b>Computing resource:</b> <a href="/computing/?uuid={{ task.computing.uuid }}">{{ task.computing.name }}</a>
+            <b>Computing:</b> <a href="/computing/?uuid={{ task.computing.uuid }}">{{ task.computing.name }}</a>
             <!-- <a href="/computing/?uuid={{ task.computing.uuid }}" no_style="color:{{task.computing.color}}"><i class="fa fa-external-link" ></i></a><br/> -->           
             
             <div style="margin-top:2px">
@@ -85,6 +85,14 @@
 
           {% if data.task %}      
           <br/>
+          
+           <a href="javascript:void(0);" id="show_button" onclick="toggle_visibility('details_div')">Details..</a>
+           
+
+           <div id="details_div" style="display:none; width:400px;">
+           <b>Details <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('details_div')" style="display:none">hide</a></font></b>
+  
+          
           <div style="display:block"; max-width:450px">
           <table class="dashboard" style="margin:10px">
 
@@ -97,10 +105,6 @@
              </td>
             </tr>
              -->
-
-           <tr>
-            <td colspan="2" align="center" style="padding:15px"><b>Details</b></td>
-           </tr>
 
            <!-- <tr>
             <td><b>Name</b></td>
@@ -158,13 +162,15 @@
 
 
             <!-- <tr><td style="padding-right:0"><b>Direct link</b>
-            <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td> -->
-           </tr>
+            <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td> 
+           </tr>-->
 
 
 
 
           </table>
+          </div>
+          
           <!-- <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i> You can share a direct link with other people, but remember that if you have no authentication in place anyone will be able to access.
           </p> -->
