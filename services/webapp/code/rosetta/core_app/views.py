@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 import requests
+import socket
 import subprocess
 import base64
 from django.conf import settings
@@ -341,6 +342,30 @@ def account(request):
 #  Tasks view
 #=========================
 
+def set_verified_status(task):
+    # Chech status with ping
+    if task.status == 'running':
+        logger.debug('Task is running, check if startup completed')
+
+        logger.debug('Trying to establish connection on: "{}:{}"'.format(task.interface_ip,task.interface_port))
+        s = socket.socket()
+        try:
+            s.settimeout(1)
+            s.connect((task.interface_ip, task.interface_port))
+            # Not necessary, we just check that the container interfcae is up
+            #if not s.recv(10):
+            #    logger.debug('No data read from socket')
+            #    raise Exception('Could not read any data from socket')
+        except Exception as e:
+            logger.debug('Could not connect to socket')
+            task.verified_status = 'starting up...'
+        else:
+            task.verified_status = 'running'
+        finally:
+            s.close()
+    else:
+        task.verified_status = task.status
+
 @private_view
 def tasks(request):
 
@@ -367,8 +392,10 @@ def tasks(request):
                 task = Task.objects.get(user=request.user, uuid=uuid)
             except Task.DoesNotExist:
                 raise ErrorMessage('Task does not exists or no access rights')
+            
+            set_verified_status(task)
             data['task'] = task
-    
+            
             #  Task actions
             if action=='delete':
                 if task.status not in [TaskStatuses.stopped, TaskStatuses.exited]:
@@ -447,7 +474,8 @@ def tasks(request):
         # Update task statuses
         for task in tasks:
             task.update_status()
-    
+            set_verified_status(task)
+        
         # Set task and tasks variables
         data['task']  = None   
         data['tasks'] = tasks

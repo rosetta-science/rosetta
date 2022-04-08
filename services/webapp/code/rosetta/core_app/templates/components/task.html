@@ -44,10 +44,10 @@
             <!-- <a href="/computing/?uuid={{ task.computing.uuid }}" no_style="color:{{task.computing.color}}"><i class="fa fa-external-link" ></i></a><br/> -->           
             
             <div style="margin-top:2px">
-            {% if task.status == "running" %}
+            {% if task.verified_status == "running" %}
              <b>Status:</b> <font color="green">running</font>
             {% else %}
-             <b>Status:</b> {{ task.status }}
+             <b>Status:</b> {{ task.verified_status }}
             {% endif %}
             </div>
             </div>
@@ -63,7 +63,7 @@
             
             <!-- Connect -->
             {% if task.interface_port %}
-            {% if task.status == "running" %}
+            {% if task.verified_status == "running" %}
             <a href="/task_connect/?uuid={{task.uuid}}" class="btn btn-connect" target="_blank">Connect</a>
             {% else %}
             <a href="" class="btn btn-disabled">Connect</a>  
