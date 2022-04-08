@@ -385,7 +385,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
         stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_keys.private_key_file, computing_user, computing_host, internal_stop_command)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
-            if ('No such process' in out.stderr) or ('No such container' in out.stderr) or ('no container' in out.stderr):
+            if ('No such process' in out.stderr) or ('No such container' in out.stderr) or ('no container' in out.stderr) or ('missing' in out.stderr):
                 pass
             else:
                 raise Exception(out.stderr)
