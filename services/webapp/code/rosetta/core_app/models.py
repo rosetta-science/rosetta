@@ -383,7 +383,7 @@ class Storage(models.Model):
      
     # Paths
     base_path = models.CharField('Base path', max_length=4096, blank=False, null=False) 
-    bind_path = models.CharField('Bind path', max_length=4096, blank=False, null=False) 
+    bind_path = models.CharField('Bind path', max_length=4096, blank=True, null=True) 
  
     # Link with a computing resource
     computing = models.ForeignKey(Computing, related_name='storages', on_delete=models.CASCADE, blank=True, null=True) # Make optional?
@@ -393,6 +393,9 @@ class Storage(models.Model):
     # Configuration
     conf = JSONField(blank=True, null=True)
  
+    # Include as browsable in the file manager?
+    browsable = models.BooleanField('Browsable in the file manager?', default=False)
+
  
     class Meta:
         ordering = ['name']
