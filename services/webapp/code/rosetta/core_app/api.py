@@ -382,10 +382,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
     authentication_classes = (CsrfExemptSessionAuthentication, BasicAuthentication)
 
 
-    def scp_command(self, source, dest, user, computing, mode='get'):
+    def prepare_scp_command(self, source, dest, user, computing, mode='get'):
 
         # Prepare paths for scp. They have been already made shell-ready, but we need to triple-escape
-        # spaces on remote source or destination: My\ Folder mut become My\\\ Folder.
+        # spaces on remote source or destination: My\ Folder must become My\\\ Folder.
         
         if mode=='get':
             source = source.replace('\ ', '\\\\\\ ')
@@ -406,14 +406,22 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return command
 
 
-    def ssh_command(self, command, user, computing):
+    def prepare_sh_command(self, command, user, storage):
 
-        # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(computing, user)
-
-        # Command
-        command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(computing_keys.private_key_file, computing_user, computing_host, command)
-
+        if storage.access_mode == 'ssh+cli':
+            if storage.access_through_computing:
+                # Get credentials
+                computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(storage.computing, user)
+        
+                # Command
+                command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(computing_keys.private_key_file, computing_user, computing_host, command)
+            else:
+                raise NotImplementedError('Not accessing through computing is not implemented for storage type "{}"'.format(storage.type))               
+        elif storage.access_mode == 'cli':
+            command = '/bin/bash -c "{}"'.format(command)
+        else:
+            raise NotImplementedError('Access mode "{}" not implemented for storage type "{}"'.format(storage.access_mode, storage.type))               
+   
         return command
 
     @staticmethod
@@ -430,11 +438,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         return path
 
     @staticmethod
-    def sanitize_and_prepare_shell_path(path, storage, user):
-        path = path.replace(' ', '\ ')
-        cleaner = re.compile('(?:\\\)+')
-        path = re.sub(cleaner,r"\\",path)
-                
+    def sanitize_and_prepare_shell_path(path, user, storage, escapes=True):
+        
+        if escapes:
+            path = path.replace(' ', '\ ')
+            cleaner = re.compile('(?:\\\)+')
+            path = re.sub(cleaner,r"\\",path)
+                    
         # Prepare the base path (expand it with variables substitution)
         base_path_expanded = storage.base_path        
         if '$SSH_USER' in base_path_expanded:
@@ -505,210 +515,252 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         # Data container 
         data = []
         
-        shell_path = self.sanitize_and_prepare_shell_path(path, storage, user)
-        
-        # Prepare command
-        # https://askubuntu.com/questions/1116634/ls-command-show-time-only-in-iso-format
-        # https://www.howtogeek.com/451022/how-to-use-the-stat-command-on-linux/
-        command = self.ssh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(shell_path), user, storage.computing)
-        
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            
-            # Did we just get a "cannot stat - No such file or directory error?
-            if 'No such file or directory' in out.stderr:
-                
-                # Create the folder if this was the root for the user (storage base path)
-                if path == '/':
-                    self.mkdir(self.sanitize_and_prepare_shell_path('/', storage, user), user, storage, force=True)
-                
-                # Return (empty) data
-                return data
-            
-            else:
-                raise Exception(out.stderr)
-                            
-        # Log        
-        #logger.debug('Shell exec output: "{}"'.format(out))
-        
-        out_lines = out.stdout.split('\n')
-        
-        for line in out_lines:
-            
-            # Example line: directory/My folder/68/1617030350
+        if storage.type == 'generic_posix':
 
-            # Set name
-            line_pieces = line.split('/')
-            type = line_pieces[0]
-            size = line_pieces[1]
-            timestamp = line_pieces[2]
-            name = line_pieces[3]
-                     
-            # Define and clean listing path:
-            listing_path = '/{}/{}/{}/'.format(storage.id, path, name)
-            listing_path = self.clean_path(listing_path)
-        
-            # File or directory?
-            if type == 'directory':
-                if name not in ['.', '..']:
+            shell_path = self.sanitize_and_prepare_shell_path(path, user, storage)
+            
+            # Prepare command
+            # https://askubuntu.com/questions/1116634/ls-command-show-time-only-in-iso-format
+            # https://www.howtogeek.com/451022/how-to-use-the-stat-command-on-linux/
+            
+            command = self.prepare_sh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(shell_path), user, storage)
+
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+
+                # Did we just get a "cannot stat - No such file or directory" (bash) or a "can't cd to" (sh) error?
+                if 'No such file or directory' in out.stderr or 'can\'t cd to' in out.stderr :
+                    
+                    # Create the folder if this was the root for the user (storage base path)
+                    # Note: if the folder is completely empty, this gets execute as well.
+                    # TODO: fix me (e.g. check for "cannot stat" or similar)
+                    if path == '/':
+                        self.mkdir(self.sanitize_and_prepare_shell_path('/', user, storage), user, storage, force=True)
+                    
+                    # Return (empty) data
+                    return data
+                
+                else:
+                    raise Exception(out.stderr)
+                                
+            # Log        
+            #logger.debug('Shell exec output: "{}"'.format(out))
+            
+            out_lines = out.stdout.split('\n')
+            
+            for line in out_lines:
+                
+                # Example line: directory/My folder/68/1617030350
+    
+                # Set name
+                line_pieces = line.split('/')
+                type = line_pieces[0]
+                size = line_pieces[1]
+                timestamp = line_pieces[2]
+                name = line_pieces[3]
+                         
+                # Define and clean listing path:
+                listing_path = '/{}/{}/{}/'.format(storage.id, path, name)
+                listing_path = self.clean_path(listing_path)
+            
+                # File or directory?
+                if type == 'directory':
+                    if name not in ['.', '..']:
+                        data.append({
+                                     'id': listing_path,
+                                     'type': 'folder',
+                                     'attributes':{
+                                          'modified': timestamp,
+                                          'name': name,
+                                          'readable': 1,
+                                          'writable': 1,
+                                          'path': listing_path                                 
+                                      }
+                                     })
+                else:
                     data.append({
-                                 'id': listing_path,
-                                 'type': 'folder',
+                                 'id': listing_path[:-1], # Remove trailing slash 
+                                 'type': 'file',
                                  'attributes':{
                                       'modified': timestamp,
                                       'name': name,
                                       'readable': 1,
                                       'writable': 1,
-                                      'path': listing_path                                 
+                                      "size": size,
+                                      'path': listing_path[:-1] # Remove trailing slash                               
                                   }
-                                 })
-            else:
-                data.append({
-                             'id': listing_path[:-1], # Remove trailing slash 
-                             'type': 'file',
-                             'attributes':{
-                                  'modified': timestamp,
-                                  'name': name,
-                                  'readable': 1,
-                                  'writable': 1,
-                                  "size": size,
-                                  'path': listing_path[:-1] # Remove trailing slash                               
-                              }
-                             })                            
-            
+                                 })                            
+                
+        else:
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
             
         return data
 
 
     def stat(self, path, user, storage):
-        
-        path = self.sanitize_and_prepare_shell_path(path, storage, user)
-        
-        # Prepare command. See the ls function above for some more info
-        command = self.ssh_command('stat --printf=\'%F/%s/%Y/%n\\n\' {}'.format(path), user, storage.computing)
-        
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            
-            # Did we just get a "cannot stat - No such file or directory error?
-            if 'No such file or directory' in out.stderr:
-                pass
-            else:
-                raise Exception(out.stderr)
-                            
-        # Log        
-        #logger.debug('Shell exec output: "{}"'.format(out))
-        
-        out_lines = out.stdout.split('\n')
-        if len(out_lines) > 1:
-            raise Exception('Internal error on stat: more than one ouput line')
-        out_line = out_lines[0]
-    
-        # Example output line: directory:My folder:68/1617030350
-        # In this context, we also might get the following output:
-        # directory/68/1617030350//My folder/
-        # ..so, use the clean path to remove all extra slashes.
-        # The only uncovered case is to rename the root folder...
-        
-        out_line = self.clean_path(out_line)
 
-        # Set names
-        line_pieces = out_line.split('/')
-        type = line_pieces[0]
-        size = line_pieces[1]
-        timestamp = line_pieces[2]
-        name = '/'.join(line_pieces[3:])
+        # Data container 
+        data = []
+
+        if storage.type == 'generic_posix':
+
+            shell_path = self.sanitize_and_prepare_shell_path(path, user, storage)
+            
+            # Prepare command. See the ls function above for some more info
+            command = self.prepare_sh_command('stat --printf=\'%F/%s/%Y/%n\\n\' {}'.format(shell_path), user, storage)
+            
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+                
+                # Did we just get a "cannot stat - No such file or directory error?
+                if 'No such file or directory' in out.stderr:
+                    pass
+                else:
+                    raise Exception(out.stderr)
+                                
+            # Log        
+            #logger.debug('Shell exec output: "{}"'.format(out))
+            
+            out_lines = out.stdout.split('\n')
+            if len(out_lines) > 1:
+                raise Exception('Internal error on stat: more than one ouput line')
+            out_line = out_lines[0]
         
-        return {'type': type, 'name': name, 'size': size, 'timestamp': timestamp}
+            # Example output line: directory:My folder:68/1617030350
+            # In this context, we also might get the following output:
+            # directory/68/1617030350//My folder/
+            # ..so, use the clean path to remove all extra slashes.
+            # The only uncovered case is to rename the root folder...
+            
+            out_line = self.clean_path(out_line)
+    
+            # Set names
+            line_pieces = out_line.split('/')
+            type = line_pieces[0]
+            size = line_pieces[1]
+            timestamp = line_pieces[2]
+            name = '/'.join(line_pieces[3:])
+            
+            data = {'type': type, 'name': name, 'size': size, 'timestamp': timestamp}
+
+        else:
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))                           
+        
+        return data
             
 
 
     def delete(self, path, user, storage):
 
-        path = self.sanitize_and_prepare_shell_path(path, storage, user)
+        if storage.type == 'generic_posix':
 
-        # Prepare command
-        command = self.ssh_command('rm -rf {}'.format(path), user, storage.computing)
+            shell_path = self.sanitize_and_prepare_shell_path(path, user, storage)
+    
+            # Prepare command
+            command = self.prepare_sh_command('rm -rf {}'.format(shell_path), user, storage)
+            
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+                raise Exception(out.stderr)
         
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            raise Exception(out.stderr)
-        return out.stdout
-
+        else:
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
+            
 
     def mkdir(self, path, user, storage, force=False):
+
+        path = self.sanitize_and_prepare_shell_path(path, user, storage)
+
+        if storage.type == 'generic_posix':
+            # Prepare command
+            if force:
+                command = self.prepare_sh_command('mkdir -p {}'.format(path), user, storage)
+            else:
+                command = self.prepare_sh_command('mkdir {}'.format(path), user, storage)
+            
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+                raise Exception(out.stderr)
         
-        path = self.sanitize_and_prepare_shell_path(path, storage, user)
-        
-        # Prepare command
-        if force:
-            command = self.ssh_command('mkdir -p {}'.format(path), user, storage.computing)
         else:
-            command = self.ssh_command('mkdir {}'.format(path), user, storage.computing)
-        
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            raise Exception(out.stderr)
-        return out.stdout
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
 
 
     def cat(self, path, user, storage):
         
-        path = self.sanitize_and_prepare_shell_path(path, storage, user)
-        
-        # Prepare command
-        command = self.ssh_command('cat {}'.format(path), user, storage.computing)
-        
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            raise Exception(out.stderr)
-        return out.stdout
+        # Data container 
+        data = []
+
+        if storage.type == 'generic_posix':
+   
+            shell_path = self.sanitize_and_prepare_shell_path(path, user, storage)
+            
+            # Prepare command
+            command = self.prepare_sh_command('cat {}'.format(shell_path), user, storage)
+            
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+                raise Exception(out.stderr)
+            data = out.stdout
+
+        else:
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
+
+        return data
 
 
     def rename(self, old, new, user, storage):
-        
-        old = self.sanitize_and_prepare_shell_path(old, storage, user)
-        new = self.sanitize_and_prepare_shell_path(new, storage, user)
 
-        # Prepare command
-        command = self.ssh_command('mv {} {}'.format(old, new), user, storage.computing)
-
-        logger.critical(command)
+        if storage.type == 'generic_posix':
+       
+            old = self.sanitize_and_prepare_shell_path(old, user, storage)
+            new = self.sanitize_and_prepare_shell_path(new, user, storage)
+    
+            # Prepare command
+            command = self.prepare_sh_command('mv {} {}'.format(old, new), user, storage)
+    
+            logger.critical(command)
+            
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+                raise Exception(out.stderr)
         
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            raise Exception(out.stderr)
-        return out.stdout
+        else:
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
 
 
     def copy(self, source, target, user, storage):
 
-        source = self.sanitize_and_prepare_shell_path(source, storage, user)
-        target = self.sanitize_and_prepare_shell_path(target, storage, user)
+        if storage.type == 'generic_posix':
 
-        # Prepare command
-        command = self.ssh_command('cp -a {} {}'.format(source, target), user, storage.computing)
-        
-        # Execute_command
-        out = os_shell(command, capture=True)
-        if out.exit_code != 0:
-            raise Exception(out.stderr)
-        return out.stdout
+            source = self.sanitize_and_prepare_shell_path(source, user, storage)
+            target = self.sanitize_and_prepare_shell_path(target, user, storage)
+    
+            # Prepare command
+            command = self.prepare_sh_command('cp -a {} {}'.format(source, target), user, storage)
+            
+            # Execute_command
+            out = os_shell(command, capture=True)
+            if out.exit_code != 0:
+                raise Exception(out.stderr)
+            
+        else:
+            raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
 
 
     def scp_from(self, source, target, user, storage, mode='get'):
 
-        source = self.sanitize_and_prepare_shell_path(source, storage, user)
+        source = self.sanitize_and_prepare_shell_path(source, user, storage)
         target = self.sanitize_shell_path(target) # This is a folder on Rosetta (/tmp)
 
         # Prepare command
-        command = self.scp_command(source, target, user, storage.computing, mode)
+        command = self.prepare_scp_command(source, target, user, storage.computing, mode)
 
         # Execute_command
         out = os_shell(command, capture=True)
@@ -719,10 +771,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
     def scp_to(self, source, target, user, storage, mode='get'):
 
         source = self.sanitize_shell_path(source) # This is a folder on Rosetta (/tmp)
-        target = self.sanitize_and_prepare_shell_path(target, storage, user)
+        target = self.sanitize_and_prepare_shell_path(target, user, storage)
 
         # Prepare command
-        command = self.scp_command(source, target, user, storage.computing, mode)
+        command = self.prepare_scp_command(source, target, user, storage.computing, mode)
 
         # Execute_command
         out = os_shell(command, capture=True)
@@ -794,37 +846,60 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
         elif mode in ['download', 'getimage']:
             logger.debug('Downloading "{}"'.format(path))
+
+            # Set support vars
+            storage = self.get_storage_from_path(path, request)
+            file_path = '/'+'/'.join(path.split('/')[2:])
             
             if path.endswith('/'):
                 return error400('Downloading a folder is not supported')
             
-            # TOOD: here we are not handling ajax request, Maybe they have been deperacted?
+            if storage.type != 'generic_posix':
+                raise NotImplementedError('Storage type "{}" not implemented'.format(storage.type))               
+
+            # TODO: here we are not handling the ajax request, Maybe they have been deperacted?
             # The download process consists of 2 requests:
             #  - Ajax GET request. Perform all checks and validation. Should return file/folder object in the response data to proceed.
             #  - Regular GET request. Response headers should be properly configured to output contents to the browser and start download.
             # See here: https://github.com/psolom/RichFilemanager/wiki/API
 
-            # Set support vars
-            storage = self.get_storage_from_path(path, request)
-            file_path = '/'+'/'.join(path.split('/')[2:])
-            target_path = '/tmp/{}'.format(uuid.uuid4())
+            if storage.access_mode == 'ssh+cli':
+                target_path = '/tmp/{}'.format(uuid.uuid4())
+    
+                # Get the file
+                self.scp_from(file_path, target_path, request.user, storage, mode='get') 
+    
+                # Detect content type
+                try:
+                    content_type =  str(magic.from_file(target_path, mime=True))
+                except:
+                    content_type = None
+    
+                # Read file data
+                with open(target_path, 'rb') as f:
+                    data = f.read()
+                
+                # Remove temporary file
+                os.remove(target_path)
+                
+            elif storage.access_mode == 'cli':
 
-            # Get the file
-            self.scp_from(file_path, target_path, request.user, storage, mode='get') 
+                # Define storage internal source path
+                storage_source_path = self.sanitize_and_prepare_shell_path(file_path, request.user, storage, escapes=False)
 
-            # Detect content type
-            try:
-                content_type =  str(magic.from_file(target_path, mime=True))
-            except:
-                content_type = None
-
-            # Read file data
-            with open(target_path, 'rb') as f:
-                data = f.read()
+                # Detect content type
+                try:
+                    content_type =  str(magic.from_file(storage_source_path, mime=True))
+                except:
+                    content_type = None
+    
+                # Read file data
+                with open(storage_source_path, 'rb') as f:
+                    data = f.read()
             
-            # Remove file
-            os.remove(target_path)
-            
+            else:
+                raise NotImplementedError('Storage access mode "{}" not implemented'.format(storage.access_mode))               
+
             # Return file data
             response = HttpResponse(data, status=status.HTTP_200_OK, content_type=content_type)
             response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path.split('/')[-1])
@@ -857,8 +932,8 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             else:
                 is_folder=False
 
-            # Get file contents
-            data = self.delete(path, request.user, storage)
+            # Delete
+            self.delete(path, request.user, storage)
 
             # Response data
             data = { 'data': {
@@ -889,8 +964,8 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             storage = self.get_storage_from_path(path, request)
             path = '/'+'/'.join(path.split('/')[2:]) + name
 
-            # Get file contents
-            data = self.mkdir(path, request.user, storage)
+            # Create the directory
+            self.mkdir(path, request.user, storage)
 
             # Response data
             data = { 'data': {
@@ -905,7 +980,6 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                             }
                         }
                     }      
-            
             
             # Return file contents
             return Response(data, status=status.HTTP_200_OK)
@@ -1038,12 +1112,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             
             # Return file contents
             return Response(data, status=status.HTTP_200_OK)
-
-        
+  
         else:
             return error400('Operation "{}" not supported'.format(mode))
-
-        
+  
         return Response(data, status=status.HTTP_200_OK)
 
 
@@ -1056,7 +1128,6 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         time = request.POST.get('time', None)
         path = request.POST.get('path', None)
         _ = request.GET.get('_', None)
-
 
         if mode == 'savefile':
             return error400('Operation "{}" not supported'.format(mode))
@@ -1073,43 +1144,73 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
             # Get the file upload
             file_upload = request.FILES['files']
-            
-            # generate temporary UUID
-            file_uuid = uuid.uuid4()
-            
-            with open('/tmp/{}'.format(file_uuid), 'wb') as temp_file:
-                temp_file.write(file_upload.read())
-            
-            logger.debug('Wrote "/tmp/{}" for "{}"'.format(file_uuid, file_upload.name))
 
-            # Now copy with scp
-            self.scp_to('/tmp/{}'.format(file_uuid), path + file_upload.name , request.user, storage, mode='put')
-        
-            # Response data
-            data = { 'data': [{
-                            'id': '/{}{}{}'.format(storage.id, path, file_upload.name),
-                            'type': 'file',
-                            'attributes':{
-                                'modified': now_t(),  # This is an approximation!
-                                'name': file_upload.name,
-                                'readable': 1,
-                                'size': os.path.getsize('/tmp/{}'.format(file_uuid)), # This is kind of an approximation!
-                                'writable': 1,
-                                'path': '/{}{}{}'.format(storage.id, path, file_upload.name)                            
-                            }
-                        }]
-                    }
+            if storage.access_mode == 'ssh+cli':
+                
+                # Generate temporary UUID
+                file_uuid = uuid.uuid4()
+                
+                with open('/tmp/{}'.format(file_uuid), 'wb') as temp_file:
+                    temp_file.write(file_upload.read())
+                
+                logger.debug('Wrote "/tmp/{}" for "{}"'.format(file_uuid, file_upload.name))
+    
+                # Now copy with scp
+                self.scp_to('/tmp/{}'.format(file_uuid), path + file_upload.name , request.user, storage, mode='put')
             
-            # Remove file
-            os.remove('/tmp/{}'.format(file_uuid))
-                        
+                # Response data
+                data = { 'data': [{
+                                'id': '/{}{}{}'.format(storage.id, path, file_upload.name),
+                                'type': 'file',
+                                'attributes':{
+                                    'modified': now_t(),  # This is an approximation!
+                                    'name': file_upload.name,
+                                    'readable': 1,
+                                    'size': os.path.getsize('/tmp/{}'.format(file_uuid)), # This is kind of an approximation!
+                                    'writable': 1,
+                                    'path': '/{}{}{}'.format(storage.id, path, file_upload.name)                            
+                                }
+                            }]
+                        }
+                
+                # Remove file
+                os.remove('/tmp/{}'.format(file_uuid)) 
+                   
+            if storage.access_mode == 'cli':
+          
+                # Define storage internal dest path
+                storage_dest_path = self.sanitize_and_prepare_shell_path(path + file_upload.name, request.user, storage, escapes=False)
+
+                logger.debug('Writing "{}" for "{}"'.format(storage_dest_path, file_upload.name))
+               
+                with open(storage_dest_path, 'wb') as upload_file:
+                    upload_file.write(file_upload.read())
+                
+                logger.debug('Wrote "{}" for "{}"'.format(storage_dest_path, file_upload.name))
+    
+                # Response data
+                data = { 'data': [{
+                                'id': '/{}{}{}'.format(storage.id, path, file_upload.name),
+                                'type': 'file',
+                                'attributes':{
+                                    'modified': now_t(),  # This is an approximation!
+                                    'name': file_upload.name,
+                                    'readable': 1,
+                                    'size': os.path.getsize(storage_dest_path),
+                                    'writable': 1,
+                                    'path': '/{}{}{}'.format(storage.id, path, file_upload.name)                            
+                                }
+                            }]
+                        }
+
+            else:
+                raise NotImplementedError('Storage access mode "{}" not implemented'.format(storage.access_mode))               
+              
             # Return
             return Response(data, status=status.HTTP_200_OK)
         
         else:
             return error400('Operation "{}" not supported'.format(mode))
-
-        return ok200('ok')
 
 
 #==============================
