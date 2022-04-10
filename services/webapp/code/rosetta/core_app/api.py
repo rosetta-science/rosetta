@@ -418,7 +418,37 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             else:
                 raise NotImplementedError('Not accessing through computing is not implemented for storage type "{}"'.format(storage.type))               
         elif storage.access_mode == 'cli':
-            command = '/bin/bash -c "{}"'.format(command)
+                try:
+                    as_user = storage.conf['as_user']
+                    
+                    # Is "as_user" a UID?
+                    try:
+                        uid = int(as_user)
+                    except:
+                        pass
+                    else:
+                        # What is the user for this uid?
+                        out = os_shell('sudo getent passwd "1000" | cut -d: -f1', capture=True)
+                        if out.exit_code != 0:
+                            raise Exception(out.sterr)
+                        else:
+                            if not out.stdout.strip():
+                                # No user found, create it
+                                os_shell('sudo groupadd -g {0} group_{0}'.format(uid), capture=True)
+                                if out.exit_code != 0:
+                                    raise Exception(out.sterr)
+                                os_shell('sudo useradd user_{0} -d /home_{0} -u {0} -g {0} -m -s /bin/bash'.format(uid), capture=True)
+                                if out.exit_code != 0:
+                                    raise Exception(out.sterr)
+                            else:
+                                as_user = out.stdout.strip() 
+ 
+                except (KeyError, TypeError):
+                    as_user = None
+                if as_user:
+                    command = 'sudo -i -u {} /bin/bash -c "{}"'.format(as_user, command)
+                else:
+                    command = '/bin/bash -c "{}"'.format(command)
         else:
             raise NotImplementedError('Access mode "{}" not implemented for storage type "{}"'.format(storage.access_mode, storage.type))               
    
