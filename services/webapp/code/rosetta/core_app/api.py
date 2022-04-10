@@ -440,6 +440,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                 os_shell('sudo useradd user_{0} -d /home_{0} -u {0} -g {0} -m -s /bin/bash'.format(uid), capture=True)
                                 if out.exit_code != 0:
                                     raise Exception(out.sterr)
+                                as_user = 'user_' + str(uid)
                             else:
                                 as_user = out.stdout.strip() 
  
@@ -1207,15 +1208,64 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 os.remove('/tmp/{}'.format(file_uuid)) 
                    
             if storage.access_mode == 'cli':
+      
+                try:
+                    as_user = storage.conf['as_user']
+                    
+                    # Is "as_user" a UID?
+                    try:
+                        uid = int(as_user)
+                    except:
+                        pass
+                    else:
+                        # What is the user for this uid?
+                        out = os_shell('sudo getent passwd "1000" | cut -d: -f1', capture=True)
+                        if out.exit_code != 0:
+                            raise Exception(out.sterr)
+                        else:
+                            if not out.stdout.strip():
+                                # No user found, create it
+                                os_shell('sudo groupadd -g {0} group_{0}'.format(uid), capture=True)
+                                if out.exit_code != 0:
+                                    raise Exception(out.sterr)
+                                os_shell('sudo useradd user_{0} -d /home_{0} -u {0} -g {0} -m -s /bin/bash'.format(uid), capture=True)
+                                if out.exit_code != 0:
+                                    raise Exception(out.sterr)
+                                as_user = 'user_' + str(uid)
+                            else:
+                                as_user = out.stdout.strip() 
+ 
+                except (KeyError, TypeError):
+                    as_user = None
+      
           
                 # Define storage internal dest path
                 storage_dest_path = self.sanitize_and_prepare_shell_path(path + file_upload.name, request.user, storage, escapes=False)
+                storage_dest_path_escaped = self.sanitize_and_prepare_shell_path(path + file_upload.name, request.user, storage, escapes=True)
 
                 logger.debug('Writing "{}" for "{}"'.format(storage_dest_path, file_upload.name))
-               
-                with open(storage_dest_path, 'wb') as upload_file:
-                    upload_file.write(file_upload.read())
-                
+
+                if as_user:
+                    # Generate temporary UUID
+                    file_uuid = uuid.uuid4()
+                    
+                    with open('/tmp/{}'.format(file_uuid), 'wb') as temp_file:
+                        temp_file.write(file_upload.read())
+                    file_size = os.path.getsize('/tmp/{}'.format(file_uuid))
+                                        
+                    # Change ownership and move
+                    os_shell('sudo -i -u {0} chown {0}:{0} /tmp/{1}'.format(as_user, file_uuid), capture=True)
+                    if out.exit_code != 0:
+                        raise Exception(out.sterr)
+                    os_shell('sudo -i -u {0} mv /tmp/{1} {2}'.format(as_user, file_uuid, storage_dest_path_escaped), capture=True)
+                    if out.exit_code != 0:
+                        raise Exception(out.sterr)                   
+                       
+                else:
+                    with open(storage_dest_path, 'wb') as upload_file:
+                        upload_file.write(file_upload.read())
+                    file_size = os.path.getsize(storage_dest_path)
+                    
                 logger.debug('Wrote "{}" for "{}"'.format(storage_dest_path, file_upload.name))
     
                 # Response data
@@ -1226,7 +1276,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                                     'modified': now_t(),  # This is an approximation!
                                     'name': file_upload.name,
                                     'readable': 1,
-                                    'size': os.path.getsize(storage_dest_path),
+                                    'size': file_size,
                                     'writable': 1,
                                     'path': '/{}{}{}'.format(storage.id, path, file_upload.name)                            
                                 }
