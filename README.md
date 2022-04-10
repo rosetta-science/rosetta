@@ -131,6 +131,15 @@ Run Web App unit tests (with Rosetta running)
     $ rosetta/logs webapp server
     
     $ rosetta/test
+    
+    
+### Computing resources requirements
+
+Ensure that computing resource have:
+
+ - a container engine or wms available (of course);
+ - Python installed and callable with the "python" executable or the agent will fail;
+ - Bash as default shell for ssh-based computign resources.
 
     
 ## Known issues
