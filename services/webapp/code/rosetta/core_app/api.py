@@ -840,7 +840,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 data = {'data':[]}
                 
                 # Get storages
-                storages = list(Storage.objects.filter(group=None)) + list(Storage.objects.filter(group__user=request.user))
+                storages = list(Storage.objects.filter(group=None,browsable=True)) + list(Storage.objects.filter(group__user=request.user,browsable=True))
                 
                 # Oder storages (re-orderded in the file manager anyway)
                 storages.sort(key=lambda storage: storage.id)

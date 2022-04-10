@@ -394,7 +394,7 @@ class Storage(models.Model):
     conf = JSONField(blank=True, null=True)
  
     # Include as browsable in the file manager?
-    browsable = models.BooleanField('Browsable in the file manager?', default=False)
+    browsable = models.BooleanField('Browsable in the file manager?', default=True)
 
  
     class Meta:
