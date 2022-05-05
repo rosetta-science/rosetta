@@ -173,6 +173,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      interface_transport = 'tcp/ip',
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True,
+                                     env_vars = {"BASE_DIR":"/storages"},
                                      interface_auth_user = None)
 
             # Official Jupyter containers
@@ -182,7 +183,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                          name     = 'Jupyter Data Science Lab',
                                          description = 'The official Jupyter Lab. The Data Science variant, which includes libraries for data analysis from the Julia, Python, and R communities.',
                                          registry = 'docker.io',
-                                         image_name = 'jupyter/scipy-notebook',
+                                         image_name = 'jupyter/datascience-notebook',
                                          image_tag  = tag,
                                          image_arch = None,
                                          image_os   = None,
