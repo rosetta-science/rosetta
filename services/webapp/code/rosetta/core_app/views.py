@@ -13,8 +13,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
-from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_task_tunnel_host
-from .utils import get_task_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
+from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_rosetta_tasks_tunnel_host
+from .utils import get_rosetta_tasks_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .utils import sanitize_container_env_vars, get_or_create_container_from_repository
 from .decorators import public_view, private_view
 from .exceptions import ErrorMessage
@@ -1183,19 +1183,19 @@ def direct_connection_handler(request, uuid):
     setup_tunnel_and_proxy(task)
     
     # Get task and tunnel proxy host
-    task_proxy_host = get_task_proxy_host()
-    task_tunnel_host = get_task_tunnel_host()
+    rosetta_tasks_proxy_host = get_rosetta_tasks_proxy_host()
+    rosetta_tasks_tunnel_host = get_rosetta_tasks_tunnel_host()
 
     # Redirect to the task through the tunnel    
     if task.requires_proxy:
         if task.requires_proxy_auth and task.auth_token:
             user = request.user.email
             password = task.auth_token
-            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, task_proxy_host, task.tcp_tunnel_port)        
+            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, rosetta_tasks_proxy_host, task.tcp_tunnel_port)        
         else:
-            redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
+            redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)       
     else:
-        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, task_tunnel_host, task.tcp_tunnel_port)
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, rosetta_tasks_tunnel_host, task.tcp_tunnel_port)
     
     logger.debug('Task direct connect redirect: "{}"'.format(redirect_string))
     return redirect(redirect_string)
@@ -1216,14 +1216,14 @@ def sharable_link_handler(request, short_uuid):
     setup_tunnel_and_proxy(task)
     
     # Get task and tunnel proxy host
-    task_proxy_host = get_task_proxy_host()
-    task_tunnel_host = get_task_tunnel_host()
+    rosetta_tasks_proxy_host = get_rosetta_tasks_proxy_host()
+    rosetta_tasks_tunnel_host = get_rosetta_tasks_tunnel_host()
 
     # Redirect to the task through the tunnel    
     if task.requires_proxy:
-        redirect_string = 'https://{}:{}'.format(task_proxy_host, task.tcp_tunnel_port)       
+        redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)       
     else:
-        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, task_tunnel_host, task.tcp_tunnel_port)
+        redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, rosetta_tasks_tunnel_host, task.tcp_tunnel_port)
     
     logger.debug('Task sharable link connect redirect: "{}"'.format(redirect_string))
     return redirect(redirect_string)

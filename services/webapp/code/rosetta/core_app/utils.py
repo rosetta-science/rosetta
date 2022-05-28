@@ -515,12 +515,16 @@ def get_platform_registry():
     platform_registry_conn_string = '{}:{}'.format(platform_registry_host, platform_registry_port)
     return platform_registry_conn_string
     
-def get_task_tunnel_host():
-    tunnel_host = os.environ.get('TASK_TUNNEL_HOST', 'localhost')
+def get_rosetta_tasks_tunnel_host():
+    # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
+    from django.conf import settings
+    tunnel_host = os.environ.get('ROSETTA_TASKS_TUNNEL_HOST', settings.ROSETTA_HOST)
     return tunnel_host
 
-def get_task_proxy_host():
-    proxy_host = os.environ.get('TASK_PROXY_HOST', 'localhost')
+def get_rosetta_tasks_proxy_host():
+    # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
+    from django.conf import settings
+    proxy_host = os.environ.get('ROSETTA_TASKS_PROXY_HOST', settings.ROSETTA_HOST)
     return proxy_host
 
 def hash_string_to_int(string):
@@ -622,7 +626,7 @@ def setup_tunnel_and_proxy(task):
             # Some info about the various SSL switches: https://serverfault.com/questions/577616/using-https-between-apache-loadbalancer-and-backends
             logger.debug('Writing task proxy conf to {}'.format(apache_conf_file))
             websocket_protocol = 'wss' if task.container.interface_protocol == 'https' else 'ws'
-            task_proxy_host = get_task_proxy_host()
+            rosetta_tasks_proxy_host = get_rosetta_tasks_proxy_host()
             apache_conf_content = '''
 #---------------------------
 #  Task interface proxy 
@@ -641,7 +645,7 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 
 <VirtualHost *:'''+str(task.tcp_tunnel_port)+'''>
     
-    ServerName  '''+task_proxy_host+'''
+    ServerName  '''+rosetta_tasks_proxy_host+'''
     ServerAdmin admin@rosetta.platform
     
     SSLEngine on

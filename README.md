@@ -50,8 +50,9 @@ Webapp service configuraion parameters and their defaults:
       - DJANGO_DEBUG=true
       - DJANGO_LOG_LEVEL=ERROR
       - ROSETTA_LOG_LEVEL=ERROR
-      - ROSETTA_HOST=localhost
-      - ROSETTA_TUNNEL_HOST=localhost
+      - ROSETTA_HOST=localhost      
+      - ROSETTA_TASKS_PROXY_HOST=$ROSETTA_HOST
+      - ROSETTA_TASKS_TUNNEL_HOST=$ROSETTA_HOST  
       - ROSETTA_WEBAPP_HOST=""
       - ROSETTA_WEBAPP_PORT=8080
       - ROSETTA_REGISTRY_HOST=proxy
@@ -69,10 +70,13 @@ Webapp service configuraion parameters and their defaults:
 
 Notes:
 
- - `ROSETTA_TUNNEL_HOST` must not include http:// or https://
  - `ROSETTA_REGISTRY_HOST` should be set to the same value as `ROSETTA_HOST` for production scenarios, in order to be secured unders SSL. The `standaloneworker` is configured to treat the following hosts (and ports) as unsecure registies, where it can connect without a valid certificate: `proxy:5000`,`dregistry:5000` and `rosetta.platform:5000`.
  - `ROSETTA_WEBAPP_HOST` is used for let the agent know where to connect, and it is differentiated from `ROSETTA_HOST` as it can be on an internal Docker network. It is indeed defaulted to the `webapp` container IP address.
 
+Proxy service configuraion parameters and their defaults:
+
+      - SAFEMODE=false
+      - ROSETTA_HOST=localhost
 
 
 ### User types 
