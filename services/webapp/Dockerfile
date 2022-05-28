@@ -19,10 +19,6 @@ RUN curl -O https://bootstrap.pypa.io/pip/3.6/get-pip.py
 # Install Python3 and Pip3 (python3-distutils required for pip3)
 RUN apt-get install python3 python3-distutils -y 
 
-# Install Python and pip in this order (first Python 3 and then Python 2), or 
-# you will end ap with python defaulting to python2 and pip defaulting to pip3
-# Otherwise, do somethign like "ln -s /usr/local/bin/pip3 /usr/local/bin/pip"
-
 # Install Python3 and Pip3 (ython3-distutils required for pip3)
 RUN apt-get install python3 python3-distutils -y 
 RUN python3 get-pip.py 'pip==21.0.1'
