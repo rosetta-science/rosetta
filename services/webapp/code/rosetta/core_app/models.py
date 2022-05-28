@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
-from .utils import os_shell, color_map, hash_string_to_int, get_task_tunnel_host
+from .utils import os_shell, color_map, hash_string_to_int, get_rosetta_tasks_tunnel_host
 from .exceptions import ConsistencyException
 
 if 'sqlite' in settings.DATABASES['default']['ENGINE']:
@@ -356,7 +356,7 @@ class Task(models.Model):
     
     @property
     def tcp_tunnel_host(self):
-        return get_task_tunnel_host()
+        return get_rosetta_tasks_tunnel_host()
 
 
 
