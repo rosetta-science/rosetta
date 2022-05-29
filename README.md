@@ -17,9 +17,9 @@ Requirements:
 
 *Windows not fully supported in development mode due to lack of support for symbolic links.
 
-Setup
+Inizialize
 
-	$ rosetta/setup
+	$ cp docker-compose-dev.yml docker-compose.yml
 
 Build
 
@@ -46,6 +46,12 @@ Clean
 Webapp service configuraion parameters and their defaults:
 
       - SAFEMODE=false
+      - DJANGO_DB_ENGINE="django.db.backends.postgresql_psycopg2"
+      - DJANGO_DB_NAME="rosetta"
+      - DJANGO_DB_USER="rosetta_master"
+      - DJANGO_DB_PASSWORD="949fa84a"
+      - DJANGO_DB_HOST="postgres"
+      - DJANGO_DB_PORT=5432
       - DJANGO_DEV_SERVER=true
       - DJANGO_DEBUG=true
       - DJANGO_LOG_LEVEL=ERROR

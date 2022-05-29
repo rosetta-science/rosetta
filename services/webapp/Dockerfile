@@ -60,9 +60,6 @@ COPY code /opt/code
 # Fix permissions
 RUN chown -R rosetta:rosetta /opt/code
 
-# Copy db conf
-COPY db_conf.sh /db_conf.sh
-
 # Prepare for logs
 RUN mkdir /var/log/webapp/ && chown rosetta:rosetta /var/log/webapp/
 

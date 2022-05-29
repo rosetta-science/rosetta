@@ -14,9 +14,6 @@ echo ""
 # Load env
 source /env.sh
 
-# Database conf
-source /db_conf.sh
-
 # Stay quiet on Python warnings
 export PYTHONWARNINGS=ignore
 

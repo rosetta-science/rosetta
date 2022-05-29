@@ -10,7 +10,6 @@ services:
     privileged: true
     volumes:
       - ./data/shared:/shared
-      # - ./data/singularity_cache:/rosetta/.singularity/cache # Not working, check permissions...
 
   slurmclusterworker:
     image: "rosetta/slurmclusterworker"
@@ -54,6 +53,12 @@ services:
     hostname: webapp
     environment:
       - SAFEMODE=False
+      - DJANGO_DB_ENGINE="django.db.backends.postgresql_psycopg2"
+      - DJANGO_DB_NAME="rosetta"
+      - DJANGO_DB_USER="rosetta_master"
+      - DJANGO_DB_PASSWORD="949fa84a"
+      - DJANGO_DB_HOST="postgres"
+      - DJANGO_DB_PORT=5432
       - DJANGO_DEV_SERVER=True
       - DJANGO_DEBUG=True
       - DJANGO_LOG_LEVEL=CRITICAL
@@ -68,6 +73,7 @@ services:
       #- ROSETTA_TASKS_PROXY_HOST=
       #- ROSETTA_TASKS_TUNNEL_HOST=
       - ROSETTA_HOST=localhost
+      
     ports:
       - "8080:8080"
       - "7000-7020:7000-7020"
