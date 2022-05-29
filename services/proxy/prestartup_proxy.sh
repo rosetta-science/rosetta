@@ -39,10 +39,13 @@ sudo sed -i "s/__ROSETTA_HOST__/$ROSETTA_HOST/g" /etc/apache2/sites-available/pr
 #-----------------------
 
 # If the tasks host is equal to rosetta host or not set, do nothing as we have already habdled it above
-if [ "x$ROSETTA_TASKS_PROXY_HOST" == "x$ROSETTA_HOST"] || [ "x$ROSETTA_TASKS_PROXY_HOST" == "x" ]; then
+if [ "x$ROSETTA_TASKS_PROXY_HOST" == "x$ROSETTA_HOST" ] || [ "x$ROSETTA_TASKS_PROXY_HOST" == "x" ]; then
     echo "[INFO] Not setting up certificates forRosetta tasks host as qual to Rosetta main host"
     ROSETTA_TASKS_PROXY_HOST=$ROSETTA_HOST
 else
+
+    # Always create dir if not existent
+    mkdir -p /etc/letsencrypt/live/$ROSETTA_TASKS_PROXY_HOST/
 
     # If there are no certificates, use snakeoils
 	if [ ! -f "/etc/letsencrypt/live/$ROSETTA_TASKS_PROXY_HOST/cert.pem" ]; then
