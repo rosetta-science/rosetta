@@ -85,14 +85,16 @@ services:
     environment:
       - SAFEMODE=False
       - ROSETTA_HOST=localhost
+      - ROSETTA_TASKS_PROXY_HOST=localhost
     ports:
       - "80:80"
       - "443:443"
       - "9000-9020:9000-9020"
       - "5000:5000"
     volumes:
-      - ./data/shared:/shared   
-
+      - ./data/shared:/shared
+      - ./data/proxy/letsencrypt:/etc/letsencrypt
+      - ./data/proxy/log:/var/log/proxy
 
 
 

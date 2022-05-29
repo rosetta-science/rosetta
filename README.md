@@ -77,7 +77,26 @@ Proxy service configuraion parameters and their defaults:
 
       - SAFEMODE=false
       - ROSETTA_HOST=localhost
+      - ROSETTA_TASKS_PROXY_HOST=$ROSETTA_HOST
 
+
+### Certificates for the proxy
+
+Certificates can be automatically handled with Letsencrypt. By default, a snakeoil certificate is used. To set up letsencrypt, first of all run inside the proxy (only once in its lifetime):
+
+	$ sudo rm -rf /etc/letsencrypt/live/YOUR_ROSETTA_HOST (or ROSETTA_TASKS_PROXY_HOST)
+
+Then, edit the `/etc/apache2/sites-available/proxy-global.conf` file and change the certificates for the domain that you want to enable with Letsencrypt to use snakeoils (otherwise nex comamnd will fail), then:
+
+	$  sudo apache2ctl -k graceful
+
+Now:
+
+    $ sudo certbot certonly --apache --register-unsafely-without-email --agree-tos -d YOUR_ROSETTA_HOST (or ROSETTA_TASKS_PROXY_HOST)
+    
+...or for the domain that you want to enable with Letsencrypt. This will initialize the certificate in /etc/letsencypt, which is stored on the host in `./data/proxy/letsencrypt`
+
+Finally, re-change the `/etc/apache2/sites-available/proxy-global.conf` file to use the correct certificates for the domain (or just restart the proxy service but wiht clean and then run).
 
 ### User types 
 In Rosetta there are two user types: standard users and power users. Their type is set in their user profile, and only power users can:
@@ -124,17 +143,36 @@ Note that when you edit the Django ORM model, you need to make migrations and ap
 
 
     
-### Logs and testing
+### Testing
 
 Run Web App unit tests (with Rosetta running)
-
-    $ rosetta/logs webapp
-    
-    $ rosetta/logs webapp startup
-    
-    $ rosetta/logs webapp server
     
     $ rosetta/test
+
+
+### Logs
+
+
+Chek out logs for Docker containers (including entrypoints):
+
+
+    $ rosetta/logs web
+
+    $ rosetta/logs proxy
+
+
+Chek out logs for supervisord services:
+
+        
+    $ rosetta/logs web startup
+    
+    $ rosetta/logs web server
+
+    $ rosetta/logs proxy apache
+    
+    $ rosetta/logs proxy certbot
+    
+    
     
     
 ### Computing resources requirements

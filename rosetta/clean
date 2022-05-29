@@ -9,5 +9,5 @@ fi
 if [[ $# -eq 0 ]] ; then
     docker-compose down
 else
-    docker-compose down $@
+    docker-compose rm -s -v -f $@
 fi
