@@ -637,9 +637,9 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 <VirtualHost *:'''+str(task.tcp_tunnel_port)+'''>
     ServerAdmin admin@rosetta.platform
     SSLEngine on
-    SSLCertificateFile /root/certificates/rosetta_platform/rosetta_platform.crt
-    SSLCertificateKeyFile /root/certificates/rosetta_platform/rosetta_platform.key
-    SSLCACertificateFile /root/certificates/rosetta_platform/rosetta_platform.ca-bundle
+    SSLCertificateFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/cert.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/privkey.pem
+    SSLCACertificateFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/fullchain.pem
     DocumentRoot /var/www/html
 </VirtualHost>
 
@@ -649,10 +649,10 @@ Listen '''+str(task.tcp_tunnel_port)+'''
     ServerAdmin admin@rosetta.platform
     
     SSLEngine on
-    SSLCertificateFile /root/certificates/rosetta_platform/rosetta_tasks.crt
-    SSLCertificateKeyFile /root/certificates/rosetta_platform/rosetta_tasks.key
-    SSLCACertificateFile /root/certificates/rosetta_platform/rosetta_tasks.ca-bundle
-    
+    SSLCertificateFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/cert.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/privkey.pem
+    SSLCACertificateFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/fullchain.pem
+        
     SSLProxyEngine On
     SSLProxyVerify none 
     SSLProxyCheckPeerCN off
@@ -700,13 +700,13 @@ Listen '''+str(task.tcp_tunnel_port)+'''
             out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo ln -s /shared/etc_apache2_sites_enabled/{0}.conf /etc/apache2/sites-enabled/{0}.conf"'.format(task.uuid), capture=True)
             if out.exit_code != 0:
                 logger.error(out.stderr)
-                raise ErrorMessage('Somthing went wrong when activating the task proxy conf')        
+                raise ErrorMessage('Something went wrong when activating the task proxy conf')        
             
             # Reload apache conf on Proxy
             out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo apache2ctl graceful"', capture=True)
             if out.exit_code != 0:
                 logger.error(out.stderr) 
-                raise ErrorMessage('Somthing went wrong when loading the task proxy conf')        
+                raise ErrorMessage('Something went wrong when loading the task proxy conf')        
             
 
 
