@@ -272,7 +272,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
 
             
             # Demo standalone computing plus conf
-            demo_singlenode_computing = Computing.objects.create(name = 'Demo Standalone',
+            demo_standalone_computing = Computing.objects.create(name = 'Demo Standalone',
                                                                  description = 'A demo standalone computing resource.',
                                                                  type = 'standalone',
                                                                  arch = 'amd64',
@@ -283,20 +283,22 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                                  conf = {'host': 'standaloneworker'},
                                                                  container_engines = ['podman','singularity'])
 
-            # Demo standalone platform computing plus conf
-            demo_singlenode_computing = Computing.objects.create(name = 'Demo Standalone Platform',
-                                                                 description = 'A demo standalone computing resource access as platform.',
-                                                                 type = 'standalone',
-                                                                 arch = 'amd64',
-                                                                 supported_archs = ['386'],
-                                                                 access_mode = 'ssh+cli',
-                                                                 auth_mode = 'platform_keys',
-                                                                 wms = None,
-                                                                 conf = {'host': 'standaloneworker', 'user': 'rosetta'},
-                                                                 container_engines = ['podman','singularity'])
-
             # Add testuser extra conf for this computing resource
-            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_singlenode_computing, value= 'testuser')
+            testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_standalone_computing, value= 'testuser')
+
+
+            # Demo standalone platform computing plus conf
+            demo_standalone_computing_platform = Computing.objects.create(name = 'Demo Standalone Platform',
+                                                                          description = 'A demo standalone computing resource access as platform.',
+                                                                          type = 'standalone',
+                                                                          arch = 'amd64',
+                                                                          supported_archs = ['386'],
+                                                                          access_mode = 'ssh+cli',
+                                                                          auth_mode = 'platform_keys',
+                                                                          wms = None,
+                                                                          conf = {'host': 'standaloneworker', 'user': 'rosetta'},
+                                                                          container_engines = ['podman','singularity'])
+
 
             #  Demo cluster computing plus conf
             demo_slurm_computing = Computing.objects.create(name = 'Demo Cluster',
