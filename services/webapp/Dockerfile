@@ -36,7 +36,7 @@ RUN apt-get install docker.io -y
 # Viz
 #------------------------------
 RUN apt install python-pygraphviz graphviz-dev -y
-RUN pip3 install django-extensions pygraphviz
+RUN pip3 install django-extensions==3.1.5 pygraphviz==1.6
 # Example usage: rosetta/shell webapp "cd /opt/code && python3 manage.py graph_models core_app --exclude-models LoginToken,Text -o ORM.png"
 
 
