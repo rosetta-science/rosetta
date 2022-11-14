@@ -58,4 +58,5 @@ COPY prestartup_proxy.sh /prestartup/
 COPY proxy-global.conf /etc/apache2/sites-available/
 RUN ln -s /etc/apache2/sites-available/proxy-global.conf /etc/apache2/sites-enabled/proxy-global.conf
 
-
+# Create default log dir
+RUN mkdir -p /var/log/proxy
