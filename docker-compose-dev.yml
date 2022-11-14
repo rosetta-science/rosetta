@@ -5,6 +5,7 @@ services:
     image: "rosetta/slurmclustermaster"
     container_name: slurmclustermaster
     hostname: slurmclustermaster
+    restart: unless-stopped
     environment:
       - SAFEMODE=False
     privileged: true
@@ -15,6 +16,7 @@ services:
     image: "rosetta/slurmclusterworker"
     container_name: slurmclusterworker
     hostname: slurmclusterworker
+    restart: unless-stopped
     environment:
       - SAFEMODE=False
     privileged: true
@@ -27,6 +29,7 @@ services:
     container_name: standaloneworker
     hostname: standaloneworker
     privileged: true
+    restart: unless-stopped
     volumes:
       - ./data/shared:/shared
       - /var/run/docker.sock:/var/run/docker.sock
@@ -35,6 +38,7 @@ services:
     container_name: dregistry
     hostname: dregistry
     image: "rosetta/dregistry"
+    restart: unless-stopped
     volumes:
       - ./data/dregistry:/var/lib/registry
 
@@ -42,6 +46,7 @@ services:
     image: "rosetta/postgres"
     container_name: postgres
     hostname: postgres
+    restart: unless-stopped
     environment:
       - SAFEMODE=False
     volumes:
@@ -51,6 +56,7 @@ services:
     image: "rosetta/webapp"
     container_name: webapp
     hostname: webapp
+    restart: unless-stopped
     environment:
       - SAFEMODE=False
       - DJANGO_DB_ENGINE="django.db.backends.postgresql_psycopg2"

@@ -54,7 +54,9 @@ else
 	uwsgi --chdir=/opt/code \
 	      --module=rosetta.wsgi \
 	      --env DJANGO_SETTINGS_MODULE=rosetta.settings \
-	      --master --pidfile=/tmp/project-master.pid \
+	      --master --pidfile=/tmp/rosetta-master.pid \
+	      --workers 4 \
+	      --threads 4 \
 	      --socket=127.0.0.1:49152 \
 	      --static-map /static=/rosetta/static \
 	      --http :8080 \
