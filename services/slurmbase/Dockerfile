@@ -18,15 +18,19 @@ RUN apt-get update && apt-get install -y \
     wget
 
 # Install GO
-RUN cd /tmp && wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz
-RUN cd /tmp && tar -zxf go1.11.linux-amd64.tar.gz && mv go /usr/local
+RUN if [ "$(uname -i)" = "aarch64" ] ; then \
+    cd /tmp && wget https://dl.google.com/go/go1.11.linux-arm64.tar.gz && \
+    cd /tmp && tar -zxf go1.11.linux-arm64.tar.gz && mv go /usr/local; \
+    else \
+    cd /tmp && wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
+    cd /tmp && tar -zxf go1.11.linux-amd64.tar.gz && mv go /usr/local; \
+    fi
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/root/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
-COPY singularity-3.4.1.tar.gz /tmp
-
 # Install Singularity
+COPY singularity-3.4.1.tar.gz /tmp
 RUN mkdir -p /usr/local/var/singularity/mnt && \
     mkdir -p $GOPATH/src/github.com/sylabs && \
     cd $GOPATH/src/github.com/sylabs && \
