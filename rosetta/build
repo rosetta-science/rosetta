@@ -29,20 +29,25 @@ fi
 if [[ "x$SERVICE" == "x" ]] ; then
     
     # Build all services
-    $BUILD_COMMAND services/base -t rosetta/base
-    $BUILD_COMMAND services/slurmbase -t rosetta/slurmbase
-    $BUILD_COMMAND services/slurmcluster -t rosetta/slurmcluster    
-    $BUILD_COMMAND services/slurmclustermaster -t rosetta/slurmclustermaster    
-    $BUILD_COMMAND services/slurmclusterworker -t rosetta/slurmclusterworker    
-    $BUILD_COMMAND services/standaloneworker -t rosetta/standaloneworker    
-    $BUILD_COMMAND services/dregistry -t rosetta/dregistry
-    $BUILD_COMMAND services/webapp -t rosetta/webapp
-    $BUILD_COMMAND services/postgres -t rosetta/postgres
-    $BUILD_COMMAND services/proxy -t rosetta/proxy
+    NOCACHE=$NOCACHE rosetta/build base
+    NOCACHE=$NOCACHE rosetta/build slurmbase
+    NOCACHE=$NOCACHE rosetta/build slurmcluster    
+    NOCACHE=$NOCACHE rosetta/build slurmclustermaster    
+    NOCACHE=$NOCACHE rosetta/build slurmclusterworker    
+    NOCACHE=$NOCACHE rosetta/build standaloneworker     
+    NOCACHE=$NOCACHE rosetta/build dregistry
+    NOCACHE=$NOCACHE rosetta/build webapp
+    NOCACHE=$NOCACHE rosetta/build postgres
+    NOCACHE=$NOCACHE rosetta/build proxy
     
 else
 
     # Build a specific image
+    echo ""
+    echo "================================="
+    echo " Building $SERVICE..."
+    echo "================================="
+    echo ""
     $BUILD_COMMAND services/$SERVICE -t rosetta/$SERVICE
 
 fi

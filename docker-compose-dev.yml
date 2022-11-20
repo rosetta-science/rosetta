@@ -78,8 +78,7 @@ services:
       #- DJANGO_SECRET_KEY=""
       #- ROSETTA_TASKS_PROXY_HOST=
       #- ROSETTA_TASKS_TUNNEL_HOST=
-      - ROSETTA_HOST=localhost
-      
+      - ROSETTA_HOST=localhost 
     ports:
       - "8080:8080"
       - "7000-7020:7000-7020"
