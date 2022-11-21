@@ -25,7 +25,7 @@ RUN chmod 755 /etc/supervisor/conf.d/run_certbot.sh
 # Enable mod_proxy and SSL
 RUN a2enmod proxy
 RUN a2enmod proxy_http
-RUN sudo a2enmod ssl
+RUN a2enmod ssl
 RUN a2enmod rewrite
 RUN a2enmod headers
 RUN a2enmod proxy_wstunnel
