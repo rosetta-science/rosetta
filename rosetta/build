@@ -7,20 +7,22 @@ if [ ! -d ./services ]; then
     exit 1
 fi
 
-
-# Set service and cacheing
+# Set service and caching switch
 if [[ "x$1" == "xnocache" ]] ; then
-    NOCACHE=True
+    NOCACHE=true
     SERVICE=""
 elif [[ "x$2" == "xnocache" ]] ; then
-    NOCACHE=True 
+    NOCACHE=true 
     SERVICE=$1
 else
-    NOCACHE=False
+    if [[ "x$NOCACHE" == "x" ]] ; then
+        # Set the default only if we did not get any NOCACHE env var
+        NOCACHE=false
+    fi
     SERVICE=$1
 fi
 
-if [[ "x$NOCACHE" == "xTrue" ]] ; then
+if [[ "x$NOCACHE" == "xtrue" ]] ; then
     BUILD_COMMAND="docker build --no-cache"
 else
     BUILD_COMMAND="docker build"
@@ -44,9 +46,11 @@ else
 
     # Build a specific image
     echo ""
-    echo "================================="
-    echo " Building $SERVICE..."
-    echo "================================="
+    if [[ "x$NOCACHE" == "xtrue" ]] ; then
+        echo "-> Building $SERVICE (without cache)..."
+    else
+        echo "-> Building $SERVICE..."
+    fi
     echo ""
     $BUILD_COMMAND services/$SERVICE -t rosetta/$SERVICE
 
