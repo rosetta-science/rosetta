@@ -1,12 +1,16 @@
 # Rosetta 🛰️
 
+Rosetta is a science platform for resource-intensive, interactive data analysis which runs user tasks as software containers.
 
-_A container-centric Science Platform_
+It is built on top of a novel architecture based on framing user tasks as microservices – independent and self-contained units – which allows to fully support custom and user-defined software packages, libraries and environments. These include complete remote desktop and GUI applications, common analysis environments as the Jupyter Notebooks, and more.
+
+Rosetta relies on Open Container Initiative containers, which allow for safe, effective and reproducible code execution; can use a number of container engines and runtimes; and seamlessly supports several workload management systems, thus enabling containerized workloads on a wide range of computing resources.
+
+More information can be found in the paper "[Rosetta: A container-centric science platform for resource-intensive, interactive data analysis](https://www.sciencedirect.com/science/article/pii/S2213133722000634)".
+
+This work is licensed under the Apache License 2.0, unless otherwise specified.
 
 
-Rosetta makes it easy to run graphical interactive workloads on batch and remote computing systems using Docker and Singularity containers.
-
-Rosetta licensed under the Apache License 2.0, unless otherwise specificed.
 
 
 ## Quickstart
@@ -29,6 +33,9 @@ Run
 
 	$ rosetta/run
 
+List running services
+
+    # rosetta/ps
 
 Populate demo data
 
@@ -41,9 +48,12 @@ Clean
 
 	# rosetta/clean
 
-### Configuration
 
-Webapp service configuraion parameters and their defaults:
+## Configuration
+
+### Webapp
+
+These are the webapp service configuration parameters and their defaults:
 
       - SAFEMODE=false
       - DJANGO_DB_ENGINE="django.db.backends.postgresql_psycopg2"
@@ -76,33 +86,46 @@ Webapp service configuraion parameters and their defaults:
 
 Notes:
 
- - `ROSETTA_REGISTRY_HOST` should be set to the same value as `ROSETTA_HOST` for production scenarios, in order to be secured unders SSL. The `standaloneworker` is configured to treat the following hosts (and ports) as unsecure registies, where it can connect without a valid certificate: `proxy:5000`,`dregistry:5000` and `rosetta.platform:5000`.
+ - `ROSETTA_REGISTRY_HOST` should be set to the same value as `ROSETTA_HOST` for production scenarios, in order to be secured under SSL. The `standaloneworker` is configured to treat the following hosts (and ports) as insecure registries, where it can connect without a valid certificate: `proxy:5000`,`dregistry:5000` and `rosetta.platform:5000`.
  - `ROSETTA_WEBAPP_HOST` is used for let the agent know where to connect, and it is differentiated from `ROSETTA_HOST` as it can be on an internal Docker network. It is indeed defaulted to the `webapp` container IP address.
 
-Proxy service configuraion parameters and their defaults:
+
+### Proxy
+
+These aere the proxy service configuration parameters and their defaults:
 
       - SAFEMODE=false
       - ROSETTA_HOST=localhost
       - ROSETTA_TASKS_PROXY_HOST=$ROSETTA_HOST
 
+Certificates can be automatically handled with Letsencrypt. By default, a snakeoil certificate is used. To set up Letsencrypt, you need to run the following commands inside the proxy service (once in its lifetime).
 
-### Certificates for the proxy
+    $ rosetta/shell proxy
 
-Certificates can be automatically handled with Letsencrypt. By default, a snakeoil certificate is used. To set up letsencrypt, first of all run inside the proxy (only once in its lifetime):
+First of all remove the default snakeoil certificates:
 
 	$ sudo rm -rf /etc/letsencrypt/live/YOUR_ROSETTA_HOST (or ROSETTA_TASKS_PROXY_HOST)
 
-Then, edit the `/etc/apache2/sites-available/proxy-global.conf` file and change the certificates for the domain that you want to enable with Letsencrypt to use snakeoils (otherwise nex comamnd will fail), then:
+Then:
+
+    $ nano /etc/apache2/sites-available/proxy-global.conf
+    
+...and change the certificates for the domain that you want to enable with Letsencrypt to use the snakeoils located in `/root/certificates/` as per the first lines of the `proxy-global.conf` file (otherwise next command will fail).
+
+Now restart apache to pick up the new snakeoils:
 
 	$  sudo apache2ctl -k graceful
 
-Now:
+Lastly, tell certbot to generate and validate certificates for the domain:
 
     $ sudo certbot certonly --apache --register-unsafely-without-email --agree-tos -d YOUR_ROSETTA_HOST (or ROSETTA_TASKS_PROXY_HOST)
     
-...or for the domain that you want to enable with Letsencrypt. This will initialize the certificate in /etc/letsencypt, which is stored on the host in `./data/proxy/letsencrypt`
+This will initialize the certificates in /etc/letsencypt, which are stored on the host in `./data/proxy/letsencrypt`
 
-Finally, re-change the `/etc/apache2/sites-available/proxy-global.conf` file to use the correct certificates for the domain (or just restart the proxy service but wiht clean and then run).
+Finally, re-run the proxy service to drop the temporary changes and pick up the new, real certificates:
+
+    $ rosetta/rerun proxy
+
 
 ### User types 
 In Rosetta there are two user types: standard users and power users. Their type is set in their user profile, and only power users can:
@@ -111,28 +134,20 @@ In Rosetta there are two user types: standard users and power users. Their type 
    - choose task access methods other than the default one (bypassing HTTP proxy + auth)
    - add containers with interface protocols other than the HTTP
    
+     
+### Computing resources
 
+When configuring computing resources, ensure that they have:
 
-### Extras
-
-List all running services
-
-    # rosetta/ps
-
-Check status (not yet fully supported)
-
-    # rosetta/status
+ - a container engine or wms available (of course);
+ - Python installed and callable with the "python" executable or the agent will fail;
+ - Bash as default shell for ssh-based computing resources.
 
 
 
-### Building errors
+## Development
 
-It is common for the build process to fail with a "404 not found" error on an apt-get instrucions, as apt repositories often change their IP addresses. In such case, try:
-
-    $ rosetta/build nocache
-
-
-### Development mode
+### Live code changes
 
 Django development server is running on port 8080 of the "webapp" service.
 
@@ -148,7 +163,6 @@ Note that when you edit the Django ORM model, you need to make migrations and ap
     $ rosetta/migrate
 
 
-    
 ### Testing
 
 Run Web App unit tests (with Rosetta running)
@@ -159,7 +173,7 @@ Run Web App unit tests (with Rosetta running)
 ### Logs
 
 
-Chek out logs for Docker containers (including entrypoints):
+Check out logs for Docker containers (including entrypoints):
 
 
     $ rosetta/logs web
@@ -167,7 +181,7 @@ Chek out logs for Docker containers (including entrypoints):
     $ rosetta/logs proxy
 
 
-Chek out logs for supervisord services:
+Check out logs for supervisord services:
 
         
     $ rosetta/logs web startup
@@ -177,24 +191,19 @@ Chek out logs for supervisord services:
     $ rosetta/logs proxy apache
     
     $ rosetta/logs proxy certbot
-    
-    
-    
-    
-### Computing resources requirements
-
-Ensure that computing resource have:
-
- - a container engine or wms available (of course);
- - Python installed and callable with the "python" executable or the agent will fail;
- - Bash as default shell for ssh-based computign resources.
 
     
 ## Known issues
 
-    SINGULARITY_TMPDIR=/...
-    .singularity in user home with limited space
+### Building errors
+
+It is common for the build process to fail with a "404 not found" error on an apt-get instructions, as apt repositories often change their IP addresses. In such case, try:
+
+    $ rosetta/build nocache
     
-    Some Docker versions (e.g. old-ish on Mac) do not let podman work due to fuse permissions
-    SSH computing resources require python3 and wget installed, or will raise (empty) errors when submitting tasks. . Check 127 error codes.
+### Singularity issues
+
+- Singularity has several issues, in particular the `.singularity` in user home might have limited space. Consider setting the `SINGULARITY_TMPDIR=/tmp/$USER` env var. 
+- Some Docker versions (e.g. old-ish on Mac) do not let Podman work due to fuse permissions.
+- SSH computing resources require python3 and wget installed, or will raise (empty) errors when submitting tasks. Check 127 error codes.
 
