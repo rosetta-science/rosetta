@@ -37,7 +37,8 @@ RUN rm /etc/apache2/sites-available/default-ssl.conf
 #RUN rm /etc/apache2/sites-enabled/default-ssl.conf
 
 # Apache conf
-COPY apache2.conf /etc/apache2/apache2.conf 
+COPY apache2.conf /etc/apache2/apache2.conf
+COPY ssl.conf /etc/apache2/mods-enabled/ssl.conf
 
 # Copy self-signed (snakeoil) certificates
 RUN mkdir /root/certificates
