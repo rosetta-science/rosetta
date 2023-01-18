@@ -1,4 +1,4 @@
-FROM rosetta/base
+FROM rosetta/base_ubuntu22.04
 MAINTAINER Stefano Alberto Russo <stefano.russo@gmail.com>
 
 # Always start with an apt-get update when extending base images,
@@ -29,13 +29,16 @@ RUN apt-get install python3-dev -y
 # Install postgres driver required for psycopg2
 RUN apt-get install libpq-dev -y
 
+# Libmagic
+RUN apt-get install libmagic1 -y
+
 # Docker
 RUN apt-get install docker.io -y
 
 #------------------------------
 # Viz
 #------------------------------
-RUN apt install python-pygraphviz graphviz-dev -y
+RUN apt install python3-pygraphviz graphviz-dev -y
 RUN pip3 install django-extensions==3.1.5 pygraphviz==1.6
 # Example usage: rosetta/shell webapp "cd /opt/code && python3 manage.py graph_models core_app --exclude-models LoginToken,Text -o ORM.png"
 
@@ -51,8 +54,8 @@ RUN mkdir /opt/code
 COPY requirements.txt /tmp/
 RUN cd /opt/code && pip3 install -r /tmp/requirements.txt
 
-# Patch Django 2.2 non-ascii chars in /usr/local/lib/python3.6/dist-packages/django/views/templates/technical_500.html
-RUN sed -i 's/[\x80-\xFF]/./g' /usr/local/lib/python3.6/dist-packages/django/views/templates/technical_500.html
+# Patch Django 2.2 non-ascii chars in /usr/local/lib/python3.10/dist-packages/django/views/templates/technical_500.html
+RUN sed -i 's/[\x80-\xFF]/./g' /usr/local/lib/python3.10/dist-packages/django/views/templates/technical_500.html
 
 # Install App code
 COPY code /opt/code
@@ -80,5 +83,4 @@ COPY supervisord_dregistrytunnel.conf /etc/supervisor/conf.d/
 
 COPY prestartup_webapp.sh /prestartup/
 RUN touch -m /prestartup/prestartup_webapp.sh
-
 

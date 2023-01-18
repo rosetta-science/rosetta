@@ -31,7 +31,8 @@ fi
 if [[ "x$SERVICE" == "x" ]] ; then
     
     # Build all services
-    NOCACHE=$NOCACHE rosetta/build base
+    NOCACHE=$NOCACHE rosetta/build base_ubuntu18.04
+    NOCACHE=$NOCACHE rosetta/build base_ubuntu22.04
     NOCACHE=$NOCACHE rosetta/build slurmbase
     NOCACHE=$NOCACHE rosetta/build slurmcluster    
     NOCACHE=$NOCACHE rosetta/build slurmclustermaster    

@@ -1,4 +1,4 @@
-FROM rosetta/base
+FROM rosetta/base_ubuntu22.04
 MAINTAINER Stefano Alberto Russo <stefano.russo@gmail.com>
 
 # Always start with an apt-get update when extending Reyns images,
