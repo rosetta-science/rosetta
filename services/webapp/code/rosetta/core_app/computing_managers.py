@@ -1,5 +1,6 @@
+import os
 from .models import TaskStatuses, KeyPair, Task, Storage
-from .utils import os_shell, get_ssh_access_mode_credentials, sanitize_container_env_vars
+from .utils import os_shell, get_ssh_access_mode_credentials, sanitize_container_env_vars, booleanize
 from .exceptions import ErrorMessage, ConsistencyException
 from django.conf import settings
 
@@ -7,6 +8,8 @@ from django.conf import settings
 import logging
 logger = logging.getLogger(__name__)
 
+ROSETTA_AGENT_CHECK_SSL = booleanize(os.environ.get('ROSETTA_AGENT_CHECK_SSL', True))
+CHECK_WGET_CERT_STR = '--no-check-certificate' if not ROSETTA_AGENT_CHECK_SSL else ''
 
 class ComputingManager(object):
     
@@ -269,7 +272,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp && mkdir -p /tmp/{}_data/home && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid) 
-            run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export BASE_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
+            run_command += 'wget {} {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export BASE_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(CHECK_WGET_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT {} {} &&'.format(authstring, varsstring)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)
             
@@ -332,7 +335,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             
             run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
-            run_command += 'wget {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
+            run_command += 'wget {} {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(CHECK_WGET_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup {} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)        
             if container_engine == 'podman':
                 run_command += '--network=private --uts=private --userns=keep-id '
@@ -522,7 +525,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
                         binds += ',{}:{}'.format(expanded_base_path, expanded_bind_path)
 
             run_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
-            run_command += '\'bash -c "echo \\"#!/bin/bash\nwget {}/api/v1/base/agent/?task_uuid={} -O \$HOME/agent_{}.py &> \$HOME/{}.log && export BASE_PORT=\\\\\\$(python \$HOME/agent_{}.py 2> \$HOME/{}.log) && '.format(webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
+            run_command += '\'bash -c "echo \\"#!/bin/bash\nwget {} {}/api/v1/base/agent/?task_uuid={} -O \$HOME/agent_{}.py &> \$HOME/{}.log && export BASE_PORT=\\\\\\$(python \$HOME/agent_{}.py 2> \$HOME/{}.log) && '.format(CHECK_WGET_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\\\\\\$BASE_PORT {} {} && '.format(authstring, varsstring)
             run_command += 'rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp &>> \$HOME/{}.log && mkdir -p /tmp/{}_data/home &>> \$HOME/{}.log && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup singularity run {} --pid --writable-tmpfs --no-home --home=/home/metauser --workdir /tmp/{}_data/tmp -B/tmp/{}_data/home:/home --containall --cleanenv '.format(binds, task.uuid, task.uuid)

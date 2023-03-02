@@ -11,7 +11,7 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
-from .utils import format_exception, send_email, os_shell, now_t, get_ssh_access_mode_credentials, get_or_create_container_from_repository
+from .utils import format_exception, send_email, os_shell, now_t, get_ssh_access_mode_credentials, get_or_create_container_from_repository, booleanize
 from .models import Profile, Task, TaskStatuses, Computing, Storage, KeyPair
 from .exceptions import ConsistencyException
 import json
@@ -19,6 +19,7 @@ import json
 # Setup logging
 logger = logging.getLogger(__name__)
 
+ROSETTA_AGENT_CHECK_SSL = booleanize(os.environ.get('ROSETTA_AGENT_CHECK_SSL', True))
 
 #==============================
 #  Common returns
@@ -252,13 +253,16 @@ import socket
 try:
     from urllib.request import urlopen
 except ImportError:
-    from urllib import urlopen
+    from urllib2 import urlopen
+import ssl
 
 # Setup logging
 logger = logging.getLogger('Agent')
 logging.basicConfig(level=logging.INFO)
 
 hostname = socket.gethostname()
+
+check_ssl='''+str(ROSETTA_AGENT_CHECK_SSL)+'''
 
 # Task id set by the API
 task_uuid = "'''+ task_uuid  +'''"
@@ -292,8 +296,16 @@ while True:
         break
 logger.info(' - ports: "{},{},{}"'.format(port, port+1, port+2))
 
-response = urlopen("'''+webapp_conn_string+'''/api/v1/base/agent/?task_uuid={}&action=set_ip_port&ip={}&port={}".format(task_uuid, ip, port))
+if not check_ssl:
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    response = urlopen("'''+webapp_conn_string+'''/api/v1/base/agent/?task_uuid={}&action=set_ip_port&ip={}&port={}".format(task_uuid, ip, port), context=context)
+else:
+    response = urlopen("'''+webapp_conn_string+'''/api/v1/base/agent/?task_uuid={}&action=set_ip_port&ip={}&port={}".format(task_uuid, ip, port))
+
 response_content = response.read() 
+
 if response_content not in ['OK', b'OK']:
     logger.error(response_content)
     logger.info('Not everything OK, exiting with status code =1')
