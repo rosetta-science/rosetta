@@ -1,10 +1,12 @@
 import os
+import pytz
 import uuid
 import json
 import requests
 import socket
 import subprocess
 import base64
+import datetime
 from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
@@ -358,7 +360,10 @@ def set_verified_status(task):
             #    raise Exception('Could not read any data from socket')
         except Exception as e:
             logger.debug('Could not connect to socket')
-            task.verified_status = 'starting up...'
+            if (pytz.UTC.localize(datetime.datetime.now())-task.created) > datetime.timedelta(hours=1):
+                task.verified_status = 'not working / killed'
+            else:
+                task.verified_status = 'starting up...'
         else:
             task.verified_status = 'running'
         finally:
