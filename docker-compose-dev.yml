@@ -69,8 +69,9 @@ services:
       - DJANGO_DEBUG=True
       - DJANGO_LOG_LEVEL=CRITICAL
       - ROSETTA_LOG_LEVEL=DEBUG
-      #- ROSETTA_WEBAPP_HOST=localhost # Internal, for the agent
-      #- ROSETTA_WEBAPP_PORT=8080      # Internal, for the agent
+      #- ROSETTA_WEBAPP_SSL=False      # Used for the agent.
+      #- ROSETTA_WEBAPP_HOST=          # Used for the agent, can be internal. Defaults to webapp IP.
+      #- ROSETTA_WEBAPP_PORT=8080      # Used for the agent, can be internal.
       #- ROSETTA_REGISTRY_HOST=proxy
       #- ROSETTA_REGISTRY_PORT=5000
       #- DJANGO_EMAIL_APIKEY=""

@@ -504,9 +504,13 @@ def get_my_ip():
     return my_ip
 
 def get_webapp_conn_string():
+    webapp_ssl  = booleanize(os.environ.get('ROSETTA_WEBAPP_SSL', False))
     webapp_host = os.environ.get('ROSETTA_WEBAPP_HOST', get_my_ip())
     webapp_port = os.environ.get('ROSETTA_WEBAPP_PORT', '8080')
-    webapp_conn_string = 'http://{}:{}'.format(webapp_host, webapp_port)
+    if webapp_ssl:
+        webapp_conn_string = 'https://{}:{}'.format(webapp_host, webapp_port)
+    else:
+        webapp_conn_string = 'http://{}:{}'.format(webapp_host, webapp_port)
     return webapp_conn_string
 
 def get_platform_registry():
