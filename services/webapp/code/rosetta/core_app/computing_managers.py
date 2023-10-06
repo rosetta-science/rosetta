@@ -203,7 +203,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
         logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # Get webapp conn string
         from.utils import get_webapp_conn_string
@@ -270,7 +270,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                     else:
                         binds += ',{}:{}'.format(expanded_base_path, expanded_bind_path)
             
-            run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
+            run_command  = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_port, computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp && mkdir -p /tmp/{}_data/home && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {} {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export BASE_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(CHECK_WGET_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\$BASE_PORT {} {} &&'.format(authstring, varsstring)
@@ -333,7 +333,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             # TODO: remove this hardcoding
             prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
             
-            run_command  = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
+            run_command  = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_port, computing_keys.private_key_file, computing_user, computing_host)
             run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid) 
             run_command += 'wget {} {}/api/v1/base/agent/?task_uuid={} -O /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(CHECK_WGET_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup {} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)        
@@ -367,7 +367,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
     def _stop_task(self, task, **kwargs):
 
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # Handle container engine
         container_engine = None
@@ -385,7 +385,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
 
-        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_keys.private_key_file, computing_user, computing_host, internal_stop_command)
+        stop_command = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, internal_stop_command)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             if ('No such process' in out.stderr) or ('No such container' in out.stderr) or ('no container' in out.stderr) or ('missing' in out.stderr):
@@ -401,7 +401,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
     def _get_task_log(self, task, **kwargs):
 
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
         
         # Handle container engine
         container_engine = None
@@ -421,7 +421,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
             
         # Prepare full comand
-        view_log_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_keys.private_key_file, computing_user, computing_host, internal_view_log_command)
+        view_log_command = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, internal_view_log_command)
 
         # Execute
         out = os_shell(view_log_command, capture=True)
@@ -437,7 +437,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         logger.debug('Starting a remote task "{}"'.format(self.computing))
 
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # Get webapp conn string
         from.utils import get_webapp_conn_string
@@ -524,7 +524,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
                     else:
                         binds += ',{}:{}'.format(expanded_base_path, expanded_bind_path)
 
-            run_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_keys.private_key_file, computing_user, computing_host)
+            run_command = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_port, computing_keys.private_key_file, computing_user, computing_host)
             run_command += '\'bash -c "echo \\"#!/bin/bash\nwget {} {}/api/v1/base/agent/?task_uuid={} -O \$HOME/agent_{}.py &> \$HOME/{}.log && export BASE_PORT=\\\\\\$(python \$HOME/agent_{}.py 2> \$HOME/{}.log) && '.format(CHECK_WGET_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'export SINGULARITY_NOHTTPS=true && export SINGULARITYENV_BASE_PORT=\\\\\\$BASE_PORT {} {} && '.format(authstring, varsstring)
             run_command += 'rm -rf /tmp/{}_data && mkdir -p /tmp/{}_data/tmp &>> \$HOME/{}.log && mkdir -p /tmp/{}_data/home &>> \$HOME/{}.log && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid, task.uuid, task.uuid, task.uuid)
@@ -568,7 +568,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
     def _stop_task(self, task, **kwargs):
         
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # Stop the task remotely
         stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(computing_keys.private_key_file, computing_user, computing_host, task.id)
@@ -584,10 +584,10 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
     def _get_task_log(self, task, **kwargs):
         
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # View log remotely
-        view_log_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "cat \$HOME/{}.log"\''.format(computing_keys.private_key_file, computing_user, computing_host, task.uuid)
+        view_log_command = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "cat \$HOME/{}.log"\''.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, task.uuid)
 
         out = os_shell(view_log_command, capture=True)
         if out.exit_code != 0:

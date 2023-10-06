@@ -405,13 +405,13 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             dest = dest.replace('\ ', '\\\\\\ ')
         
         # Get credentials
-        computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(computing, user)
+        computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(computing, user)
 
         # Command
         if mode=='get':
-            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(computing_keys.private_key_file, computing_user, computing_host, source, dest)
+            command = 'scp -P {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, source, dest)
         elif mode == 'put':
-            command = 'scp -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(computing_keys.private_key_file, source, computing_user, computing_host, dest)
+            command = 'scp -P -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(computing_port, computing_keys.private_key_file, source, computing_user, computing_host, dest)
         else:
             raise ValueError('Unknown mode "{}"'.format(mode))
 
@@ -423,10 +423,10 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         if storage.access_mode == 'ssh+cli':
             if storage.access_through_computing:
                 # Get credentials
-                computing_user, computing_host, computing_keys = get_ssh_access_mode_credentials(storage.computing, user)
+                computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(storage.computing, user)
         
                 # Command
-                command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(computing_keys.private_key_file, computing_user, computing_host, command)
+                command = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} "{}"'.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, command)
             else:
                 raise NotImplementedError('Not accessing through computing is not implemented for storage type "{}"'.format(storage.type))               
         elif storage.access_mode == 'cli':
