@@ -339,37 +339,9 @@ def account(request):
 
 
 
-
 #=========================
 #  Tasks view
 #=========================
-
-def set_verified_status(task):
-    # Chech status with ping
-    if task.status == 'running':
-        logger.debug('Task is running, check if startup completed')
-
-        logger.debug('Trying to establish connection on: "{}:{}"'.format(task.interface_ip,task.interface_port))
-        s = socket.socket()
-        try:
-            s.settimeout(1)
-            s.connect((task.interface_ip, task.interface_port))
-            # Not necessary, we just check that the container interfcae is up
-            #if not s.recv(10):
-            #    logger.debug('No data read from socket')
-            #    raise Exception('Could not read any data from socket')
-        except Exception as e:
-            logger.debug('Could not connect to socket')
-            if (pytz.UTC.localize(datetime.datetime.now())-task.created) > datetime.timedelta(hours=1):
-                task.verified_status = 'not working / killed'
-            else:
-                task.verified_status = 'starting up...'
-        else:
-            task.verified_status = 'running'
-        finally:
-            s.close()
-    else:
-        task.verified_status = task.status
 
 @private_view
 def tasks(request):
@@ -397,8 +369,7 @@ def tasks(request):
                 task = Task.objects.get(user=request.user, uuid=uuid)
             except Task.DoesNotExist:
                 raise ErrorMessage('Task does not exists or no access rights')
-            
-            set_verified_status(task)
+
             data['task'] = task
             
             #  Task actions
@@ -479,7 +450,6 @@ def tasks(request):
         # Update task statuses
         for task in tasks:
             task.update_status()
-            set_verified_status(task)
         
         # Set task and tasks variables
         data['task']  = None   
@@ -1154,7 +1124,6 @@ def task_connect(request):
     if not task_uuid:
         raise ErrorMessage('Empty task uuid')
 
-
     # Get the task     
     task = Task.objects.get(uuid=task_uuid)
     
@@ -1163,6 +1132,28 @@ def task_connect(request):
 
     # Ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
+
+    # Check if task interface is up
+    if task.status == 'running':
+        logger.debug('Checking if task interface is running by trying to establish connection via local tunnel on port "{}"'.format(task.tcp_tunnel_port))
+        s = socket.socket()
+        try:
+            s.settimeout(1)
+            s.connect(('127.0.0.1', task.tcp_tunnel_port))
+            # Not necessary, we just check that the container interfcae is up
+            #if not s.recv(10):
+            #    logger.debug('No data read from socket')
+            #    raise Exception('Could not read any data from socket')
+        except Exception:
+            logger.debug('Could not connect to task interface')
+            task.interface_status = 'unknown'
+        else:
+            logger.debug('task interface is answering')
+            task.interface_status = 'running'
+        finally:
+            s.close()
+    else:
+        task.interface_status = 'unknown'
 
     data ={}
     data['task'] = task

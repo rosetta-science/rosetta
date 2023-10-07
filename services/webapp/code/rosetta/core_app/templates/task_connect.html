@@ -3,6 +3,7 @@
 {% include "navigation.html"%}
 <!-- with body_args="style='background: #202020'" -->
     <center>
+    
     <div style="width:370px;">
       <form class="form-signin" role="form" action='/direct_connect/{{data.task.uuid}}/' method='POST'>
         {% csrf_token %}
@@ -13,6 +14,14 @@
         <h2> Connecting to task <b>{{ data.task.name }}</b></h2>
         <p style="font-size: 16px;">
         <br />
+        
+        {% if not data.task.interface_status == 'running' %}
+        <br/>
+        <div class="alert alert-warning" role="alert"><i class="fa fa-warning"></i> the task interface is not up, cannot connect.</div>
+        Please check the <a href="/task_log/?uuid={{ data.task.uuid }}&action=viewlog">task logs</a>.
+        <br/><br/>
+        <i>Note: if you just launched the task, this alert might be due to the normal task startup time.</i>
+        {% else %}
         
         {% if not data.task.requires_proxy_auth %}
         {% if data.task.container.interface_auth_user %}
@@ -75,20 +84,21 @@
         <b>Port:</b> <code>{{ data.task.tcp_tunnel_port}}</code>
         </p>
         {% endif %}
-        
+        {% endif%}
         
         </p>
         
       </form>      
     </div>
     <br /><br />
-    
+    {% if data.task.interface_status == 'running' %}
     {% if data.task.requires_proxy_auth %}
     <p style="margin-left:10px; font-size:0.9em; color:rgb(200,200,200); max-width:600px">
     <i class="fa fa-info-warning" style="color:#337ab7"></i>
     Some web browsers (i.e. Safari) might require to manually re-enter the above user credentials. You can copy-paste them, or switch
     to a web browser which supports embedding user credentials in the connection URL (as Chorme, Edge or Firefox). 
     </p>
+    {% endif %}
     {% endif %}
     <br /><br /><br />
     </center>
