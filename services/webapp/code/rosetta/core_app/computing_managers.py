@@ -571,7 +571,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # Stop the task remotely
-        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(computing_keys.private_key_file, computing_user, computing_host, task.id)
+        stop_command = 'ssh -o -p {} LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, task.id)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             raise Exception(out.stderr)
