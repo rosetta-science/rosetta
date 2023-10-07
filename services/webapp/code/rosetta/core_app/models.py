@@ -286,7 +286,7 @@ class Task(models.Model):
     interface_port = models.IntegerField('Interface port', blank=True, null=True) 
     
     # Task access
-    requires_tcp_tunnel = models.BooleanField('Requires a TCP tunnel')
+    requires_tcp_tunnel = models.BooleanField('Requires TCP tunnel')
     tcp_tunnel_port     = models.IntegerField('TCP tunnel port', blank=True, null=True)
     requires_proxy      = models.BooleanField('Requires proxy')
     requires_proxy_auth = models.BooleanField('Requires proxy auth')

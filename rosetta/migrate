@@ -6,4 +6,4 @@ if [ ! -d ./services ]; then
     exit 1
 fi
 
-rosetta/shell webapp "cd /opt/code && source /env.sh && source /db_conf.sh && BACKEND_LOG_LEVEL=ERROR python3 manage.py migrate"
+rosetta/shell webapp "cd /opt/code && source /env.sh && BACKEND_LOG_LEVEL=ERROR python3 manage.py migrate"
