@@ -288,8 +288,8 @@ to provide help, news and informations on your deployment. Or you can just ignor
 
 
             # Demo standalone platform computing plus conf
-            demo_standalone_computing_platform = Computing.objects.create(name = 'Demo Standalone Platform',
-                                                                          description = 'A demo standalone computing resource access as platform.',
+            demo_standalone_computing_platform = Computing.objects.create(name = 'Demo Standalone (as platform user)',
+                                                                          description = 'A demo standalone computing resource accessed as platform user.',
                                                                           type = 'standalone',
                                                                           arch = 'amd64',
                                                                           supported_archs = ['386'],
@@ -358,26 +358,4 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                        auth_mode = 'user_keys',
                                        base_path = '/shared/data/users/$SSH_USER',
                                        bind_path = '/storages/personal')
-
-
-            try:
-                demo_standalone_computing = Computing.objects.get(name='Demo Standalone Platform')
-                demo_computing_resources.append(demo_standalone_computing)
-
-                # Demo personal storage
-                Storage.objects.create(computing = computing,
-                                       access_through_computing = True,
-                                       name = 'Personal',
-                                       type = 'generic_posix',
-                                       access_mode = 'ssh+cli',
-                                       auth_mode = 'user_keys',
-                                       base_path = '/shared/data/users/$SSH_USER',
-                                       bind_path = '/storages/personal')
-
-            except:
-                pass
-
-
-
-
 
