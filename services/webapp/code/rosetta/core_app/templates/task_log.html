@@ -12,7 +12,7 @@
       <hr>
 
   
-      <b>ID:</b> {{ data.task.id }} &nbsp; &nbsp; 
+      <b>UUID:</b> {{ data.task.uuid }} &nbsp; &nbsp; 
       <b>Status:</b> {{ data.task.status }} &nbsp; &nbsp; 
       <b>Auto refresh:{{data.refresh}}</b>&nbsp;
       {% if not data.refresh %} OFF {% else %} <a href="?uuid={{data.task.uuid}}">OFF</a> {% endif %} | 

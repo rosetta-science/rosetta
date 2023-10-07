@@ -274,9 +274,10 @@ class Task(models.Model):
     name  = models.CharField('Name', max_length=36, blank=False, null=False)
 
     # Task management
-    id        = models.CharField('ID', max_length=64, blank=True, null=True) # i.e. Slurm job id, singularity PID, docker hash
-    status    = models.CharField('Status', max_length=36, blank=True, null=True)
-    created   = models.DateTimeField('Created on', default=timezone.now)
+    status     = models.CharField('Status', max_length=36, blank=True, null=True)
+    created    = models.DateTimeField('Created on', default=timezone.now)
+    process_id = models.CharField('Process ID', max_length=64, blank=True, null=True) # i.e. Singularity PID 
+    job_id = models.CharField('Job ID', max_length=64, blank=True, null=True) # i.e. Slurm job id 
 
     # How to reach the task interface. The IP has to be intended either as the container IP if this is directly
     # reachable (i.e. using a Docker or Kubernetes network) or as the host IP address, depending on the

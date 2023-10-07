@@ -132,7 +132,7 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
         #run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
         # Host name, image entry command
-        run_command += ' -h task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+        run_command += ' -h task-{} --name task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -140,37 +140,28 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
         # Run the task 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:
+            logger.error('Got error in starting task: {}'.format(out))
             raise Exception(out.stderr)
         else:
-            tid = out.stdout
-            logger.debug('Created task with id: "{}"'.format(tid))
-
+            
             # Get task IP address
-            out = os_shell('sudo docker inspect --format \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' ' + tid + ' | tail -n1', capture=True)
+            out = os_shell('export CONTAINER_ID=$(sudo docker ps -a --filter name=task-'+task.short_uuid+' --format {{.ID}}) && sudo docker inspect --format \'{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' $CONTAINER_ID | tail -n1', capture=True)
             if out.exit_code != 0:
                 raise Exception('Error: ' + out.stderr)
             task_ip = out.stdout
 
             # Set fields
-            task.id = tid
             task.status = TaskStatuses.running
             task.interface_ip = task_ip
             task.interface_port = task_port
 
             # Save
             task.save()
-        
-        # Wait 10 seconds to see if the task is still up...
-
 
     def _stop_task(self, task):
 
         # Delete the Docker container
-        standby_supported = False
-        if standby_supported:
-            stop_command = 'sudo docker stop {}'.format(task.id)
-        else:
-            stop_command = 'sudo docker stop {} && sudo docker rm {}'.format(task.id,task.id)
+        stop_command = 'export CONTAINER_ID=$(sudo docker ps -a --filter name=task-'+task.short_uuid+' --format {{.ID}}) && sudo docker stop $CONTAINER_ID && sudo docker rm $CONTAINER_ID'
     
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
@@ -187,7 +178,7 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
     def _get_task_log(self, task, **kwargs):
 
         # View the Docker container log (attach)
-        view_log_command = 'sudo docker logs {}'.format(task.id,)
+        view_log_command = 'export CONTAINER_ID=$(sudo docker ps -a --filter name=task-'+task.short_uuid+' --format {{.ID}}) && sudo docker logs $CONTAINER_ID'
         logger.debug(view_log_command)
         out = os_shell(view_log_command, capture=True)
         if out.exit_code != 0:
@@ -340,14 +331,15 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             if container_engine == 'podman':
                 run_command += '--network=private --uts=private --userns=keep-id '
             #run_command += '-d -t {}/{}:{}'.format(task.container.registry, task.container.image_name, task.container.image_tag)
-            run_command += '-h task-{} --name task-{} -t {}/{}:{}'.format(task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
-            run_command += '&>> /tmp/{}_data/task.log & echo $({} ps -a --filter name=task-{} --format="{{.ID}}")"\''.format(task.uuid, container_engine, task.short_uuid)
+            run_command += '-h task-{} --name task-{}  -t {}/{}:{}'.format(task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+            run_command += '&>> /tmp/{}_data/task.log &"\''.format(task.uuid)
             
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:
+            logger.error('Got error in starting task: {}'.format(out))
             raise Exception(out.stderr)
         
         # Log        
@@ -357,15 +349,16 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
         task_uuid = task.uuid
         task = Task.objects.get(uuid=task_uuid)
 
-        # Save pid echoed by the command above
-        task.id = out.stdout
+        # Save the task (container) id for Singularity, which is the PID echoed by the command above
+        if container_engine == 'singularity':
+            task.process_id = out.stdout
 
         # Save
         task.save()
 
 
     def _stop_task(self, task, **kwargs):
-
+        
         # Get credentials
         computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
@@ -377,20 +370,23 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             container_engine = task.computing.default_container_engine
 
         if container_engine=='singularity':
-            internal_stop_command = 'kill -9 {}'.format(task.id)            
+            internal_stop_command = 'kill -9 {}'.format(task.process_id)            
         elif container_engine in ['docker', 'podman']:
             # TODO: remove this hardcoding
             prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
-            internal_stop_command = '{} {} stop {} && {} {} rm {}'.format(prefix,container_engine,task.id,prefix,container_engine,task.id)
+            internal_stop_command = 'export CONTAINER_ID=$('+prefix+' '+container_engine+' ps -a --filter name=task-'+task.short_uuid+' --format {{.ID}}) &&'
+            internal_stop_command += 'if [ "x$CONTAINER_ID" != "x" ]; then {} {} stop $CONTAINER_ID && {} {} rm $CONTAINER_ID; fi'.format(prefix,container_engine,prefix,container_engine)
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
 
         stop_command = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "{}"\''.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, internal_stop_command)
         out = os_shell(stop_command, capture=True)
+        
         if out.exit_code != 0:
             if ('No such process' in out.stderr) or ('No such container' in out.stderr) or ('no container' in out.stderr) or ('missing' in out.stderr):
                 pass
             else:
+                logger.critical('Got error in stopping task: {}'.format(out))
                 raise Exception(out.stderr)
 
         # Set task as stopped
@@ -413,9 +409,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
         if container_engine=='singularity':
             internal_view_log_command = 'cat /tmp/{}_data/task.log'.format(task.uuid)            
         elif container_engine in ['docker','podman']:
-            # TODO: remove this hardcoding
-            #prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
-            #internal_view_log_command = '{} {} logs {}'.format(prefix,container_engine,task.id)
+            # TODO: consider podman/docker logs?
             internal_view_log_command = 'cat /tmp/{}_data/task.log'.format(task.uuid)
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
@@ -538,6 +532,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
 
         out = os_shell(run_command, capture=True)
         if out.exit_code != 0:
+            logger.error('Got error in starting task: {}'.format(out))
             raise Exception(out.stderr)
 
         # Log        
@@ -554,8 +549,8 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         task_uuid = task.uuid
         task = Task.objects.get(uuid=task_uuid)
 
-        # Save job id as task id
-        task.id = job_id
+        # Save job id
+        task.job_id = job_id
         
         # Set status (only fi we get here before the agent which sets the status as running via the API)
         if task.status != TaskStatuses.running:
@@ -571,7 +566,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(self.computing, task.user)
 
         # Stop the task remotely
-        stop_command = 'ssh -o -p {} LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, task.id)
+        stop_command = 'ssh -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} \'/bin/bash -c "scancel {}"\''.format(computing_keys.private_key_file, computing_user, computing_host, task.job_id)
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             raise Exception(out.stderr)
