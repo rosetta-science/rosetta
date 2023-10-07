@@ -340,8 +340,8 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             if container_engine == 'podman':
                 run_command += '--network=private --uts=private --userns=keep-id '
             #run_command += '-d -t {}/{}:{}'.format(task.container.registry, task.container.image_name, task.container.image_tag)
-            run_command += '-h task-{} -t {}/{}:{}'.format(task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
-            run_command += '&>> /tmp/{}_data/task.log & echo \$!"\''.format(task.uuid)
+            run_command += '-h task-{} --name task-{} -t {}/{}:{}'.format(task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+            run_command += '&>> /tmp/{}_data/task.log & echo $({} ps -a --filter name=task-{} --format="{{.ID}}")"\''.format(task.uuid, container_engine, task.short_uuid)
             
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
