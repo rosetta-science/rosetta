@@ -1132,28 +1132,42 @@ def task_connect(request):
 
     # Ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
+    
+    # Set default interface status as unknown
+    task.interface_status = 'unknown'
 
     # Check if task interface is up
     if task.status == 'running':
+
         logger.debug('Checking if task interface is running by trying to establish connection via local tunnel on port "{}"'.format(task.tcp_tunnel_port))
-        s = socket.socket()
-        try:
-            s.settimeout(1)
-            s.connect(('127.0.0.1', task.tcp_tunnel_port))
-            # Not necessary, we just check that the container interfcae is up
-            #if not s.recv(10):
-            #    logger.debug('No data read from socket')
-            #    raise Exception('Could not read any data from socket')
-        except Exception:
-            logger.debug('Could not connect to task interface')
-            task.interface_status = 'unknown'
+
+        if task.container.interface_protocol.startswith('http'):
+            try:
+                if task.requires_tcp_tunnel:
+                    requests.get('{}://localhost:{}'.format(task.container.interface_protocol, task.tcp_tunnel_port), timeout=3)
+                else:
+                    requests.get('{}://{}:{}'.format(task.container.interface_protocol, task.interface_ip, task.interface_port), timeout=3)
+                logger.debug('Task interface is answering')
+                task.interface_status = 'running'
+            except Exception as e:
+                logger.debug('Could not connect to task interface ({})'.format(e))
+
         else:
-            logger.debug('task interface is answering')
-            task.interface_status = 'running'
-        finally:
-            s.close()
-    else:
-        task.interface_status = 'unknown'
+            pass
+            # # TODO: the following raises a TimeoutError even if the connection is active and with requests work. Why?
+            # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            #     s.settimeout(3)
+            #     try:
+            #         s.connect(('localhost', task.tcp_tunnel_port))
+            #         if not s.recv(10):
+            #             logger.debug('No data read from socket')
+            #             raise Exception('Could not read any data from socket')
+            #     except Exception as e:
+            #         logger.debug('Could not connect to task interface via socket ({})'.format(e))
+            #         task.interface_status = 'unknown'
+            #     else:
+            #         logger.debug('Task interface is answering via socket')
+            #         task.interface_status = 'running'
 
     data ={}
     data['task'] = task
