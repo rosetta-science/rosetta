@@ -560,7 +560,7 @@ def get_ssh_access_mode_credentials(computing, user):
         computing_port = computing.conf.get('port')
     except AttributeError:
         computing_port = 22
-    if not computing_host:
+    if not computing_port:
         computing_port = 22
       
     # Get computing user and keys
