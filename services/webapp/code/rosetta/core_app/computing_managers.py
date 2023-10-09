@@ -375,7 +375,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             # TODO: remove this hardcoding
             prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
             internal_stop_command = 'export CONTAINER_ID=$('+prefix+' '+container_engine+' ps -a --filter name=task-'+task.short_uuid+' --format {{.ID}}) &&'
-            internal_stop_command += 'if [ "x$CONTAINER_ID" != "x" ]; then {} {} stop $CONTAINER_ID && {} {} rm $CONTAINER_ID; fi'.format(prefix,container_engine,prefix,container_engine)
+            internal_stop_command += 'if [ "x\$CONTAINER_ID" != "x" ]; then {} {} stop \$CONTAINER_ID && {} {} rm \$CONTAINER_ID; fi'.format(prefix,container_engine,prefix,container_engine)
         else:
             raise NotImplementedError('Container engine {} not supported'.format(container_engine))
 
