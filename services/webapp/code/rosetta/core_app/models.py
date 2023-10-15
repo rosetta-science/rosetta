@@ -140,6 +140,7 @@ class Container(models.Model):
     supports_custom_interface_port = models.BooleanField('Supports custom interface port', default=False) # BASE_PORT
     supports_interface_auth = models.BooleanField('Supports interface auth', default=False) # AUTH_USER / AUTH_PASS
     interface_auth_user = models.CharField('Interface auth fixed user if any', max_length=36, blank=True, null=True)
+    disable_http_basicauth_embedding = models.BooleanField('Disable HTTP basicauth credentials embedding', default=False)
 
     # Env vars for some container control
     env_vars = JSONField('Container env vars', blank=True, null=True)

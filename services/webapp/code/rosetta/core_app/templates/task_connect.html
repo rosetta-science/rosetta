@@ -38,6 +38,12 @@
         
           {% if data.task.auth_token %}
           Password: <input type="text" size=37 class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
+          {% if data.task.container.disable_http_basicauth_embedding %}
+          <p style="margin-left:10px; margin-top:30px; font-size:0.9em; color:#484848">
+          <i class="fa fa-info-circle" style="color:#337ab7"></i>
+          This task will require to manually enter the above user and password token
+          </p>
+          {% endif %}
           {% else %}
           Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' readonly>
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
@@ -50,7 +56,7 @@
         
           {% if data.task.auth_token %}
           Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
-          <p style="margin-left:10px; font-size:0.9em; color:#484848">
+          <p style="margin-left:10px; margin-top:30px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
           {% if not data.task.requires_proxy_auth and data.task.container.interface_auth_user %}
           This task will require to manually enter the above user and password token
@@ -60,7 +66,7 @@
           </p> 
           {% else %}
           Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' readonly>
-          <p style="margin-left:10px; font-size:0.9em; color:#484848">
+          <p style="margin-left:10px; margin-top:30px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
           {% if not data.task.requires_proxy_auth and data.task.container.interface_auth_user %}
           This task will require to manually enter the above user and the password set up when creating the task
@@ -85,16 +91,15 @@
         </p>
         {% endif %}
         {% endif%}
-        
         </p>
         
       </form>      
     </div>
     <br /><br />
     {% if data.task.interface_status == 'running' %}
-    {% if data.task.requires_proxy_auth %}
+    {% if data.task.requires_proxy_auth and not data.task.container.disable_http_basicauth_embedding %}
     <p style="margin-left:10px; font-size:0.9em; color:rgb(200,200,200); max-width:600px">
-    <i class="fa fa-info-warning" style="color:#337ab7"></i>
+    <i class="fa fa-info-circle"></i>
     Some web browsers (i.e. Safari) might require to manually re-enter the above user credentials. You can copy-paste them, or switch
     to a web browser which supports embedding user credentials in the connection URL (as Chorme, Edge or Firefox). 
     </p>

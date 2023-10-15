@@ -975,10 +975,16 @@ def add_software(request):
     
             container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
             if container_supports_interface_auth and container_supports_interface_auth == 'True':
-                container_supports_pass_auth = True
+                container_supports_interface_auth = True
             else:
-                container_supports_pass_auth = False
-    
+                container_supports_interface_auth = False
+
+            container_disable_http_basicauth_embedding = request.POST.get('container_disable_http_basicauth_embedding', None)
+            if container_disable_http_basicauth_embedding and container_disable_http_basicauth_embedding == 'True':
+                container_disable_http_basicauth_embedding = True
+            else:
+                container_disable_http_basicauth_embedding = False           
+
             # Environment variables
             container_env_vars = request.POST.get('container_env_vars', None)
             if container_env_vars:
@@ -1001,7 +1007,8 @@ def add_software(request):
                                      interface_protocol  = container_interface_protocol,
                                      interface_transport = container_interface_transport,
                                      supports_custom_interface_port = container_supports_custom_interface_port,
-                                     supports_interface_auth = container_supports_pass_auth,
+                                     supports_interface_auth = container_supports_interface_auth,
+                                     disable_http_basicauth_embedding = container_disable_http_basicauth_embedding,
                                      env_vars = container_env_vars)
             
         elif new_container_from == 'repository':
@@ -1170,8 +1177,7 @@ def task_connect(request):
             #         task.interface_status = 'running'
 
     data ={}
-    data['task'] = task
-    
+    data['task'] = task    
     return render(request, 'task_connect.html', {'data': data})
 
 
@@ -1198,7 +1204,7 @@ def direct_connection_handler(request, uuid):
 
     # Redirect to the task through the tunnel    
     if task.requires_proxy:
-        if task.requires_proxy_auth and task.auth_token:
+        if task.requires_proxy_auth and task.auth_token and not task.container.disable_http_basicauth_embedding:
             user = request.user.email
             password = task.auth_token
             redirect_string = 'https://{}:{}@{}:{}'.format(user, password, rosetta_tasks_proxy_host, task.tcp_tunnel_port)        

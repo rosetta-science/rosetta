@@ -101,7 +101,19 @@
            <input type="checkbox" name="supports_interface_auth" checked disabled/> 
          {% else %}
            <input type="checkbox" name="supports_interface_auth" disabled/> 
-         {% endif %}        </td>
+         {% endif %}
+         </td>
+       </tr>
+
+       <tr>
+        <td colspan=2>
+         <b>Disable HTTP auth embedding</b> &nbsp; 
+         {% if container.disable_http_basicauth_embedding %}
+           <input type="checkbox" name="disable_http_basicauth_embedding" checked disabled/> 
+         {% else %}
+           <input type="checkbox" name="disable_http_basicauth_embedding" disabled/> 
+         {% endif %}
+         </td>
        </tr>
 
        {% if container.env_vars %}
@@ -114,7 +126,7 @@
        {% if container.user %}
        <tr>
         <td><b>Operations</b></td>
-        <td><a href="?action=delete&uuid={{ container.uuid }}">Delete</a></td>
+        <td><a href="?action=delete&container_uuid={{ container.uuid }}">Delete</a></td>
        </tr>
        {% endif %}
       </table>
