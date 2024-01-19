@@ -11,7 +11,7 @@ RUN apt-get update
 #------------------------
 
 # Add repo
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
+RUN echo "deb https://apt-archive.postgresql.org/pub/repos/apt bionic-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
 COPY ACCC4CF8.asc /tmp/ACCC4CF8.asc 
 RUN sudo apt-key add /tmp/ACCC4CF8.asc 
 
