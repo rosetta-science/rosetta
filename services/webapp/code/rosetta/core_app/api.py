@@ -210,20 +210,6 @@ class logout_api(PrivateGETAPI):
         return ok200()
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows Users to be viewed or edited.
-    """
-
-    class UserSerializer(serializers.HyperlinkedModelSerializer):
-        class Meta:
-            model = User
-            fields = ('url', 'username', 'email', 'groups')
-
-    queryset = User.objects.all().order_by('-date_joined')    
-    serializer_class = UserSerializer
-
-
 class agent_api(PublicGETAPI):
     
     def _get(self, request):

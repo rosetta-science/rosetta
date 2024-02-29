@@ -34,9 +34,6 @@ from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 from rest_framework_swagger.views import get_swagger_view
 
-core_app_api_router = routers.DefaultRouter()
-core_app_api_router.register(r'users', core_app_api.UserViewSet)
-
 urlpatterns = [
                
     # Pages
