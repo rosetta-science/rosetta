@@ -46,6 +46,12 @@
             <div style="margin-top:2px">
             {% if task.status == "running" %}
              <b>Status:</b> <font color="green">running</font>
+             {% if task.container.interface_protocol == 'http' or task.container.interface_protocol == 'https' %}
+             {% else %}
+             @ port {{ task.tcp_tunnel_port }} 
+             {% endif %}
+             
+             
             {% else %}
              <b>Status:</b> {{ task.status }}
             {% endif %}
@@ -63,10 +69,12 @@
             
             <!-- Connect -->
             {% if task.interface_port %}
+            {% if task.container.interface_protocol == 'http' or task.container.interface_protocol == 'https' %}
             {% if task.status == "running" %}
             <a href="/task_connect/?uuid={{task.uuid}}" class="btn btn-connect">Connect</a>
             {% else %}
             <a href="" class="btn btn-disabled">Connect</a>  
+            {% endif %}
             {% endif %}
             {% endif %}
                         

@@ -1,6 +1,6 @@
 import os
 from .models import TaskStatuses, KeyPair, Task, Storage
-from .utils import os_shell, get_ssh_access_mode_credentials, sanitize_container_env_vars, booleanize
+from .utils import os_shell, get_ssh_access_mode_credentials, sanitize_container_env_vars, booleanize, setup_tunnel_and_proxy
 from .exceptions import ErrorMessage, ConsistencyException
 from django.conf import settings
 
@@ -179,6 +179,10 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
 
             # Save
             task.save()
+        
+        # Setup the tunnel if using a custom protocol (otherwise it will get set up via the "connect" button)
+        if task.container.interface_protocol not in ['http', 'https']:
+            setup_tunnel_and_proxy(task)
 
     def _stop_task(self, task):
 
@@ -381,6 +385,10 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
 
         # Save
         task.save()
+
+        # Setup the tunnel if using a custom protocol (otherwise it will get set up via the "connect" button)
+        if task.container.interface_protocol not in ['http', 'https']:
+            setup_tunnel_and_proxy(task)
 
 
     def _stop_task(self, task, **kwargs):
@@ -585,6 +593,9 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
         # Save
         task.save()
 
+        # Setup the tunnel if using a custom protocol (otherwise it will get set up via the "connect" button)
+        if task.container.interface_protocol not in ['http', 'https']:
+            setup_tunnel_and_proxy(task)
 
     def _stop_task(self, task, **kwargs):
         
