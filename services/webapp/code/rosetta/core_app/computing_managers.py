@@ -131,8 +131,30 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
         # User data volume
         #run_command += ' -v {}/user-{}:/data'.format(settings.LOCAL_USER_DATA_DIR, task.user.id)
 
+        # Handle storages (binds)
+        binds = ''
+        storages = Storage.objects.filter(computing=self.computing)
+        for storage in storages:
+            if storage.type == 'generic_posix' and storage.bind_path:
+                
+                # Expand the base path
+                expanded_base_path = storage.base_path        
+                if '$USER' in expanded_base_path:
+                    expanded_base_path = expanded_base_path.replace('$USER', task.user.username)
+                    
+                # Expand the bind_path
+                expanded_bind_path = storage.bind_path        
+                if '$USER' in expanded_bind_path:
+                    expanded_bind_path = expanded_bind_path.replace('$USER', task.user.username)
+                    
+                # Add the bind
+                if not binds:
+                    binds = '-v{}:{}'.format(expanded_base_path, expanded_bind_path)
+                else:
+                    binds += ' -v{}:{}'.format(expanded_base_path, expanded_bind_path)
+
         # Host name, image entry command
-        run_command += ' -h task-{} --name task-{} -d -t {}/{}:{}'.format(task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
+        run_command += ' {} -h task-{} --name task-{} -d -t {}/{}:{}'.format(binds, task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
 
         # Debug
         logger.debug('Running new task with command="{}"'.format(run_command))
@@ -166,6 +188,10 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
         out = os_shell(stop_command, capture=True)
         if out.exit_code != 0:
             if 'No such container' in out.stderr:
+                # No container was found
+                pass
+            elif 'requires at least 1 argument' in out.stderr:
+                # No container was found
                 pass
             else:
                 raise Exception(out.stderr)

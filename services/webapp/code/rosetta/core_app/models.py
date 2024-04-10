@@ -398,7 +398,11 @@ class Storage(models.Model):
     # Include as browsable in the file manager?
     browsable = models.BooleanField('Browsable in the file manager?', default=True)
 
- 
+    def save(self, *args, **kwargs):
+        if self.access_mode == 'internal' and self.browsable:
+            raise ValueError('A storage with "internal" access mode cannot be marked as browsable since it is not yet supported by the file manager')
+        super(Storage, self).save(*args, **kwargs)
+
     class Meta:
         ordering = ['name']
  
