@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -6,24 +6,24 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1>Add software container</h1> 
+      <h1>Add software container</h1>
       <hr>
 
       {% if not data.added %}
 
           Here you can add a new software container on the platform. You can add containers from image registries
           as <a href="https://hub.docker.com/">Docker Hub </a>or by importing Git repositories, provided that they
-          are compatible with <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.          
+          are compatible with <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.
           <br/>
           <br/>
-          
+
           {% if data.new_container_from == 'registry' %}
           <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from registry</div>
-          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">New container from Git repository</a></div>         
+          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">New container from Git repository</a></div>
           <hr style="margin-top:0;">
 
-          <h4>Basics</h4> 
-                    
+          <h4>Basics</h4>
+
           <form action="#" method="POST">
           {% csrf_token %}
 
@@ -43,7 +43,7 @@
              ​<textarea name="container_description" rows="3" cols="22"></textarea>
             </td>
            </tr>
-    
+
            <tr>
             <td><b>Registry</b></td><td>
              <input type="text" name="container_registry" value="docker.io" size="23" required />
@@ -68,7 +68,7 @@
 
 
 
-          <h4>Interface </h4> 
+          <h4>Interface </h4>
           <table class="dashboard" style="width:400px; margin-bottom:25px">
 
            <tr>
@@ -80,7 +80,7 @@
             <td><b>Interface protocol</b></td>
             <td>
              {% if request.user.profile.is_power_user %}
-             <input type="text" value="http" name="container_interface_protocol" size="5" /> 
+             <input type="text" value="http" name="container_interface_protocol" size="5" />
              {% else %}
              <select name="container_interface_protocol" >
              <option value="http" selected>http</option>
@@ -91,13 +91,13 @@
            </tr>
            </table>
 
-           
+
            <a href="javascript:void(0);" id="show_button" onclick="toggle_visibility('advanced_div')">Advanced...</a>
-           
+
 
            <div id="advanced_div" style="display:none; width:400px;">
            <h4>Advanced <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('advanced_div')" style="display:none">hide</a></font></h4>
-  
+
            <table class="dashboard" style="width:400px; margin-bottom:25px">
 
            <tr>
@@ -130,21 +130,21 @@
 
            <tr>
             <td colspan=2>
-             <b>Supports custom interface port</b> &nbsp; 
+             <b>Supports custom interface port</b> &nbsp;
              <input type="checkbox" name="container_supports_custom_interface_port" value="True" />
             </td>
            </tr>
 
            <tr>
             <td colspan=2>
-             <b>Supports interface auth</b> &nbsp; 
+             <b>Supports interface auth</b> &nbsp;
              <input type="checkbox" name="container_supports_interface_auth" value="True" />
             </td>
            </tr>
 
            <tr>
             <td colspan=2>
-             <b>Disable HTTP auth embedding</b> &nbsp; 
+             <b>Disable HTTP auth embedding</b> &nbsp;
              <input type="checkbox" name="container_disable_http_basicauth_embedding" value="True" />
             </td>
            </tr>
@@ -158,7 +158,7 @@
 
           </table>
           </div>
-          
+
           <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
           <tr><td align="center">
           <input type="submit" value="Add">
@@ -166,17 +166,17 @@
           </table>
 
           <input type="hidden" name="new_container_from" value="registry">
-     
+
           </form>
 
 
           {% else %}
           <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=registry">New container from registry</a></div>
-          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from Git repository</div>         
+          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from Git repository</div>
           <hr style="margin-top:0;">
 
-          <h4>Basics</h4> 
-                    
+          <h4>Basics</h4>
+
           <form action="#" method="POST">
           {% csrf_token %}
 
@@ -196,7 +196,7 @@
              ​<textarea name="container_description" rows="3" cols="22"></textarea>
             </td>
            </tr>
-    
+
            <tr>
             <td><b>Repository URL</b></td><td>
              <input type="text" name="repository_url" size="23" required />
@@ -214,24 +214,23 @@
            </table>
 
 
-                    
+
           <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
           <tr><td align="center">
           <input type="submit" value="Add">
           </td></tr>
           </table>
-          
+
           <input type="hidden" name="new_container_from" value="repository">
-                 
-          </form>          
-          
-          
-          
+
+          </form>
+
+
+
           {% endif %}
 
 
 
-          <br/>          
           <br/>
           <br/>
           <br/>
@@ -240,21 +239,22 @@
           <br/>
           <br/>
           <br/>
-          
- 
+          <br/>
+
+
       {% else %}
         Ok, software container added. Go to <a href="/software">software</a>.
-        
 
-      {% endif %} 
-  
+
+      {% endif %}
+
       <br/>
       <br/>
       <br/>
       <br/>
       <br/>
       <br/>
-      
+
     </div>
   </div>
 </div>
@@ -270,7 +270,7 @@ function toggle_visibility(id) {
         x.style.display = "block";
         y.style.display = "none"
         z.style.display= "inline"
-        
+
       } else {
         x.style.display = "none";
         y.style.display= "inline"
@@ -278,6 +278,7 @@ function toggle_visibility(id) {
       }
     }
 </script>
+
 
 
 

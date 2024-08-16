@@ -38,7 +38,7 @@ _task_cache = {}
 def login_view(request):
 
     data = {}
-    
+
     # Set post login page
     post_login_page = request.COOKIES.get('post_login_redirect')
     if post_login_page is None:
@@ -93,9 +93,9 @@ def login_view(request):
                 if user.profile.auth == 'local':
 
                     logger.debug('Sending login token via mail to {}'.format(user.email))
-    
+
                     token = uuid.uuid4()
-    
+
                     # Create token or update if existent (and never used)
                     try:
                         loginToken = LoginToken.objects.get(user=user)
@@ -109,7 +109,7 @@ def login_view(request):
                     except Exception as e:
                         logger.error(format_exception(e))
                         raise ErrorMessage('Something went wrong. Please retry later.')
-    
+
                     # Return here, we don't want to give any hints about existing users
                     data['success'] = 'Ok, if we have your data you will receive a login link by email shortly.'
                     return render(request, 'success.html', {'data': data})
@@ -178,20 +178,20 @@ def register_view(request):
             email    = request.POST.get('email')
             password = request.POST.get('password')
             invitation = request.POST.get('invitation')
-            
+
             if settings.INVITATION_CODE:
                 if invitation != settings.INVITATION_CODE:
                     raise ErrorMessage('Wrong invitation code')
 
             if '@' not in email:
                 raise ErrorMessage('Detected invalid email address')
-            
+
             # Register the user
             user = User.objects.create_user(random_username(), password=password, email=email)
 
             # Is this necessary?
             user.save()
-            
+
             data['user'] = user
 
             finalize_user_creation(user)
@@ -199,7 +199,7 @@ def register_view(request):
             # Manually set the auth backend for the user
             user.backend = 'django.contrib.auth.backends.ModelBackend'
             login(request, user)
-            
+
             data['status'] = 'activated'
 
     # All other cases, render the login page again with no other data than title
@@ -218,7 +218,7 @@ def main_view(request):
 
     # Init data
     data = {}
-    
+
     # Get custom home page if any
     try:
         page = Page.objects.get(id='main')
@@ -234,7 +234,7 @@ def page_view(request, page_id):
 
     # Init data
     data = {}
-    
+
     # Get the page
     try:
         page = Page.objects.get(id=page_id)
@@ -321,7 +321,7 @@ def account(request):
             return render(request, 'error.html', {'data': data})
 
     # Lastly, do we have to remove an extra conf?
-    
+
     delete_extra_conf_uuid = request.GET.get('delete_extra_conf_uuid', None)
     if delete_extra_conf_uuid:
         #logger.debug('Deleting extra conf "{}"'.format(delete_extra_conf_uuid))
@@ -332,9 +332,9 @@ def account(request):
         profile.extra_confs = new_extra_confs
         profile.save()
         return redirect('/account')
-                
-            
-    
+
+
+
     return render(request, 'account.html', {'data': data})
 
 
@@ -357,13 +357,13 @@ def tasks(request):
     uuid    = request.GET.get('uuid', None)
     fromlist = request.GET.get('fromlist', False)
     details = booleanize(request.GET.get('details', None))
-    
+
 
     # Do we have to operate on a specific task?
     if uuid:
 
         try:
-            
+
             # Get the task (raises if none available including no permission)
             try:
                 task = Task.objects.get(user=request.user, uuid=uuid)
@@ -371,7 +371,7 @@ def tasks(request):
                 raise ErrorMessage('Task does not exists or no access rights')
 
             data['task'] = task
-            
+
             #  Task actions
             if action=='delete':
                 if task.status not in [TaskStatuses.stopped, TaskStatuses.exited]:
@@ -392,20 +392,20 @@ def tasks(request):
                         os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
                     except:
                         pass
-    
+
                     # Delete
                     task.delete()
-                    
+
                     # Unset task
-                    data['task'] = None    
-    
+                    data['task'] = None
+
                 except Exception as e:
                     data['error'] = 'Error in deleting the task'
                     logger.error('Error in deleting task with uuid="{}": "{}"'.format(uuid, e))
                     return render(request, 'error.html', {'data': data})
-                
 
-    
+
+
             elif action=='stop': # or delete,a and if delete also remove object
                 # Remove proxy files. Do it here or will cause issues when reloading the conf re-using ports of stopped tasks.
                 try:
@@ -416,7 +416,7 @@ def tasks(request):
                     os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
                 except:
                     pass
-                   
+
                 task.computing.manager.stop_task(task)
 
         except Exception as e:
@@ -441,18 +441,18 @@ def tasks(request):
 
         # Get all tasks for list
         try:
-            tasks = Task.objects.filter(user=request.user).order_by('created') 
+            tasks = Task.objects.filter(user=request.user).order_by('created')
         except Exception as e:
             data['error'] = 'Error in getting Tasks info'
             logger.error('Error in getting Virtual Devices: "{}"'.format(e))
             return render(request, 'error.html', {'data': data})
-    
+
         # Update task statuses
         for task in tasks:
             task.update_status()
-        
+
         # Set task and tasks variables
-        data['task']  = None   
+        data['task']  = None
         data['tasks'] = tasks
 
     return render(request, 'tasks.html', {'data': data})
@@ -473,7 +473,7 @@ def new_task(request):
     def get_task_container(request):
         task_container_uuid = request.POST.get('task_container_uuid', None)
         if not task_container_uuid:
-            # At the second step the task uuid is set via a GET request 
+            # At the second step the task uuid is set via a GET request
             task_container_uuid = request.GET.get('task_container_uuid', None)
         try:
             task_container = Container.objects.get(uuid=task_container_uuid, user=None)
@@ -493,7 +493,7 @@ def new_task(request):
             try:
                 task_computing =  Computing.objects.get(uuid=task_computing_uuid, group__user=request.user)
             except Computing.DoesNotExist:
-                raise Exception('Consistency error, computing with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_computing_uuid, request.user.email))        
+                raise Exception('Consistency error, computing with uuid "{}" does not exists or user "{}" does not have access rights'.format(task_computing_uuid, request.user.email))
         return task_computing
 
     # Get task name helper function
@@ -507,22 +507,22 @@ def new_task(request):
     step = request.POST.get('step', None)
     if not step:
         step = request.GET.get('step', None)
-    
+
 
     # Handle the various steps
     if not step:
-        
+
         # Step one is assumed: chose software container
         return HttpResponseRedirect('/software/?mode=new_task')
-        
+
     elif step == 'two':
-        
+
         # Get software container and arch
         data['task_container'] = get_task_container(request)
 
-        # List all computing resources 
+        # List all computing resources
         data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
-            
+
         data['step'] = 'two'
         data['next_step'] = 'three'
 
@@ -533,23 +533,23 @@ def new_task(request):
 
         # Get computing resource
         data['task_computing'] = get_task_computing(request)
-        
+
         # Check that container required architecture is compatible with the computing resource
         # TODO: support setting the container engine/engine when creating the task
         # TODO: refactor and unroll this code
         if data['task_computing'].supported_archs is None: data['task_computing'].supported_archs=[]
         if data['task_computing'].emulated_archs is None: data['task_computing'].emulated_archs={}
         data['arch_emulation'] = False
-        
+
         if data['task_container'].image_arch:
             if (data['task_container'].image_arch != data['task_computing'].arch) and (data['task_container'].image_arch not in data['task_computing'].supported_archs):
 
                 # Does container engines/engines support emulated archs?
                 if data['task_computing'].emulated_archs:
-                                        
+
                     # For now by default our container engine is the first one
                     container_engine = data['task_computing'].container_engines[0]
-                    
+
                     # Check for emulation against the engine
                     if container_engine in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_engine]:
                         data['arch_emulation'] = True
@@ -561,14 +561,14 @@ def new_task(request):
                         else:
                             container_engines = container_engine.split('[')[1].replace(']','').split(',')
                             return container_engines
-                        
+
                     for container_engine in get_engines(container_engine):
                         if container_engine in data['task_computing'].emulated_archs and data['task_container'].image_arch in data['task_computing'].emulated_archs[container_engine]:
                             data['arch_emulation'] = True
 
                     if not data['arch_emulation']:
                         raise ErrorMessage('This computing resource does not support architecture \'{}\' nor as native or emulated'.format(data['task_container'].image_arch))
-                
+
                 else:
                     raise ErrorMessage('This computing resource does not support architecture \'{}\' nor as native or emulated'.format(data['task_container'].image_arch))
 
@@ -576,7 +576,7 @@ def new_task(request):
             data['arch_auto_selection'] = True
             #raise ErrorMessage('Auto selecting architectures is not supported yet')
 
-        # Generate random auth token        
+        # Generate random auth token
         data['task_auth_token'] = str(uuid.uuid4())
 
         # Set current and next step
@@ -624,7 +624,7 @@ def new_task(request):
 
         # Any task requires the TCP tunnel for now
         task.requires_tcp_tunnel = True
-        
+
         # Task access method
         access_method = request.POST.get('access_method', 'auto')
         if access_method and access_method != 'auto' and not request.user.profile.is_power_user:
@@ -635,10 +635,10 @@ def new_task(request):
                 task.requires_proxy_auth = True
             else:
                 task.requires_proxy      = False
-                task.requires_proxy_auth = False                
+                task.requires_proxy_auth = False
         elif access_method == 'direct_tunnel':
             task.requires_proxy      = False
-            task.requires_proxy_auth = False            
+            task.requires_proxy_auth = False
         elif access_method == 'https_proxy':
             task.requires_proxy      = True
             task.requires_proxy_auth = True
@@ -647,7 +647,7 @@ def new_task(request):
 
         # Computing options
         computing_options = {}
-        
+
         # Container engine if any set
         container_engine = request.POST.get('container_engine', None)
         if container_engine:
@@ -655,11 +655,11 @@ def new_task(request):
                 raise ErrorMessage('Unknown container engine "{}"'.format(container_engine))
             computing_options['container_engine'] = container_engine
 
-        # CPUs, memory and partition if set 
+        # CPUs, memory and partition if set
         computing_cpus = request.POST.get('computing_cpus', None)
         computing_memory = request.POST.get('computing_memory', None)
         computing_partition = request.POST.get('computing_partition', None)
-        
+
         if computing_cpus:
             try:
                 int(computing_cpus)
@@ -671,11 +671,11 @@ def new_task(request):
             computing_options['memory'] = computing_memory
 
         if computing_partition:
-            computing_options['partition'] = computing_partition        
-        
+            computing_options['partition'] = computing_partition
+
         if computing_options:
             task.computing_options = computing_options
-                    
+
         # Save the task before starting it, or the computing manager will not be able to work properly
         task.save()
 
@@ -685,22 +685,22 @@ def new_task(request):
         except:
             # Delete the task if could not start it
             task.delete()
-            
+
             # ..and re-raise
             raise
 
         # Ensure proxy conf directory exists
         if not os.path.exists('/shared/etc_apache2_sites_enabled'):
             os.makedirs('/shared/etc_apache2_sites_enabled')
-    
+
         # Add here proxy auth file as we have the password
         if task.requires_proxy_auth:
             out = os_shell('ssh -o StrictHostKeyChecking=no proxy "cd /shared/etc_apache2_sites_enabled/ && htpasswd -bc {}.htpasswd {} {}"'.format(task.uuid, task.user.email, task.password), capture=True)
             if out.exit_code != 0:
                 logger.error(out.stderr)
-                raise ErrorMessage('Something went wrong when enabling proxy auth')   
+                raise ErrorMessage('Something went wrong when enabling proxy auth')
 
-        # Set step        
+        # Set step
         data['step'] = 'created'
 
 
@@ -731,7 +731,7 @@ def task_log(request):
     task = Task.objects.get(user=request.user, uuid=uuid)
 
     # Set back task and refresh
-    data['task']    = task 
+    data['task']    = task
     data['refresh'] = refresh
 
     # Get the log
@@ -793,7 +793,7 @@ def software(request):
             try:
                 container = Container.objects.get(uuid=container_uuid)
             except Container.DoesNotExist:
-                raise ErrorMessage('Container does not exists or no access rights')                
+                raise ErrorMessage('Container does not exists or no access rights')
             if container.user and container.user != request.user:
                 raise ErrorMessage('Container does not exists or no access rights')
             data['container'] = container
@@ -803,7 +803,7 @@ def software(request):
 
                 # Delete
                 container.delete()
-                
+
                 # Redirect
                 return HttpResponseRedirect('/software')
 
@@ -811,20 +811,20 @@ def software(request):
             data['error'] = 'Error in getting the software container or performing the required action'
             logger.error('Error in getting container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
-    
+
     else:
         # Ddo we have to operate on a container family?
         if container_family_id:
-            
+
             # Get back name, registry and image from contsainer url
             container_name, container_registry, container_image_name = base64.b64decode(container_family_id.encode('utf8')).decode('utf8').split('\t')
-          
+
             # get containers from the DB
             user_containers = Container.objects.filter(user=request.user, name=container_name, registry=container_registry, image_name=container_image_name)
             platform_containers = Container.objects.filter(user=None, name=container_name, registry=container_registry, image_name=container_image_name)
-        
-        else:    
-            
+
+        else:
+
             # Get containers (fitered by search term, or all)
             if search_text:
                 search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image_name__icontains=search_text))
@@ -833,24 +833,24 @@ def software(request):
             else:
                 user_containers = Container.objects.filter(user=request.user)
                 platform_containers = Container.objects.filter(user=None)
-    
-            
+
+
         # Ok, nilter by owner
         if search_owner != 'All':
             if search_owner == 'User':
                 platform_containers =[]
             if search_owner == 'Platform':
                 user_containers = []
-                
+
         # Create all container list
         data['containers'] = list(user_containers) + list(platform_containers)
-            
+
         # Merge containers with the same name, registry and image name
         data['container_families'] = {}
-        
+
         # Container family support class
         class ContainerFamily(object):
-        
+
             def __init__(self, id, name, registry, image_name):
                 self.id = id
                 self.name = name
@@ -859,34 +859,34 @@ def software(request):
                 self.description = None
                 self.members = []
                 self.all_archs = []
-                self.container_by_tags_by_arch = {} 
-    
+                self.container_by_tags_by_arch = {}
+
             def add(self, container):
                 self.members.append(container)
-    
+
                 if not self.description:
                     self.description = container.description
-    
+
                 if not container.image_arch in self.all_archs:
                     self.all_archs.append(container.image_arch)
-    
+
                 if not container.image_arch in self.container_by_tags_by_arch:
                     self.container_by_tags_by_arch[container.image_arch]={}
                 self.container_by_tags_by_arch[container.image_arch][container.image_tag] = container
-                
+
                 # Lastly, add the container to the "all tags"
                 #if None not in self.container_by_tags_by_arch:
                 #    self.container_by_tags_by_arch[None]={}
                 #self.container_by_tags_by_arch[None][container.image_tag] = container
-    
-            
+
+
             @ property
             def color(self):
                 try:
                     return self.members[0].color
                 except IndexError:
                     return '#000000'
-            
+
         # Populate container families
         for container in data['containers']:
             if container.family_id not in data['container_families']:
@@ -897,7 +897,7 @@ def software(request):
         #    if len(data['container_families'][container.family_id].all_archs) == 1:
         #        if data['container_families'][container.family_id].all_archs[0] != None:
         #            data['container_families'][container.family_id].container_by_tags_by_arch.pop(None)
-                
+
     return render(request, 'software.html', {'data': data})
 
 
@@ -912,7 +912,7 @@ def add_software(request):
     # Init data
     data = {}
     data['user'] = request.user
-    
+
     # Loop back the new container mode in the page to handle the switch
     data['new_container_from'] = request.GET.get('new_container_from', 'registry')
 
@@ -920,59 +920,59 @@ def add_software(request):
     container_name = request.POST.get('container_name', None)
 
     if container_name:
-        
+
         # How do we have to add this new container?
         new_container_from = request.POST.get('new_container_from', None)
 
         if new_container_from == 'registry':
-    
+
             # Container description
             container_description = request.POST.get('container_description', None)
-    
+
             # Container registry
             container_registry = request.POST.get('container_registry', None)
-    
+
             # Container image name
             container_image_name = request.POST.get('container_image_name',None)
-            
+
             # Container image tag
             container_image_tag = request.POST.get('container_image_tag', None)
-    
+
             # Container image architecture
             container_image_arch = request.POST.get('container_image_arch', None)
-    
-            # Container image OS 
+
+            # Container image OS
             container_image_os = request.POST.get('container_image_os', None)
-    
+
             # Container image digest
             container_image_digest = request.POST.get('container_image_digest', None)
-    
+
             # Container interface port
-            container_interface_port = request.POST.get('container_interface_port', None) 
-            if container_interface_port:       
+            container_interface_port = request.POST.get('container_interface_port', None)
+            if container_interface_port:
                 try:
                     container_interface_port = int(container_interface_port)
                 except:
                     raise ErrorMessage('Invalid container port "{}"')
             else:
                 container_interface_port = None
-    
-            # Container interface protocol 
+
+            # Container interface protocol
             container_interface_protocol = request.POST.get('container_interface_protocol', None)
-    
+
             if container_interface_protocol and not container_interface_protocol in ['http','https']:
                 raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
-    
-            # Container interface transport 
+
+            # Container interface transport
             container_interface_transport = request.POST.get('container_interface_transport')
-    
+
             # Capabilities
             container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
             if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':
                 container_supports_custom_interface_port = True
             else:
                 container_supports_custom_interface_port = False
-    
+
             container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
             if container_supports_interface_auth and container_supports_interface_auth == 'True':
                 container_supports_interface_auth = True
@@ -983,16 +983,16 @@ def add_software(request):
             if container_disable_http_basicauth_embedding and container_disable_http_basicauth_embedding == 'True':
                 container_disable_http_basicauth_embedding = True
             else:
-                container_disable_http_basicauth_embedding = False           
+                container_disable_http_basicauth_embedding = False
 
             # Environment variables
             container_env_vars = request.POST.get('container_env_vars', None)
             if container_env_vars:
                 container_env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
-    
+
             # Log
             #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
-    
+
             # Create
             Container.objects.create(user         = request.user,
                                      name         = container_name,
@@ -1010,21 +1010,21 @@ def add_software(request):
                                      supports_interface_auth = container_supports_interface_auth,
                                      disable_http_basicauth_embedding = container_disable_http_basicauth_embedding,
                                      env_vars = container_env_vars)
-            
+
         elif new_container_from == 'repository':
 
             container_description = request.POST.get('container_description', None)
-            
+
             repository_url = request.POST.get('repository_url', None)
             repository_tag = request.POST.get('repository_tag', 'HEAD')
 
             return HttpResponseRedirect('/import_repository/?repository_url={}&repository_tag={}&container_name={}&container_description={}'.format(repository_url,repository_tag,container_name,container_description))
-        
+
             # The return type here is a container, not created
             #get_or_create_container_from_repository(request.user, repository_url, repository_tag=repository_tag, container_name=container_name, container_description=container_description)
 
         else:
-            raise Exception('Unknown new container mode "{}"'.format(new_container_from)) 
+            raise Exception('Unknown new container mode "{}"'.format(new_container_from))
         # Set added switch
         data['added'] = True
 
@@ -1051,7 +1051,7 @@ def computing(request):
     computing_uuid = request.GET.get('uuid', None)
     data['details'] = details
     data['action'] = action
-    
+
     if details and computing_uuid:
         try:
             data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
@@ -1059,7 +1059,7 @@ def computing(request):
             data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
     else:
         data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
-        
+
     return render(request, 'computing.html', {'data': data})
 
 
@@ -1072,7 +1072,7 @@ def storage(request):
     # Set data & render
     data = {}
     data['user'] = request.user
-    
+
     return render(request, 'storage.html', {'data': data})
 
 
@@ -1081,17 +1081,17 @@ def storage(request):
 #=========================
 #  Add profile conf
 #=========================
- 
+
 @private_view
 def add_profile_conf(request):
- 
+
     # Init data
     data={}
     data['user']    = request.user
-    
+
     # Set conf types we can add
     data['conf_types'] = ['computing_user'] #,'computing_custom_binds']
-    
+
     # Process adding the new conf
     conf_type = request.POST.get('conf_type', None)
     if conf_type:
@@ -1102,7 +1102,7 @@ def add_profile_conf(request):
                 try:
                     computing = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
                 except Computing.DoesNotExist:
-                    computing = Computing.objects.get(uuid=computing_uuid, group=None)                
+                    computing = Computing.objects.get(uuid=computing_uuid, group=None)
                 data['computing'] = computing
                 data['last_step'] = True
                 value = request.POST.get('value', None)
@@ -1110,13 +1110,13 @@ def add_profile_conf(request):
                     request.user.profile.add_extra_conf(conf_type=conf_type, object=computing, value=value)
                     # Now redirect to site
                     return HttpResponseRedirect('/account/')
-            
+
             else:
                 data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
         else:
             raise ErrorMessage('Unknown conf type \'{}\''.format(conf_type))
-    
- 
+
+
     return render(request, 'add_profile_conf.html', {'data': data})
 
 
@@ -1131,15 +1131,15 @@ def task_connect(request):
     if not task_uuid:
         raise ErrorMessage('Empty task uuid')
 
-    # Get the task     
+    # Get the task
     task = Task.objects.get(uuid=task_uuid)
-    
+
     if task.user != request.user:
         raise ErrorMessage('You do not have access to this task.')
 
     # Ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
-    
+
     # Set default interface status as unknown
     task.interface_status = 'unknown'
 
@@ -1177,7 +1177,7 @@ def task_connect(request):
             #         task.interface_status = 'running'
 
     data ={}
-    data['task'] = task    
+    data['task'] = task
     return render(request, 'task_connect.html', {'data': data})
 
 
@@ -1188,7 +1188,7 @@ def task_connect(request):
 @private_view
 def direct_connection_handler(request, uuid):
 
-    # Get the task     
+    # Get the task
     #task = Task.objects.get(uuid__startswith=short_uuid)
     task = Task.objects.get(uuid=uuid)
 
@@ -1197,26 +1197,26 @@ def direct_connection_handler(request, uuid):
 
     # Ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
-    
+
     # Get task and tunnel proxy host
     rosetta_tasks_proxy_host = get_rosetta_tasks_proxy_host()
     rosetta_tasks_tunnel_host = get_rosetta_tasks_tunnel_host()
 
-    # Redirect to the task through the tunnel    
+    # Redirect to the task through the tunnel
     if task.requires_proxy:
         if task.requires_proxy_auth and task.auth_token and not task.container.disable_http_basicauth_embedding:
             user = request.user.email
             password = task.auth_token
-            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, rosetta_tasks_proxy_host, task.tcp_tunnel_port)        
+            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, rosetta_tasks_proxy_host, task.tcp_tunnel_port)
         else:
-            redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)       
+            redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)
     else:
         redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, rosetta_tasks_tunnel_host, task.tcp_tunnel_port)
-    
+
     logger.debug('Task direct connect redirect: "{}"'.format(redirect_string))
     return redirect(redirect_string)
-        
-    
+
+
 
 #===========================
 #  Sharable link handler
@@ -1227,20 +1227,20 @@ def sharable_link_handler(request, short_uuid):
 
     # Get the task (if the short uuid is not enough an error wil be raised)
     task = Task.objects.get(uuid__startswith=short_uuid)
-    
+
     # First ensure that the tunnel and proxy are set up
     setup_tunnel_and_proxy(task)
-    
+
     # Get task and tunnel proxy host
     rosetta_tasks_proxy_host = get_rosetta_tasks_proxy_host()
     rosetta_tasks_tunnel_host = get_rosetta_tasks_tunnel_host()
 
-    # Redirect to the task through the tunnel    
+    # Redirect to the task through the tunnel
     if task.requires_proxy:
-        redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)       
+        redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)
     else:
         redirect_string = '{}://{}:{}'.format(task.container.interface_protocol, rosetta_tasks_tunnel_host, task.tcp_tunnel_port)
-    
+
     logger.debug('Task sharable link connect redirect: "{}"'.format(redirect_string))
     return redirect(redirect_string)
 
@@ -1258,8 +1258,8 @@ def new_binder_task(request, repository):
 
     # Convert the Git repository as a Docker container
     logger.debug('Got a new Binder task request for repository "%s"', repository)
-        
-    # Set repository name/tag/url        
+
+    # Set repository name/tag/url
     repository_tag = repository.split('/')[-1]
     repository_url = repository.replace('/'+repository_tag, '')
 
@@ -1267,13 +1267,13 @@ def new_binder_task(request, repository):
     # Here i work around this, but TODO: understand what the hell is going on.
     if 'https:/' in repository_url and not 'https://' in repository_url:
         repository_url = repository_url.replace('https:/', 'https://')
-    
+
     if not repository_tag:
         repository_tag='HEAD'
 
     data['repository_url'] = repository_url
     data['repository_tag'] = repository_tag
-    
+
     data['mode'] = 'new_task' #new container
 
     # Render the import page. This will call an API, and when the import is done, it
@@ -1291,17 +1291,17 @@ def import_repository(request):
     # Init data
     data={}
     data['user']  = request.user
-    
+
     repository_url = request.GET.get('repository_url', None)
     # I have no idea why the https:// of the repo part of the url gets transfrmed in https:/
     # Here i work around this, but TODO: understand what the hell is going on.
     if 'https:/' in repository_url and not 'https://' in repository_url:
         repository_url = repository_url.replace('https:/', 'https://')
-    
+
     repository_tag= request.GET.get('repository_tag', None)
     if not repository_tag:
         repository_tag='HEAD'
-        
+
     data['repository_url'] = repository_url
     data['repository_tag'] = repository_tag
 
@@ -1313,4 +1313,5 @@ def import_repository(request):
     # Render the import page. This will call an API, and when the import is done, it
     # will automatically say "Ok, crrated, go to software".
     return render(request, 'import_repository.html', {'data': data})
+
 

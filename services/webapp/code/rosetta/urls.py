@@ -35,7 +35,7 @@ from rest_framework.documentation import include_docs_urls
 from rest_framework_swagger.views import get_swagger_view
 
 urlpatterns = [
-               
+
     # Pages
     url(r'^$', core_app_views.entrypoint),
     path('main/', core_app_views.main_view),
@@ -44,24 +44,24 @@ urlpatterns = [
     url(r'^register/$', core_app_views.register_view),
     url(r'^pages/(?P<page_id>\w{0,36})/$', core_app_views.page_view),
 
-    
-    # Software    
+
+    # Software
     url(r'^software/$', core_app_views.software),
-    url(r'^add_software/$', core_app_views.add_software),    
-    url(r'^import_repository/$', core_app_views.import_repository),    
-    
+    url(r'^add_software/$', core_app_views.add_software),
+    url(r'^import_repository/$', core_app_views.import_repository),
+
     #Computing
     url(r'^computing/$', core_app_views.computing),
-    
+
     # Storage
     url(r'^storage/$', core_app_views.storage),
-    
+
     # Tasks
     url(r'^tasks/$', core_app_views.tasks),
     url(r'^new_task/$', core_app_views.new_task),
     url(r'^task_log/$', core_app_views.task_log),
     url(r'^task_connect/$', core_app_views.task_connect),
-    
+
     # Sharable and direct connection links for tasks
     url(r'^direct_connect/(?P<uuid>[0-9a-f-]+)/$', core_app_views.direct_connection_handler),
     url(r'^t/(?P<short_uuid>\w{0,36})/$', core_app_views.sharable_link_handler),
@@ -76,7 +76,7 @@ urlpatterns = [
     # Admin and API docs (Swagger)
     path('admin/', admin.site.urls),
     path('api/v1/doc/', get_swagger_view(title="Swagger Documentation")),
-    
+
     # APIs
     path('api/v1/base/login/', core_app_api.login_api.as_view(), name='login_api'),
     path('api/v1/base/logout/', core_app_api.logout_api.as_view(), name='logout_api'),
@@ -97,7 +97,7 @@ urlpatterns = [
 
 # Get admin files location
 admin_files_path = '/'.join(django.__file__.split('/')[0:-1]) + '/contrib/admin/static/admin'
- 
+
 if not settings.DEBUG:
 
     # Admin files
@@ -105,7 +105,7 @@ if not settings.DEBUG:
 
     # Rosetta Core app files
     document_root = 'rosetta/core_app/static'
-     
+
     if os.path.isdir(document_root):
         logger.info('Serving static files for app "core_app" from document root "{}"'.format(document_root))
         # Static
@@ -114,5 +114,6 @@ if not settings.DEBUG:
         logger.warning('Not static files to serve?!')
 else:
     logger.info('Not serving static files at all as DEBUG=True (Django will do it automatically)')
+
 
 

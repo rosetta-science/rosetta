@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -6,24 +6,24 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      {% if data.mode == 'new_task' %} 
-      <h1>New Task</h1> 
+      {% if data.mode == 'new_task' %}
+      <h1>New Task</h1>
       {% elif data.mode == 'new_container' %}
-      <h1>Add software container</h1> 
+      <h1>Add software container</h1>
       {% else %}
-      <h1>Importing repository</h1>       
+      <h1>Importing repository</h1>
       {% endif %}
       <hr>
 
       <div id="importing">
-      Importing repository <code>{{ data.repository_url }}</code>... 
+      Importing repository <code>{{ data.repository_url }}</code>...
       <br>
       <br>
       <br>
       <br>
       <center><img src="/static/img/ajax-loader.gif"></center>
       </div>
-      
+
       <div id="import_succeded" style="display:none">
       Ok, software container added. Go to <a href="/software">software</a>.
       </div>
@@ -32,7 +32,7 @@
       <div id="import_failed" style="display:none">
       FAILED: <span id="import_failed_text"></span>
       </div>
-      
+
         <script type="text/javascript">
             var apiUrl = '/api/v1/import_repository/?repository_url={{data.repository_url}}&repository_tag={{data.repository_tag}}&container_name={{data.container_name}}&container_description={{data.container_description}}';
             fetch(apiUrl).then(response => {
@@ -45,21 +45,21 @@
             }).then(data => {
               // Work with JSON data here
               console.log(data)
-              
+
               if (data.results.import_succeded){
-            	  
+
             	  // Terrbile django templating mixed with javascript
-                  {% if data.mode == 'new_task' %} 
-                  
-            	    window.location.replace("/new_task/?step=two&task_container_uuid="+data.results.container_uuid) 
-  
+                  {% if data.mode == 'new_task' %}
+
+            	    window.location.replace("/new_task/?step=two&task_container_uuid="+data.results.container_uuid)
+
                   {% else %}
-                  
+
                     $("#importing").hide();
-                    $("#import_succeded").show(); 
-                 
+                    $("#import_succeded").show();
+
                   {% endif %}
-            	   
+
               } else {
             	  throw data.results.error_message
               }
@@ -72,7 +72,7 @@
               $("#import_failed_text").html(error);
             });
         </script>
-        
+
     </div>
   </div>
 </div>
@@ -83,6 +83,7 @@
 <br/>
 <br/>
 {% include "footer.html" %}
+
 
 
 

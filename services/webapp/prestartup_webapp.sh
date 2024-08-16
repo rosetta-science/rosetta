@@ -9,5 +9,3 @@ mkdir -p /data/resources
 chown rosetta:rosetta /data/resources
 chown rosetta:rosetta /shared
 
-
-

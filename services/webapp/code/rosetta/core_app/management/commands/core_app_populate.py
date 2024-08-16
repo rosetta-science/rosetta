@@ -8,13 +8,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
 
-        #=====================    
+        #=====================
         #  Testuser
         #=====================
         try:
             testuser = User.objects.get(username='testuser')
             print('Not creating test user as it already exists')
-        
+
         except User.DoesNotExist:
             print('Creating test user with default password')
             testuser = User.objects.create_user('testuser', 'testuser@rosetta.platform', 'testpass')
@@ -22,7 +22,7 @@ class Command(BaseCommand):
             testuser.is_staff = True
             testuser.is_admin=True
             testuser.is_superuser=True
-            testuser.save() 
+            testuser.save()
             print('Creating testuser profile')
             Profile.objects.create(user=testuser, auth='local', authtoken='129aac94-284a-4476-953c-ffa4349b4a50')
 
@@ -32,23 +32,23 @@ class Command(BaseCommand):
                                    default = True,
                                    private_key_file = '/rosetta/.ssh/id_rsa',
                                    public_key_file = '/rosetta/.ssh/id_rsa.pub')
-        
 
-        #=====================    
+
+        #=====================
         #  Platform keys
         #=====================
         # TODO: create a different pair
         try:
             KeyPair.objects.get(user=None, default=True)
             print('Not creating default platform keys as they already exist')
-        
+
         except KeyPair.DoesNotExist:
             print('Creating platform default keys')
             KeyPair.objects.create(user = None,
                                    default = True,
                                    private_key_file = '/rosetta/.ssh/id_rsa',
                                    public_key_file = '/rosetta/.ssh/id_rsa.pub')
-                  
+
 
         #=====================
         #  Default home page
@@ -60,7 +60,7 @@ class Command(BaseCommand):
             <h1>&nbsp;&nbsp;Rosetta <img src="/static/img/emoji_u1f6f0.png" style="height:84px; width:64px; padding-bottom:20px"></h1>
             <h2 style="margin-top:10px; margin-left:25px; margin-right:25px; font-weight:100; line-height: 30px;"><i>A container-centric Science Platform<br></i></h2>
         </div>
-    </div>   
+    </div>
     <div class="container">
         <div class="dashboard">
             <div class="span8 offset2" style="margin: 30px auto; max-width:800px">
@@ -69,7 +69,7 @@ class Command(BaseCommand):
                 This is the default main page content loaded after populating the platform with the default/demo data.
                 To change it, head to the <a href="/admin">admin</a> section and edit the <code>Page</code> model with id "main".
                 <br/><br/>
-                A test user with admin rights registered with email <code>testuser@rosetta.platform</code> and password 
+                A test user with admin rights registered with email <code>testuser@rosetta.platform</code> and password
                 <code>testpass</code> has been created as well, which you can use to login on the menu on the right and give Rosetta
                 immediately a try. If you are using the default docker-compose file (i.e. you just ran <code>rosetta/setup</code>),
                 then you will also have a few demo computing and storage resources (beside the internal one) already available
@@ -79,10 +79,10 @@ class Command(BaseCommand):
                 <br />
                 You can also create custom pages and access them under <code>/pages/page_id</code> should you need to provide
                 your users informations about the platform and its storage and computing resources. For example, see this
-                demo extra <a href="/pages/help">help page</a>. 
+                demo extra <a href="/pages/help">help page</a>.
             </div>
         </div>
-    </div>          
+    </div>
 </header>
 '''
         home_page = Page.objects.filter(id='main')
@@ -96,15 +96,15 @@ class Command(BaseCommand):
 <h1>Help!</h1>
 <hr>
 <p>
-This is a demo extra page (a help page, in this case). Here you could for example provide the instructions on how to set up SSH-based 
+This is a demo extra page (a help page, in this case). Here you could for example provide the instructions on how to set up SSH-based
 computing resources using user keys, or who to contact to join a specific group to access its software and computing resources.
 </p>
 
 <p>
-In general, the part of the URL following the <code>/pages/</code> path is parsed as the page id, 
+In general, the part of the URL following the <code>/pages/</code> path is parsed as the page id,
 so that if a page with that id exists in the database, its content will show up here.
-You can use this system for creating a mini-website inside the platform 
-to provide help, news and informations on your deployment. Or you can just ignore the whole thing and leave a plain logo in the main page. 
+You can use this system for creating a mini-website inside the platform
+to provide help, news and informations on your deployment. Or you can just ignore the whole thing and leave a plain logo in the main page.
 </p>
 '''
 
@@ -117,16 +117,16 @@ to provide help, news and informations on your deployment. Or you can just ignor
 
 
 
-        #===================== 
+        #=====================
         # Platform containers
-        #===================== 
-        
+        #=====================
+
         platform_containers = Container.objects.filter(user=None)
         if platform_containers:
             print('Not creating public containers as they already exist')
         else:
             print('Creating platform containers...')
-            
+
             # Minimal Desktop
             Container.objects.create(user     = None,
                                      name     = 'Minimal Desktop',
@@ -157,8 +157,8 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      supports_custom_interface_port = True,
                                      supports_interface_auth = True,
                                      interface_auth_user = None)
- 
- 
+
+
             # Jupyter Notebook
             Container.objects.create(user     = None,
                                      name     = 'Jupyter Notebook',
@@ -178,7 +178,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
 
             # Official Jupyter containers
             for tag in ['lab-3.2.2', 'lab-3.1.17']:
-                
+
                 Container.objects.create(user     = None,
                                          name     = 'Jupyter Data Science Lab',
                                          description = 'The official Jupyter Lab. The Data Science variant, which includes libraries for data analysis from the Julia, Python, and R communities.',
@@ -192,7 +192,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                          interface_transport = 'tcp/ip',
                                          supports_custom_interface_port = True,
                                          supports_interface_auth = True)
-                
+
                 for arch in ['amd64', 'arm64']:
                     Container.objects.create(user     = None,
                                              name     = 'Jupyter Lab',
@@ -225,9 +225,9 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      supports_interface_auth = True,
                                      interface_auth_user = 'metauser')
 
-        #===================== 
+        #=====================
         # Testuser containers
-        #===================== 
+        #=====================
         #testuser_containers = Container.objects.filter(user=testuser)
         #if testuser_containers:
         #    print('Not creating testuser private containers as they already exist')
@@ -250,9 +250,9 @@ to provide help, news and informations on your deployment. Or you can just ignor
         #                             supports_interface_auth = False)
 
 
-        #===================== 
+        #=====================
         # Computing resources
-        #===================== 
+        #=====================
         computing_resources = Computing.objects.all()
         if computing_resources:
             print('Not creating demo computing resources as they already exist')
@@ -270,7 +270,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                      wms = None,
                                      container_engines = ['docker'])
 
-            
+
             # Demo standalone computing plus conf
             demo_standalone_computing = Computing.objects.create(name = 'Demo Standalone',
                                                                  description = 'A demo standalone computing resource.',
@@ -311,22 +311,22 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                                             wms = 'slurm',
                                                             conf = {'host': 'slurmclustermaster', 'default_partition': 'partition1'},
                                                             container_engines = ['singularity'])
-           
+
             # Add testuser extra conf for this computing resource
             testuser.profile.add_extra_conf(conf_type = 'computing_user', object=demo_slurm_computing, value= 'testuser')
 
-        #===================== 
+        #=====================
         # Storages
-        #===================== 
+        #=====================
         storages = Storage.objects.all()
         if storages:
             print('Not creating demo storage resources as they already exist')
         else:
             print('Creating demo storage resources...')
- 
+
             # Get demo computing resources
             demo_computing_resources = []
-            try:    
+            try:
                 demo_slurm_computing = Computing.objects.get(name='Demo Cluster')
                 demo_computing_resources.append(demo_slurm_computing)
             except:
@@ -336,8 +336,8 @@ to provide help, news and informations on your deployment. Or you can just ignor
                 demo_computing_resources.append(demo_standalone_computing)
             except:
                 pass
-             
- 
+
+
             for computing in demo_computing_resources:
                 # Demo shared storage
                 Storage.objects.create(computing = computing,
@@ -348,7 +348,7 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                        auth_mode = 'user_keys',
                                        base_path = '/shared/data/shared',
                                        bind_path = '/storages/shared')
-     
+
                 # Demo personal storage
                 Storage.objects.create(computing = computing,
                                        access_through_computing = True,
@@ -358,4 +358,5 @@ to provide help, news and informations on your deployment. Or you can just ignor
                                        auth_mode = 'user_keys',
                                        base_path = '/shared/data/users/$SSH_USER',
                                        bind_path = '/storages/personal')
+
 

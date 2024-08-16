@@ -1,14 +1,14 @@
 import json
 
 from django.contrib.auth.models import User
-        
+
 from .common import BaseAPITestCase
 from ..models import Profile, Computing
 
 class Modeltest(BaseAPITestCase):
 
     def setUp(self):
-        
+
         # Create test users
         self.user = User.objects.create_user('testuser', password='testpass')
         self.anotheruser = User.objects.create_user('anotheruser', password='anotherpass')
@@ -18,9 +18,10 @@ class Modeltest(BaseAPITestCase):
 
 
     def test_computing(self):
-        '''Test Computing and their Conf models''' 
-         
+        '''Test Computing and their Conf models'''
+
         computing = Computing.objects.create(name='MyComp', type='remote')
-        
-        
+
+
+
 

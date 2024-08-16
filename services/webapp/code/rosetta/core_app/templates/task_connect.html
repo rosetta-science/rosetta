@@ -1,9 +1,9 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html"%}
 <!-- with body_args="style='background: #202020'" -->
     <center>
-    
+
     <div style="width:370px;">
       <form class="form-signin" role="form" action='/direct_connect/{{data.task.uuid}}/' method='POST'>
         {% csrf_token %}
@@ -14,7 +14,7 @@
         <h2> Connecting to task <b>{{ data.task.name }}</b></h2>
         <p style="font-size: 16px;">
         <br />
-        
+
         {% if not data.task.interface_status == 'running' %}
         <br/>
         <div class="alert alert-warning" role="alert"><i class="fa fa-warning"></i> the task interface is not up, cannot connect.</div>
@@ -22,20 +22,20 @@
         <br/><br/>
         <i>Note: if you just launched the task, this alert might be due to the normal task startup time.</i>
         {% else %}
-        
+
         {% if not data.task.requires_proxy_auth %}
         {% if data.task.container.interface_auth_user %}
-        User: <input style="margin-bottom:15px;" type="username" class="form-control" value="{{ data.task.container.interface_auth_user }}"name='username' readonly >        
+        User: <input style="margin-bottom:15px;" type="username" class="form-control" value="{{ data.task.container.interface_auth_user }}"name='username' readonly >
         {% else %}
-        
+
         {% endif %}
         {% else %}
         User: <input style="margin-bottom:15px;" type="username" class="form-control" value="{{ request.user.email }}"name='username' readonly >
         {% endif %}
-        
-        
+
+
         {% if data.task.requires_proxy_auth %}
-        
+
           {% if data.task.auth_token %}
           Password: <input type="text" size=37 class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
           {% if data.task.container.disable_http_basicauth_embedding %}
@@ -49,11 +49,11 @@
           <p style="margin-left:10px; font-size:0.9em; color:#484848">
           <i class="fa fa-info-circle" style="color:#337ab7"></i>
           This task will require to manually enter the password set up when creating the task
-          </p> 
+          </p>
           {% endif %}
-                 
+
         {% else %}
-        
+
           {% if data.task.auth_token %}
           Password: <input type="text" class="form-control" placeholder="" value="{{data.task.auth_token}}" name='password' readonly>
           <p style="margin-left:10px; margin-top:30px; font-size:0.9em; color:#484848">
@@ -61,9 +61,9 @@
           {% if not data.task.requires_proxy_auth and data.task.container.interface_auth_user %}
           This task will require to manually enter the above user and password token
           {% else %}
-          This task will require to manually enter the above password token          
+          This task will require to manually enter the above password token
           {% endif %}
-          </p> 
+          </p>
           {% else %}
           Password: <input type="password" class="form-control" placeholder="" value="placeholder" name='password' readonly>
           <p style="margin-left:10px; margin-top:30px; font-size:0.9em; color:#484848">
@@ -71,17 +71,17 @@
           {% if not data.task.requires_proxy_auth and data.task.container.interface_auth_user %}
           This task will require to manually enter the above user and the password set up when creating the task
           {% else %}
-          This task will require to manually enter the password set up when creating the task          
+          This task will require to manually enter the password set up when creating the task
           {% endif %}
-          </p> 
+          </p>
           {% endif %}
-          
+
         {% endif %}
-        
+
         <br />
-        
-        
-        {% if data.task.container.interface_protocol == 'http' or data.task.container.interface_protocol == 'https' %}       
+
+
+        {% if data.task.container.interface_protocol == 'http' or data.task.container.interface_protocol == 'https' %}
         <input type='submit' style="width:110px" class="btn btn-lg btn-success btn-block" value='Log in' />
         {% else %}
         To connect, use a program suitable for this task interface protocol ({{data.task.container.interface_protocol}}) with:<br />
@@ -92,8 +92,8 @@
         {% endif %}
         {% endif%}
         </p>
-        
-      </form>      
+
+      </form>
     </div>
     <br /><br />
     {% if data.task.interface_status == 'running' %}
@@ -101,7 +101,7 @@
     <p style="margin-left:10px; font-size:0.9em; color:rgb(200,200,200); max-width:600px">
     <i class="fa fa-info-circle"></i>
     Some web browsers (i.e. Safari) might require to manually re-enter the above user credentials. You can copy-paste them, or switch
-    to a web browser which supports embedding user credentials in the connection URL (as Chorme, Edge or Firefox). 
+    to a web browser which supports embedding user credentials in the connection URL (as Chorme, Edge or Firefox).
     </p>
     {% endif %}
     {% endif %}
@@ -112,3 +112,4 @@
 
 
 {% include "footer.html" %}
+

@@ -1,5 +1,5 @@
 
-      {% if data.computing %}  
+      {% if data.computing %}
 
       <div style="float:left; width:500px; margin:10px; margin-bottom:20px">
       <table class="dashboard" style="width:100%">
@@ -23,7 +23,7 @@
         <td><b>Type</b></td>
         <td>{{ data.computing.type }}</td>
        </tr>
-       
+
        <tr>
         <td><b>Access mode</b></td>
         <td>{{ data.computing.access_mode }}</td>
@@ -73,7 +73,7 @@
 
       </table>
       </div>
-      
+
       {% else %}
 
 
@@ -95,10 +95,10 @@
         {% if not computing_configured %}
         <div style="width:298px; float:left; margin:0; margin-bottom:5px; padding:2px; background: gary; color:black; text-align:center; border-bottom: #e0e0e0 solid 1px;">
         <i class="fa fa-info-circle"></i> Not configured <!-- style="color:#337ab7" -->
-        </div>      
+        </div>
         {% endif %}
 
-        
+
 
         {% if not computing_configured %}
         <!--  <div style="padding:10px; -webkit-filter: blur(5px); -moz-filter: blur(5px); -o-filter: blur(5px); -ms-filter: blur(5px); filter: blur(5px);"> -->
@@ -107,12 +107,12 @@
         <div style="padding:10px;">
         {% endif %}
 
-        {% if computing.description %} 
+        {% if computing.description %}
         <div class="description-box" title="{{ computing.description }}">
         {{ computing.description }}
         </div>
         {% else %}
-        <br/>  
+        <br/>
         {% endif %}
         <div class="image-version-box">
         <b>Type:</b> {{ computing.type }} <font style="font-size:0.9em">({{ computing.arch }})</font>
@@ -133,7 +133,7 @@
         <!-- ><b>Access:</b> {{ computing.access_mode }}<br/> --
         <!-- <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/> -->
         <!--  <b>Engines:</b> {{ computing.container_engines }} -->
-        
+
         <!-- {% if 'docker' in computing.container_engines %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}
         {% if 'singularity' in computing.container_engines %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />{% endif %}-->
         {% if container %}
@@ -152,15 +152,15 @@
         {% endif %}
         </div>
         {% endif %}
-        
-        </div>  
+
+        </div>
 
       </div>
       {% endif %}
-      
 
-      
+
+
       {% endif %}
-      
-      
-      
+
+
+

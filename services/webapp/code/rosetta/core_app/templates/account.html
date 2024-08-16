@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -23,24 +23,24 @@
         {{data.user.username}}
         </td>
        </tr>
-      
+
        <tr>
         <td>
         <b>Email</b>
         </td>
         <td>
-        {% if data.edit == 'email' %}    
+        {% if data.edit == 'email' %}
           <table class="frametab"><tr><td>
           <input type='hidden' name='edit' value='email' />
           <input type="email" value="{{data.user.email}}" name='value' style='width:95%' required autofocus />
           </td><td>
           <input type="submit" value="Go">
-          </td></tr></table>          
+          </td></tr></table>
         {% else %}
          {{data.user.email}}{% if data.user.profile.auth == 'local' %} | <a href="/account/?edit=email">Change</a>{% endif %}
         {% endif %}
         </td>
-       </tr>      
+       </tr>
 
        {% if data.user.profile.auth == 'local' %}
        <tr>
@@ -48,19 +48,19 @@
         <b>Password</b>
         </td>
         <td>
-        {% if data.edit == 'password' %}    
+        {% if data.edit == 'password' %}
           <table class="frametab"><tr><td>
           <input type='hidden' name='edit' value='password' />
           <input type="password" name='value' style='width:95%' required autofocus />
           </td><td>
           <input type="submit" value="Go">
-          </td></tr></table>          
+          </td></tr></table>
         {% else %}
          ******* | <a href="/account/?edit=password">Change</a>
         {% endif %}
         </td>
        </tr>
-       {% endif %}  
+       {% endif %}
 
 
        <tr>
@@ -75,24 +75,24 @@
         {% else %}
         {{ data.user.profile.auth }}
         {% endif %}
-        </td>    
+        </td>
        </tr>
 
 
 
       </table>
       <br />
-       
+
       <h3>Profile</h3>
       <table class="dashboard">
-       
+
        <tr>
         <td>
         <b>Time Zone</b>
         </td>
         <td>
-        
-        {% if data.edit == 'timezone' %}    
+
+        {% if data.edit == 'timezone' %}
           {% include "components/tzselect.html" %}
           <input type='hidden' name='edit' value='timezone' />
           <input type="submit" value="Go">
@@ -101,7 +101,7 @@
         {% endif %}
         </td>
        </tr>
-       
+
 
        <tr>
         <td valign=top>
@@ -117,23 +117,23 @@
         {% endif %}
         {% endfor %}
         {% endif %}
-        
+
         : <code>{{conf_data.value}}</code> |  <a href='?delete_extra_conf_uuid={{conf_uuid}}'>delete</a>
-        <br/> 
+        <br/>
         {% endfor %}
-        
-        
-        
+
+
+
         <span style="margin:3px"><a href="/add_profile_conf" style="line-height:2em">Add new...</a></span>
         </td>
-       </tr>       
+       </tr>
 
       </table>
 
       <br />
       <h3>KeyPair</h3>
       <table class="dashboard">
-       
+
        <tr>
         <td valign="top">
         <b>Default public key</b>
@@ -145,7 +145,7 @@
 
       </table>
       </form>
-      
+
       <div style="margin-left:10px; margin-top:40px">
         {% if data.user.profile.auth == 'oidc' %}
         <form action="{% url 'oidc_logout' %}" method="post">
@@ -155,24 +155,25 @@
         {% else %}
         <form action="/logout/" method="get">
         <input type="submit" value="logout">
-        </form>        
+        </form>
         {% endif %}
       </div>
 
-      
+
       <br/>
       <br/>
       <br/>
       <br/>
       <br/>
       <br/>
-      
+
     </div>
   </div>
 </div>
 
 
 {% include "footer.html" %}
+
 
 
 

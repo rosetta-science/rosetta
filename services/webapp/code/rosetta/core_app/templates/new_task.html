@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -6,14 +6,14 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1>New Task</h1> 
+      <h1>New Task</h1>
       <hr>
 
 
-      <!-- {% if data.step == 'two' %} 
-      <h3>Choose computing resource</h3> 
-      {% elif data.step == 'three' %}  
-      <h3>Task details and confirm</h3>    
+      <!-- {% if data.step == 'two' %}
+      <h3>Choose computing resource</h3>
+      {% elif data.step == 'three' %}
+      <h3>Task details and confirm</h3>
       {% endif %}
 
       <br/> -->
@@ -26,7 +26,7 @@
           </div>
       </div>
       {% endif %}
-      
+
 
       {% if data.step == 'two' %}
 
@@ -49,8 +49,8 @@
           {% include "components/computing.html" with computing=data.task_computing %}
           </div>
       </div>
-          
-          
+
+
           <!-- <div style="width:300px; float:left; border: #e0e0e0 solid 0px; margin:10px; background:#f8f8f8; margin-bottom:15px">
           <table style="width:100%; height:126px;  border: #e0e0e0 solid 1px; margin:0">
 
@@ -69,12 +69,12 @@
 
           <h4>Details and confirm</h4>
           <div style="width:620px; float:left; border: #e0e0e0 solid 0px; margin-top:10px; ; margin-bottom:15px">
-              
-        
+
+
           <form action="/new_task/" method="POST">
           {% csrf_token %}
           <input type="hidden" name="task_container_uuid" value="{{data.task_container.uuid}}">
-          <input type="hidden" name="task_container_arch" value="{{data.task_container_arch}}">          
+          <input type="hidden" name="task_container_arch" value="{{data.task_container_arch}}">
           <input type="hidden" name="step" value="{{ data.next_step }}" />
           <input type="hidden" name="task_name" value="{{ data.task_name }}" />
           <input type="hidden" name="task_container_uuid" value="{{ data.task_container.uuid }}" />
@@ -87,10 +87,10 @@
             <td valign="top"><b>Task name</b></td>
             <td><input type="text" name="task_name" value="" placeholder="" size="37" required /></td>
            </tr>
-           
+
            <tr>
             <td valign="top">
-            {% if request.user.profile.is_power_user %} 
+            {% if request.user.profile.is_power_user %}
             <b>Task&nbsp;password</b></td>
             {% else %}
             <b>Auth&nbsp;token</b></td>
@@ -99,11 +99,11 @@
 
              <input type="hidden" name="task_auth_token" value="{{data.task_auth_token}}">
 
-             {% if request.user.profile.is_power_user %}            
+             {% if request.user.profile.is_power_user %}
              <input type="text" name="task_auth_password" placeholder="{{data.task_auth_token}}" size="37" style="-webkit-text-security: disc;" /><br>
              <font size=-1>
              A one-time task password. By default set to a randomly generated token, and usually automatically handled by Rosetta. Six chars min.
-             </font>   
+             </font>
              {% else %}
              <input type="text" name="task_auth_password_disabled" value="{{data.task_auth_token}}" size="37" readonly/><br>
              <font size=-1>A randomly generated token to be used as task password. Usually automatically handled by Rosetta when loggin-in to the task.</font>
@@ -111,9 +111,9 @@
 
             </td>
            </tr>
-           
-           
-           {% if request.user.profile.is_power_user %}    
+
+
+           {% if request.user.profile.is_power_user %}
            <tr>
             <td><b>Access method</b></td><td>
              <select name="access_method" >
@@ -138,7 +138,7 @@
             </td>
            </tr>
            {% endif %}
-           
+
            {% if data.task_computing.wms == 'slurm' %}
            <tr>
             <td><b>Computing options</b></td>
@@ -151,14 +151,14 @@
             </td>
            </tr>
            {% endif %}
-             
+
            <tr><td colspan=2>
-           
+
            </td></tr>
 
           </table>
-          
-          
+
+
           {% if data.task_computing.default_container_engine == 'singularity' and not data.task_container.supports_custom_interface_port %}
           <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support custom interface ports and the computing resource you selected might use a container engine/runtime which does not support port mapping. In this case, if the container interface port is already allocated, the task will fail to start.
@@ -176,21 +176,21 @@
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> The selected software container does not specify any architecture. This will leave to the container engine/runtime either to auto-select the right image architecture on the registry, or to fallback on emulation if not found. Beware of potential incompatibilities or slowdowns.
           </p></div>
           {% endif %}
-          
+
           <!-- {% if data.task_container.interface_port and not data.task_container.supports_interface_auth %}
           <div> <p style="font-size:15px; max-width:700px; margin-bottom:20px; margin-left:5px">
           <i class="fa fa-exclamation-triangle" style="color:orange"></i> This container does not support configuring any authentication. This means that unless it is somehow built-in within the container, anyone will be able to access it.
           </p></div>
           {% endif %}  -->
-         
+
           <table style="max-width:620px;"><tr><td  style="border: 1px solid lightgray;" >
           I understand that files saved or modified in the task, if not explicitly saved to a persistent storage, will be LOST upon task completition.
           </td><td  style="border: 1px solid lightgray;" >
           <input class="form-check-input" type="checkbox" value="" id="invalidCheck" required>
           </td></table>
-          
+
           <div style="width:640px; text-align:center; padding:20px">
-          <input type="submit" value="Create task">    
+          <input type="submit" value="Create task">
           </div>
           </form>
           </div>
@@ -199,12 +199,12 @@
 
       {% else %}
         Ok, task created. Go to your <a href="/tasks">task list</a>.
-        
 
-      {% endif %} 
-  
 
-      
+      {% endif %}
+
+
+
     </div>
   </div>
 </div>
@@ -215,6 +215,7 @@
       <br/>
       <br/>
 {% include "footer.html" %}
+
 
 
 

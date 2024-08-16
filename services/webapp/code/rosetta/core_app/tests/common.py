@@ -26,14 +26,14 @@ class BaseAPITestCase(TestCase):
 
         request_func = getattr(self.client, request_method)
         status_code  = None
-       
+
         if 'multipart' in kwargs and kwargs['multipart'] is True:
-            # Do nothing, this is a "special", multipart request 
+            # Do nothing, this is a "special", multipart request
             pass
         else:
             if 'content_type' not in kwargs and request_method != 'get':
                 kwargs['content_type'] = 'application/json'
-            
+
             if 'data' in kwargs and request_method != 'get' and kwargs['content_type'] == 'application/json':
                 data = kwargs.get('data', '')
                 kwargs['data'] = json.dumps(data)
@@ -54,10 +54,10 @@ class BaseAPITestCase(TestCase):
                 self.response.content_dict = json.loads(self.response.content)
             else:
                 self.response.content_dict = {}
-            
+
         except:
             self.response.content_dict = {}
-        
+
         if status_code:
             if not self.response.status_code == status_code:
                 raise Exception('Error with response:' + str(self.response))
@@ -83,6 +83,7 @@ class BaseAPITestCase(TestCase):
 
     def assertRedirects(self, *args, **kwargs):
         super(BaseAPITestCase, self).assertRedirects(*args, **kwargs)
+
 
 
 

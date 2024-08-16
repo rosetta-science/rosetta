@@ -4,9 +4,9 @@
     <nav id="sidebar-wrapper">
         <ul class="sidebar-nav">
 
-            
+
             <a id="menu-close" href="#" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-times"></i></a>
-            <a href="/main" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-home"></i></a>      
+            <a href="/main" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-home"></i></a>
 
 
             <li class="sidebar-brand" style="margin-top:50px">
@@ -16,13 +16,13 @@
             <hr style="margin-top:10px; margin-bottom:20px; margin-left:10px; margin-right:10px">
 
             {% if user.is_authenticated %}
-    
+
             <li>
                 <a href="/software" onclick = $("#menu-close").click(); >Software</a>
             </li>
             <li>
                 <a href="/computing" onclick = $("#menu-close").click(); >Computing</a>
-            </li>            
+            </li>
 
             <li>
                 <a href="/storage" onclick = $("#menu-close").click(); >Storage</a>
@@ -34,30 +34,30 @@
 
             <li>
                 <a href="/account" onclick = $("#menu-close").click(); >Account</a>
-            </li>           
+            </li>
             {% else %}
-            
-            
-            {% if LOCAL_AUTH_ENABLED %}        
+
+
+            {% if LOCAL_AUTH_ENABLED %}
             <li>
               <center>
                 <form class="form-signin" role="form" action='/login/' method='POST'>
                 {% csrf_token %}
-                <input type="username" class="form-control" placeholder="Email" name='username' required>            
+                <input type="username" class="form-control" placeholder="Email" name='username' required>
                 <input type="password" class="form-control" placeholder="Password" name='password'>
                 <input type='submit' class="btn btn-lg ha-btn-lg" value='Login' />
                 </form>
-              </center>         
+              </center>
             </li>
-  
+
             {% if OPENID_ENABLED %}
             <center><div style="margin-top:15px;margin-bottom:10px"><font color="#a9a9a9"> — OR —</font></div></center>
-            {% endif %} 
-            
+            {% endif %}
+
             {% endif %}
             <center>
             {% if OPENID_ENABLED %}
-            {% if LOCAL_AUTH_ENABLED %}  
+            {% if LOCAL_AUTH_ENABLED %}
             <li style="padding-left:0; text-indent: 0"> <a href="{% url 'oidc_authentication_init' %}" style="padding-left:0; text-indent: 0">Login with OpenID Connect</a></li>
             {% else %}
             <li style="padding-left:0; text-indent: 0"> <a href="{% url 'oidc_authentication_init' %}" style="padding-left:0; text-indent: 0">Login</a></li>
@@ -65,20 +65,21 @@
             {% endif %}
             {% if LOCAL_AUTH_ENABLED %}
             <div style="padding:10px;">
-            <font color="gray">Forgot password? Just leave it empty to get a login link by email. 
+            <font color="gray">Forgot password? Just leave it empty to get a login link by email.
             Or, <a href="/register" style="color: #c0c0c0" onclick = $("#menu-close").click(); >Register</a>.</font>
             </div>
             {% endif %}
             </center>
             {% endif %}
 
-      
+
         </ul>
-        
-  
-        
-        
-        
-        
+
+
+
+
+
+
     </nav>
     {% endif %}
+

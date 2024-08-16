@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_swagger',
-    'django_extensions', 
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -176,7 +176,7 @@ ROSETTA_LOG_LEVEL = os.environ.get('ROSETTA_LOG_LEVEL','ERROR')
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
- 
+
     'formatters': {
         'verbose': {
             'format': '%(levelname)s %(asctime)s %(module)s %(process)d '
@@ -187,13 +187,13 @@ LOGGING = {
             'datefmt': '%m/%d/%Y %I:%M:%S %p'
         }
     },
- 
+
     'filters': {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse'
         }
     },
- 
+
     'handlers': {
         'mail_admins': {
             'level': 'ERROR',
@@ -206,18 +206,18 @@ LOGGING = {
             'formatter': 'halfverbose',
         },
     },
- 
+
     'loggers': {
         'rosetta': {
             'handlers': ['console'],
             'level': ROSETTA_LOG_LEVEL,
-            'propagate': False, # Do not propagate or the root logger will emit as well, and even at lower levels. 
+            'propagate': False, # Do not propagate or the root logger will emit as well, and even at lower levels.
         },
         'django': {
             'handlers': ['console'],
             'level': DJANGO_LOG_LEVEL,
-            'propagate': False, # Do not propagate or the root logger will emit as well, and even at lower levels. 
-        }, 
+            'propagate': False, # Do not propagate or the root logger will emit as well, and even at lower levels.
+        },
         # Read more about the 'django' logger: https://docs.djangoproject.com/en/2.2/topics/logging/#django-logger
         # Read more about logging in the right way: https://lincolnloop.com/blog/django-logging-right-way/
     }
@@ -246,7 +246,7 @@ if OIDC_RP_CLIENT_ID:
         'django.contrib.auth.backends.ModelBackend',
         'rosetta.auth.RosettaOIDCAuthenticationBackend'
     )
-    
+
     # Base
     OIDC_RP_CLIENT_SECRET  = os.environ.get('OIDC_RP_CLIENT_SECRET')
     OIDC_OP_AUTHORIZATION_ENDPOINT = os.environ.get('OIDC_OP_AUTHORIZATION_ENDPOINT')
@@ -255,7 +255,7 @@ if OIDC_RP_CLIENT_ID:
     OIDC_RP_SIGN_ALGO = os.environ.get('OIDC_RP_SIGN_ALGO', 'RS256')
     OIDC_RP_IDP_SIGN_KEY = os.environ.get('OIDC_RP_IDP_SIGN_KEY', None)
     OIDC_OP_JWKS_ENDPOINT = os.environ.get('OIDC_OP_JWKS_ENDPOINT', None)
-    
+
     # Check
     if OIDC_RP_SIGN_ALGO == 'RS256':
         if not OIDC_RP_IDP_SIGN_KEY and not OIDC_OP_JWKS_ENDPOINT:
@@ -267,7 +267,7 @@ if OIDC_RP_CLIENT_ID:
 
     # Custom callback to enable session-based post-login redirects
     OIDC_CALLBACK_CLASS = 'rosetta.auth.RosettaOIDCAuthenticationCallbackView'
-    
+
     # Non-customizable stuff
     LOGIN_REDIRECT_URL = '/'
     LOGOUT_REDIRECT_URL = '/'
@@ -277,7 +277,8 @@ if OIDC_RP_CLIENT_ID:
     # Required for the Open ID connect redirects to work properly
     USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    
+
+
 
 
 

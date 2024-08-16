@@ -45,11 +45,11 @@ def booleanize(*args, **kwargs):
             break
     else:
         raise Exception('Internal Error')
-    
+
     # Handle shortcut: an arg with its name equal to ist value is considered as True
     if name==value:
         return True
-    
+
     if isinstance(value, bool):
         return value
     else:
@@ -63,7 +63,7 @@ def send_email(to, subject, text):
 
     # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
     from django.conf import settings
-    
+
     if settings.DJANGO_EMAIL_SERVICE == 'Sendgrid':
         import sendgrid
         from sendgrid.helpers.mail import Email,Content,Mail
@@ -74,7 +74,7 @@ def send_email(to, subject, text):
         subject = subject
         content = Content('text/plain', text)
         mail = Mail(from_email, subject, to_email, content)
-        
+
         try:
             response = sg.client.mail.send.post(request_body=mail.get())
 
@@ -83,17 +83,17 @@ def send_email(to, subject, text):
             #logger.debug(response.headers)
         except Exception as e:
             logger.error(e)
-        
+
         #logger.debug(response)
-    
+
 
 def format_exception(e, debug=False):
-    
+
     # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
     from django.conf import settings
 
     if settings.DEBUG:
-        # Cutting away the last char removed the newline at the end of the stacktrace 
+        # Cutting away the last char removed the newline at the end of the stacktrace
         return str('Got exception "{}" of type "{}" with traceback:\n{}'.format(e.__class__.__name__, type(e), traceback.format_exc()))[:-1]
     else:
         return str('Got exception "{}" of type "{}" with traceback "{}"'.format(e.__class__.__name__, type(e), traceback.format_exc().replace('\n', '|')))
@@ -106,7 +106,7 @@ def log_user_activity(level, msg, request, caller=None):
     #caller =  inspect.stack()[1][3]
     #if caller == "post":
     #    caller =  inspect.stack()[2][3]
-    
+
     try:
         msg = str(caller) + " view - USER " + str(request.user.email) + ": " + str(msg)
     except AttributeError:
@@ -116,12 +116,12 @@ def log_user_activity(level, msg, request, caller=None):
         level = getattr(logging, level)
     except:
         raise
-    
+
     logger.log(level, msg)
 
 
 def username_hash(email):
-    '''Create md5 base 64 (25 chrars) hash from user email:'''             
+    '''Create md5 base 64 (25 chrars) hash from user email:'''
     m = hashlib.md5()
     m.update(email)
     username = m.hexdigest().decode('hex').encode('base64')[:-3]
@@ -129,7 +129,7 @@ def username_hash(email):
 
 
 def random_username():
-    '''Create a random string of 156 chars to be used as username'''             
+    '''Create a random string of 156 chars to be used as username'''
     username = ''.join(random.choice('abcdefghilmnopqrtuvz') for _ in range(16))
     return username
 
@@ -155,27 +155,27 @@ def finalize_user_creation(user, auth='local'):
     if not out.exit_code == 0:
         logger.error(out)
         raise ErrorMessage('Something went wrong in creating user keys folder. Please contact support')
-        
-    command= "/bin/bash -c \"ssh-keygen -q -t rsa -N '' -C {}@rosetta -f /data/resources/keys/{}_id_rsa 2>/dev/null <<< y >/dev/null\"".format(user.email.split('@')[0], user.username)                        
+
+    command= "/bin/bash -c \"ssh-keygen -q -t rsa -N '' -C {}@rosetta -f /data/resources/keys/{}_id_rsa 2>/dev/null <<< y >/dev/null\"".format(user.email.split('@')[0], user.username)
     out = os_shell(command, capture=True)
     if not out.exit_code == 0:
         logger.error(out)
         raise ErrorMessage('Something went wrong in creating user keys. Please contact support')
-        
-    
+
+
     # Create key objects
     KeyPair.objects.create(user = user,
                           default = True,
                           private_key_file = '/data/resources/keys/{}_id_rsa'.format(user.username),
                           public_key_file = '/data/resources/keys/{}_id_rsa.pub'.format(user.username))
-    
+
 
 def sanitize_shell_encoding(text):
     return text.encode("utf-8", errors="ignore")
 
 
 def format_shell_error(stdout, stderr, exit_code):
-    
+
     string  = '\n#---------------------------------'
     string += '\n# Shell exited with exit code {}'.format(exit_code)
     string += '\n#---------------------------------\n'
@@ -193,14 +193,14 @@ def format_shell_error(stdout, stderr, exit_code):
 def os_shell(command, capture=False, verbose=False, interactive=False, silent=False):
     '''Execute a command in the OS shell. By default prints everything. If the capture switch is set,
     then it returns a namedtuple with stdout, stderr, and exit code.'''
-    
+
     if capture and verbose:
         raise Exception('You cannot ask at the same time for capture and verbose, sorry')
 
     # Log command
     logger.debug('Shell executing command: "%s"', command)
 
-    # Execute command in interactive mode    
+    # Execute command in interactive mode
     if verbose or interactive:
         exit_code = subprocess.call(command, shell=True)
         if exit_code == 0:
@@ -210,7 +210,7 @@ def os_shell(command, capture=False, verbose=False, interactive=False, silent=Fa
 
     # Execute command getting stdout and stderr
     # http://www.saltycrane.com/blog/2008/09/how-get-stdout-and-stderr-using-python-subprocess-module/
-    
+
     process          = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (stdout, stderr) = process.communicate()
     exit_code        = process.wait()
@@ -230,8 +230,8 @@ def os_shell(command, capture=False, verbose=False, interactive=False, silent=Fa
         if capture:
             return Output(stdout, stderr, exit_code)
         else:
-            print(format_shell_error(stdout, stderr, exit_code))      
-            return False    
+            print(format_shell_error(stdout, stderr, exit_code))
+            return False
     else:
         if capture:
             return Output(stdout, stderr, exit_code)
@@ -247,16 +247,16 @@ def os_shell(command, capture=False, verbose=False, interactive=False, silent=Fa
 def get_md5(string):
     if not string:
         raise Exception("Colund not compute md5 of empty/None value")
-    
+
     m = hashlib.md5()
-    
+
     # Fix for Python3
     try:
         if isinstance(string,unicode):
             string=string.encode('utf-8')
     except NameError:
         string=string.encode('utf-8')
-        
+
     m.update(string)
     md5 = str(m.hexdigest())
     return md5
@@ -264,14 +264,14 @@ def get_md5(string):
 
 def timezonize(timezone):
     '''Convert a string representation of a timezone to its pytz object or do nothing if the argument is already a pytz timezone'''
-    
+
     # Check if timezone is a valid pytz object is hard as it seems that they are spread arount the pytz package.
     # Option 1): Try to convert if string or unicode, else try to
-    # instantiate a datetiem object with the timezone to see if it is valid 
+    # instantiate a datetiem object with the timezone to see if it is valid
     # Option 2): Get all memebers of the pytz package and check for type, see
     # http://stackoverflow.com/questions/14570802/python-check-if-object-is-instance-of-any-class-from-a-certain-module
     # Option 3) perform a hand.made test. We go for this one, tests would fail if it gets broken
-    
+
     if not 'pytz' in str(type(timezone)):
         timezone = pytz.timezone(timezone)
     return timezone
@@ -296,25 +296,25 @@ def now_dt(tzinfo='UTC'):
 def dt(*args, **kwargs):
     '''Initialize a datetime object in the proper way. Using the standard datetime leads to a lot of
      problems with the tz package. Also, it forces UTC timezone if no timezone is specified'''
-    
+
     if 'tz' in kwargs:
         tzinfo = kwargs.pop('tz')
     else:
         tzinfo  = kwargs.pop('tzinfo', None)
-        
-    offset_s  = kwargs.pop('offset_s', None)   
+
+    offset_s  = kwargs.pop('offset_s', None)
     trustme   = kwargs.pop('trustme', None)
-    
+
     if kwargs:
         raise Exception('Unhandled arg: "{}".'.format(kwargs))
-        
+
     if (tzinfo is None):
         # Force UTC if None
         timezone = timezonize('UTC')
-        
+
     else:
         timezone = timezonize(tzinfo)
-    
+
     if offset_s:
         # Special case for the offset
         if not tzoffset:
@@ -324,7 +324,7 @@ def dt(*args, **kwargs):
         # Standard  timezone
         time_dt = timezone.localize(datetime.datetime(*args))
 
-    # Check consistency    
+    # Check consistency
     if not trustme and timezone != pytz.UTC:
         if not check_dt_consistency(time_dt):
             raise Exception('Sorry, time {} does not exists on timezone {}'.format(time_dt, timezone))
@@ -342,11 +342,11 @@ def check_dt_consistency(date_dt):
 
     # https://en.wikipedia.org/wiki/Tz_database
     # https://www.iana.org/time-zones
-    
+
     if date_dt.tzinfo is None:
         return True
     else:
-        
+
         # This check is quite heavy but there is apparently no other way to do it.
         if date_dt.utcoffset() != dt_from_s(s_from_dt(date_dt), tz=date_dt.tzinfo).utcoffset():
             return False
@@ -396,7 +396,7 @@ def dt_from_s(timestamp_s, tz=None):
 
     pytz_tz = timezonize(tz)
     timestamp_dt = timestamp_dt.replace(tzinfo=pytz.utc).astimezone(pytz_tz)
-    
+
     return timestamp_dt
 
 
@@ -414,38 +414,38 @@ def dt_from_str(string, timezone=None):
     # 1) YYYY-MM-DDThh:mm:ssZ
     # 2) YYYY-MM-DDThh:mm:ss.{u}Z
 
-    # Supported formats with offset    
+    # Supported formats with offset
     # 3) YYYY-MM-DDThh:mm:ss+ZZ:ZZ
     # 4) YYYY-MM-DDThh:mm:ss.{u}+ZZ:ZZ
 
     # Split and parse standard part
     date, time = string.split('T')
-    
+
     if time.endswith('Z'):
         # UTC
         offset_s = 0
         time = time[:-1]
-        
+
     elif ('+') in time:
         # Positive offset
         time, offset = time.split('+')
         # Set time and extract positive offset
-        offset_s = (int(offset.split(':')[0])*60 + int(offset.split(':')[1]) )* 60   
-        
+        offset_s = (int(offset.split(':')[0])*60 + int(offset.split(':')[1]) )* 60
+
     elif ('-') in time:
         # Negative offset
         time, offset = time.split('-')
         # Set time and extract negative offset
-        offset_s = -1 * (int(offset.split(':')[0])*60 + int(offset.split(':')[1])) * 60      
-    
+        offset_s = -1 * (int(offset.split(':')[0])*60 + int(offset.split(':')[1])) * 60
+
     else:
         raise Exception('Format error')
-    
+
     # Handle time
     hour, minute, second = time.split(':')
-    
+
     # Now parse date (easy)
-    year, month, day = date.split('-') 
+    year, month, day = date.split('-')
 
     # Convert everything to int
     year    = int(year)
@@ -459,7 +459,7 @@ def dt_from_str(string, timezone=None):
     else:
         second  = int(second)
         usecond = 0
-    
+
     return dt(year, month, day, hour, minute, second, usecond, offset_s=offset_s)
 
 
@@ -524,7 +524,7 @@ def get_platform_registry():
     platform_registry_conn_string = '{}:{}'.format(platform_registry_host, platform_registry_port)
     return platform_registry_conn_string
 
-  
+
 def get_rosetta_tasks_tunnel_host():
     # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
     from django.conf import settings
@@ -544,9 +544,9 @@ def hash_string_to_int(string):
 
 
 def get_ssh_access_mode_credentials(computing, user):
-    
+
     from .models import KeyPair
-    
+
     # Get computing host
     try:
         computing_host = computing.conf.get('host')
@@ -562,7 +562,7 @@ def get_ssh_access_mode_credentials(computing, user):
         computing_port = 22
     if not computing_port:
         computing_port = 22
-      
+
     # Get computing user and keys
     if computing.auth_mode == 'user_keys':
         computing_user = user.profile.get_extra_conf('computing_user', computing)
@@ -570,7 +570,7 @@ def get_ssh_access_mode_credentials(computing, user):
             raise ValueError('No \'computing_user\' parameter found for computing resource \'{}\' in user profile'.format(computing.name))
         # Get user key
         computing_keys = KeyPair.objects.get(user=user, default=True)
-    elif computing.auth_mode == 'platform_keys':        
+    elif computing.auth_mode == 'platform_keys':
         computing_user = computing.conf.get('user')
         computing_keys = KeyPair.objects.get(user=None, default=True)
     else:
@@ -584,7 +584,7 @@ def setup_tunnel_and_proxy(task):
 
     # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
     from .models import Task, KeyPair, TaskStatuses
-    
+
     # If there is no tunnel port allocated yet, find one
     if not task.tcp_tunnel_port:
 
@@ -629,8 +629,8 @@ def setup_tunnel_and_proxy(task):
         user_keys = KeyPair.objects.get(user=task.user, default=True)
 
         # Tunnel command
-        if task.computing.type == 'remotehop':           
-            
+        if task.computing.type == 'remotehop':
+
             # Get computing params
             first_host = task.computing.conf.get('first_host')
             first_user = task.computing.conf.get('first_user')
@@ -638,18 +638,18 @@ def setup_tunnel_and_proxy(task):
             #second_user = task.computing.conf.get('second_user')
             #setup_command = task.computing.conf.get('setup_command')
             #base_port = task.computing.conf.get('base_port')
-                     
+
             tunnel_command= 'ssh -4 -i {} -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} {}@{} & '.format(user_keys.private_key_file, task.tcp_tunnel_port, task.interface_ip, task.interface_port, first_user, first_host)
 
         else:
-            
+
             if task.computing.access_mode.startswith('ssh'):
                 computing_user, computing_host, computing_port, computing_keys = get_ssh_access_mode_credentials(task.computing, task.user)
                 tunnel_command  = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no -o ConnectTimeout=10 '.format(computing_port, computing_keys.private_key_file)
                 tunnel_command += '-nNT -L 0.0.0.0:{}:{}:{} {}@{}'.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port, computing_user, computing_host)
             else:
                 tunnel_command= 'ssh -4 -o StrictHostKeyChecking=no -nNT -L 0.0.0.0:{}:{}:{} localhost & '.format(task.tcp_tunnel_port, task.interface_ip, task.interface_port)
-        
+
         background_tunnel_command = 'nohup {} >/dev/null 2>&1 &'.format(tunnel_command)
 
         # Log
@@ -658,20 +658,20 @@ def setup_tunnel_and_proxy(task):
         # Execute
         subprocess.Popen(background_tunnel_command, shell=True)
 
-  
+
     # Setup the proxy now (if required.)
     if task.requires_proxy:
-        
+
         # Ensure conf directory exists
         if not os.path.exists('/shared/etc_apache2_sites_enabled'):
             os.makedirs('/shared/etc_apache2_sites_enabled')
-    
+
         # Set conf file name
         apache_conf_file = '/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid)
-    
-        # Check if proxy conf exists 
+
+        # Check if proxy conf exists
         if not os.path.exists(apache_conf_file):
-    
+
             # Write conf file
             # Some info about the various SSL switches: https://serverfault.com/questions/577616/using-https-between-apache-loadbalancer-and-backends
             logger.debug('Writing task proxy conf to {}'.format(apache_conf_file))
@@ -679,7 +679,7 @@ def setup_tunnel_and_proxy(task):
             rosetta_tasks_proxy_host = get_rosetta_tasks_proxy_host()
             apache_conf_content = '''
 #---------------------------
-#  Task interface proxy 
+#  Task interface proxy
 #---------------------------
 
 Listen '''+str(task.tcp_tunnel_port)+'''
@@ -694,19 +694,19 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 </VirtualHost>
 
 <VirtualHost *:'''+str(task.tcp_tunnel_port)+'''>
-    
+
     ServerName  '''+rosetta_tasks_proxy_host+'''
     ServerAdmin admin@rosetta.platform
-    
+
     SSLEngine on
     SSLCertificateFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/cert.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/privkey.pem
     SSLCACertificateFile /etc/letsencrypt/live/'''+rosetta_tasks_proxy_host+'''/fullchain.pem
-        
+
     SSLProxyEngine On
-    SSLProxyVerify none 
+    SSLProxyVerify none
     SSLProxyCheckPeerCN off
-    SSLProxyCheckPeerName off  
+    SSLProxyCheckPeerName off
 
     BrowserMatch "MSIE [2-6]" \
         nokeepalive ssl-unclean-shutdown \
@@ -723,7 +723,7 @@ Listen '''+str(task.tcp_tunnel_port)+'''
       AuthType Basic
       AuthName "Restricted area"
       AuthUserFile /shared/etc_apache2_sites_enabled/'''+str(task.uuid)+'''.htpasswd
-      Require valid-user  
+      Require valid-user
 
       # preserve Host header to avoid cross-origin problems
       ProxyPreserveHost on
@@ -737,32 +737,32 @@ Listen '''+str(task.tcp_tunnel_port)+'''
 '''
             with open(apache_conf_file, 'w') as f:
                 f.write(apache_conf_content)
-    
+
         # Now check if conf exist on proxy
         logger.debug('Checking if conf is enabled on proxy service')
         out = os_shell('ssh -o StrictHostKeyChecking=no proxy "[ -e /etc/apache2/sites-enabled/{}.conf ]"'.format(task.uuid), capture=True)
-    
+
         if out.exit_code == 1:
-      
+
             logger.debug('Conf not enabled on proxy service, linkig it and reloading Apache conf')
-      
+
             # Link on proxy since conf does not exist
             out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo ln -s /shared/etc_apache2_sites_enabled/{0}.conf /etc/apache2/sites-enabled/{0}.conf"'.format(task.uuid), capture=True)
             if out.exit_code != 0:
                 logger.error(out.stderr)
-                raise ErrorMessage('Something went wrong when activating the task proxy conf')        
-            
+                raise ErrorMessage('Something went wrong when activating the task proxy conf')
+
             # Reload apache conf on Proxy
             out = os_shell('ssh -o StrictHostKeyChecking=no proxy "sudo apache2ctl graceful"', capture=True)
             if out.exit_code != 0:
-                logger.error(out.stderr) 
-                raise ErrorMessage('Something went wrong when loading the task proxy conf')        
-            
+                logger.error(out.stderr)
+                raise ErrorMessage('Something went wrong when loading the task proxy conf')
+
 
 def sanitize_container_env_vars(env_vars):
-    
+
     for env_var in env_vars:
-        
+
         # Check only alphanumeric chars, slashed, dashes and underscores
         if not re.match("^[/A-Za-z0-9_-]*$", env_vars[env_var]):
             raise ValueError('Value "{}" for env var "{}" is not valid: only alphanumeric, slashes, dashes and underscores are.'.format(env_vars[env_var], env_var))
@@ -770,9 +770,9 @@ def sanitize_container_env_vars(env_vars):
     return env_vars
 
 
-def get_or_create_container_from_repository(user, repository_url, repository_tag=None, container_name=None, container_description=None): 
-    
-    from .models import Container    
+def get_or_create_container_from_repository(user, repository_url, repository_tag=None, container_name=None, container_description=None):
+
+    from .models import Container
     logger.debug('Called get_or_create_container_from_repository with repository_url="{}" and repository_tag="{}"'.format(repository_url,repository_tag))
 
     # Set repo name
@@ -781,13 +781,13 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
     # If building:
     #{"message": "Successfully built 5a2089b2c334\n", "phase": "building"}
     #{"message": "Successfully tagged r2dhttps-3a-2f-2fgithub-2ecom-2fnorvig-2fpytudes5e745c3:latest\n", "phase": "building"}
-    
+
     # If reusing:
     #{"message": "Reusing existing image (r2dhttps-3a-2f-2fgithub-2ecom-2fnorvig-2fpytudes5e745c3), not building."}
-    
+
     appendix = 'CMD ["jupyter", "notebook", "--ip", "0.0.0.0", "--NotebookApp.token", ""]'
 
-    
+
     # Build the Docker container for this repo
     if repository_tag:
         command = 'sudo jupyter-repo2docker --ref {} --user-id 1000 --user-name jovyan --no-run --appendix \'{}\' --json-logs {}'.format(repository_tag, appendix, repository_url)
@@ -796,7 +796,7 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
     out = os_shell(command, capture=True)
     if out.exit_code != 0:
         logger.error(out.stderr)
-        raise ErrorMessage('Something went wrong when creating the Dockerfile for repository "{}"'.format(repository_url))   
+        raise ErrorMessage('Something went wrong when creating the Dockerfile for repository "{}"'.format(repository_url))
 
     # Convert output to lines
     out_lines = out.stderr.split('\n')
@@ -818,7 +818,7 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
         image_name_for_tag = repo2docker_image_name.replace(':latest','')
     else:
         image_name_for_tag = repo2docker_image_name
-    
+
     image_tag = image_name_for_tag[-7:] # The last part of the image name generated by repo2docker is the git short hash
 
     # Re-tag image taking into account that if we are using the proxy as registry we use localhost or it won't work
@@ -826,17 +826,17 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
         push_registry = 'localhost:5000'
     else:
         push_registry = registry
-        
+
     out = os_shell('sudo docker tag {} {}/{}:{}'.format(repo2docker_image_name,push_registry,image_name,image_tag) , capture=True)
     if out.exit_code != 0:
         logger.error(out.stderr)
-        raise ErrorMessage('Something went wrong when tagging the container for repository "{}"'.format(repository_url))   
+        raise ErrorMessage('Something went wrong when tagging the container for repository "{}"'.format(repository_url))
 
     # Push image to the (local) registry
     out = os_shell('sudo docker push {}/{}:{}'.format(push_registry,image_name,image_tag) , capture=True)
     if out.exit_code != 0:
         logger.error(out.stderr)
-        raise ErrorMessage('Something went wrong when pushing the container for repository "{}"'.format(repository_url))   
+        raise ErrorMessage('Something went wrong when pushing the container for repository "{}"'.format(repository_url))
 
     # Create the container if not already existent
     try:
@@ -858,11 +858,11 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
                     repository_description_from_source += ' Built from {}'.format(repository_url)
                 except:
                     pass
-        
-        # Set default container name and description            
+
+        # Set default container name and description
         if not container_name:
             container_name = repository_name_from_source if repository_name_from_source else repository_name
-        
+
         if not container_description:
             container_description = repository_description_from_source if repository_description_from_source else 'Built from {}'.format(repository_url)
 
@@ -881,4 +881,5 @@ def get_or_create_container_from_repository(user, repository_url, repository_tag
                                              supports_custom_interface_port = False,
                                              supports_interface_auth = False)
     return container
+
 

@@ -14,7 +14,7 @@ elif [[ $# -gt 2 ]] ; then
     echo "Use double quotes to wrap commands with spaces"
     exit 1
 else
-    
+
     COMMAND=$2
     if [[ "x$COMMAND" == "x" ]] ; then
         echo ""

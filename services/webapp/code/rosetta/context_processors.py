@@ -2,7 +2,7 @@ import os
 from django.conf import settings
 def export_vars(request):
     data = {}
-    
+
     # Set open id connect enabled or not
     if settings.OIDC_RP_CLIENT_ID:
         data['OPENID_ENABLED'] = True
@@ -19,6 +19,6 @@ def export_vars(request):
     if settings.INVITATION_CODE:
         data['INVITATION_CODE_ENABLED'] = True
     else:
-        data['INVITATION_CODE_ENABLED'] = False   
-              
+        data['INVITATION_CODE_ENABLED'] = False
+
     return data

@@ -51,7 +51,7 @@ def public_view(wrapped_view):
                 error_text = str(e)
             else:
 
-                # Log the exception 
+                # Log the exception
                 logger.error(format_exception(e))
 
                 # Raise the exception if we are in debug mode
@@ -109,13 +109,13 @@ def private_view(wrapped_view):
                     error_text = str(e)
                 else:
 
-                    # Log the exception 
+                    # Log the exception
                     logger.error(format_exception(e))
-    
+
                     # Raise the exception if we are in debug mode
                     if settings.DEBUG:
                         raise
-    
+
                     # Otherwise, mask it
                     else:
                         error_text = 'something went wrong ({})'.format(e)
@@ -137,3 +137,4 @@ def private_view(wrapped_view):
             response.set_cookie('post_login_redirect', request.build_absolute_uri())
             return response
     return private_view_wrapper
+

@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class RosettaOIDCAuthenticationBackend(OIDCAuthenticationBackend):
-    
+
     def create_user(self, claims):
-        
+
         # Call parent user creation function
         user = super(RosettaOIDCAuthenticationBackend, self).create_user(claims)
 
@@ -27,12 +27,12 @@ class RosettaOIDCAuthenticationBackend(OIDCAuthenticationBackend):
 
 
 class RosettaOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
-    
+
     def login_success(self):
-        
+
         # Call parent login_success but do not return
         super(RosettaOIDCAuthenticationCallbackView, self).login_success()
-        
+
         logger.debug('Trying to get cookie-based post login redirect')
         post_login_page = self.request.COOKIES.get('post_login_redirect')
         if post_login_page:
@@ -43,4 +43,5 @@ class RosettaOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
         else:
             logger.debug('No cookie-based post login redirect found, redirecting to "%s"', self.success_url)
             return HttpResponseRedirect(self.success_url)
+
 

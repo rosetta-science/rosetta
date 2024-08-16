@@ -12,7 +12,7 @@ if [[ "x$1" == "xnocache" ]] ; then
     NOCACHE=true
     SERVICE=""
 elif [[ "x$2" == "xnocache" ]] ; then
-    NOCACHE=true 
+    NOCACHE=true
     SERVICE=$1
 else
     if [[ "x$NOCACHE" == "x" ]] ; then
@@ -29,20 +29,20 @@ else
 fi
 
 if [[ "x$SERVICE" == "x" ]] ; then
-    
+
     # Build all services
     NOCACHE=$NOCACHE rosetta/build base_ubuntu18.04
     NOCACHE=$NOCACHE rosetta/build base_ubuntu22.04
     NOCACHE=$NOCACHE rosetta/build slurmbase
-    NOCACHE=$NOCACHE rosetta/build slurmcluster    
-    NOCACHE=$NOCACHE rosetta/build slurmclustermaster    
-    NOCACHE=$NOCACHE rosetta/build slurmclusterworker    
-    NOCACHE=$NOCACHE rosetta/build standaloneworker     
+    NOCACHE=$NOCACHE rosetta/build slurmcluster
+    NOCACHE=$NOCACHE rosetta/build slurmclustermaster
+    NOCACHE=$NOCACHE rosetta/build slurmclusterworker
+    NOCACHE=$NOCACHE rosetta/build standaloneworker
     NOCACHE=$NOCACHE rosetta/build dregistry
     NOCACHE=$NOCACHE rosetta/build webapp
     NOCACHE=$NOCACHE rosetta/build postgres
     NOCACHE=$NOCACHE rosetta/build proxy
-    
+
 else
 
     # Build a specific image

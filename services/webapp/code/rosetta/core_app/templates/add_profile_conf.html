@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -6,19 +6,19 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1>Add extra profile configuration</h1> 
+      <h1>Add extra profile configuration</h1>
       <hr>
 
-      <h4>Chose the configuration type and add the values</h4> 
-      
+      <h4>Chose the configuration type and add the values</h4>
+
       <br/>
-      
+
       <form action="/add_profile_conf/" method="POST">
       {% csrf_token %}
-      
+
       <table class="dashboard" style="max-width:430px">
        <tr>
-       
+
         <td>
          {%if data.conf_type %}
          <select name="conf_type">
@@ -29,7 +29,7 @@
           {% for conf_type in data.conf_types %}
           <option value="{{conf_type}}">{{conf_type}}</option>
           {% endfor %}
-         </select>         
+         </select>
          {% endif %}
         </td>
 
@@ -44,11 +44,11 @@
           {% for computing in data.computings %}
           <option value="{{computing.uuid}}">{{computing.name}}</option>
           {% endfor %}
-         </select>         
+         </select>
          {% endif %}
         </td>
         {% endif %}
-      
+
 
        {% if data.last_step %}
         <td colspan=2 align=center style="padding:20px">
@@ -62,11 +62,10 @@
          <input type="submit" value="Next">
         </td>
        {% endif %}
-       
+
       </table>
       </form>
 
-      <br/>          
       <br/>
       <br/>
       <br/>
@@ -75,12 +74,14 @@
       <br/>
       <br/>
       <br/>
-      
+      <br/>
+
     </div>
   </div>
 </div>
 
 {% include "footer.html" %}
+
 
 
 

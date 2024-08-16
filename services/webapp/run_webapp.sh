@@ -35,7 +35,7 @@ echo ""
 
 
 if [[ "x$DJANGO_DEV_SERVER" == "xTrue" ]] ; then
-    
+
 # Run the (development) server
     echo "Now starting the development server and logging in /var/log/webapp/server.log."
     exec python3 manage.py runserver 0.0.0.0:8080 2>> /var/log/webapp/server.log
@@ -43,7 +43,7 @@ if [[ "x$DJANGO_DEV_SERVER" == "xTrue" ]] ; then
 else
     # Move to the code dir
     cd /opt/code
-    
+
     # Collect static
     echo "Collecting static files..."
     python3 manage.py collectstatic
@@ -62,21 +62,4 @@ else
 	      --http :8080 \
 	      --disable-logging 2>> /var/log/webapp/server.log
 fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

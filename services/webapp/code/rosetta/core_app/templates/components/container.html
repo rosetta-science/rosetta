@@ -1,6 +1,6 @@
 
 
-      {% if details %}     
+      {% if details %}
 
       <div style="width:400px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
       <table class="dashboard" style="margin:0px; border:0px; width:398px">
@@ -8,7 +8,7 @@
        <tr>
         <td colspan=2 align=center style="padding:10px; font-size:1.2em"><a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }} <font style="font-size:0.9em">({{ container.image_tag }})</font></a></td>
        </tr>
-        
+
        <tr>
         <td colspan="2" style="background:{{ container.color }}; height:15px"></td>
        </tr>
@@ -43,7 +43,7 @@
 
        <tr><td colspan=2><hr style="margin:5px"></td></tr>
        </table>
-       
+
       <table class="dashboard" style="margin:0px; border:0px;">
        <tr>
         <td><b>Interface protocol</b></td>
@@ -85,33 +85,33 @@
 
        <tr>
         <td colspan=2>
-         <b>Supports custom interface port</b> &nbsp; 
+         <b>Supports custom interface port</b> &nbsp;
          {% if container.supports_custom_interface_port %}
-           <input type="checkbox" name="container_supports_user_auth" checked disabled/> 
+           <input type="checkbox" name="container_supports_user_auth" checked disabled/>
          {% else %}
-           <input type="checkbox" name="container_supports_user_auth" disabled/> 
+           <input type="checkbox" name="container_supports_user_auth" disabled/>
          {% endif %}
         </td>
        </tr>
 
        <tr>
         <td colspan=2>
-         <b>Supports interface auth</b> &nbsp; 
+         <b>Supports interface auth</b> &nbsp;
          {% if container.supports_interface_auth %}
-           <input type="checkbox" name="supports_interface_auth" checked disabled/> 
+           <input type="checkbox" name="supports_interface_auth" checked disabled/>
          {% else %}
-           <input type="checkbox" name="supports_interface_auth" disabled/> 
+           <input type="checkbox" name="supports_interface_auth" disabled/>
          {% endif %}
          </td>
        </tr>
 
        <tr>
         <td colspan=2>
-         <b>Disable HTTP auth embedding</b> &nbsp; 
+         <b>Disable HTTP auth embedding</b> &nbsp;
          {% if container.disable_http_basicauth_embedding %}
-           <input type="checkbox" name="disable_http_basicauth_embedding" checked disabled/> 
+           <input type="checkbox" name="disable_http_basicauth_embedding" checked disabled/>
          {% else %}
-           <input type="checkbox" name="disable_http_basicauth_embedding" disabled/> 
+           <input type="checkbox" name="disable_http_basicauth_embedding" disabled/>
          {% endif %}
          </td>
        </tr>
@@ -122,7 +122,7 @@
         <td><pre>{{container.env_vars}}</pre></td>
        </tr>
        {% endif %}
-       
+
        {% if container.user %}
        <tr>
         <td><b>Operations</b></td>
@@ -131,26 +131,26 @@
        {% endif %}
       </table>
       </div>
-      
-      
+
+
       {% else %}
       <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
 
-        
+
         <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
-        <a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp; 
+        <a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp;
         </div>
-        
+
         <div style="padding:10px; height: 110px; vertical-align: middle; ">
-        
-        {% if container.description %} 
+
+        {% if container.description %}
         <div class="description-box" title="{{ container.description }}">
         {{ container.description }}
         </div>
         {% else %}
-        <br/>  
+        <br/>
         {% endif %}
-        
+
         <div class="image-version-box">
         <!-- <font style="font-family:monospace; font-size:1.2em"></font> -->
         <b>Image:</b> <code>{{ container.image_name }}</code><br/>
@@ -158,22 +158,22 @@
         {% if container.image_arch %}
         <font style="font-size:0.9em">({{ container.image_arch }})</font>
         {% endif %}
-        
+
         <!--  &nbsp; <b>Arch:</b> {{ container.image_arch }} -->
-        </div> 
-       
         </div>
-        
+
+        </div>
+
         <div style="margin-bottom:18px; margin-top: 3px; text-align:center">
         {% if not disable_play_button %}
         <a href="/new_task?task_container_uuid={{ container.uuid }}&step=two" class="btn btn-light" style="border: #c0c0c0 1px solid">&nbsp;<i class="fa fa-play" style="color:green"></i></a>
         {% endif %}
-        </div>    
-      
-      
-      
+        </div>
+
+
+
       </div>
-      
+
       {% endif  %}
 
 
@@ -181,4 +181,4 @@
 
 
 
-      
+

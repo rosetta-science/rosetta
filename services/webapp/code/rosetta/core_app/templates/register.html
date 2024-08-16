@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -6,15 +6,15 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-    
+
       <h1>Register</h1>
       <hr>
-      
-      {% if data.status == "wrong_invite" %}   
+
+      {% if data.status == "wrong_invite" %}
       <div class='centerbox-error'>
           Sorry, this invitation code is not valid.
       </div>
-      
+
       {% elif data.status == "already" %}
       <div class='centerbox'>
           You are already signed in, cannot create a new account.
@@ -30,7 +30,7 @@
           Ok, account created!
       </div>
       <br />
-      
+
       You signed up with the following email address: <b>{{data.user.email}}</b>. If this is wrong, change it now in your account settings.
       <br/>
       <br/>
@@ -38,7 +38,7 @@
       {% else %}
 
       <p><b>Welcome!</b></p>
-      
+
       <p>
       {% if INVITATION_CODE_ENABLED %}
       An invitation code is required to register on the platform. If you have one, then you can sign up right now. Otherwise, please get in touch.
@@ -46,10 +46,10 @@
       Enter your email address and choose a password to register on the platform.
       {% endif %}
       </p>
-      
+
       <br/>
       <br/>
-      
+
       <div class='centerbox'>
           <form class="form-signin" role="form" action='/register/' method='POST'>
           {% csrf_token %}
@@ -66,12 +66,12 @@
       <center>Please not that we do not verify email addressed and passwords at this stage, so please <u>double check</u> the form above before signing up.</center>
 </div> -->
       {% endif %}
-      
-      {% if data.error %}   
+
+      {% if data.error %}
       <div class='centerbox-error'>
           {{ data.error }}
       </div>
-      
+
       {% endif %}
       <br/>
       <br/>
@@ -79,13 +79,14 @@
       <br/>
       <br/>
       <br/>
-      
+
     </div>
   </div>
 </div>
 
 
 {% include "footer.html" %}
+
 
 
 

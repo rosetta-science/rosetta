@@ -1,14 +1,14 @@
 import json
 
 from django.contrib.auth.models import User
-        
+
 from .common import BaseAPITestCase
 from ..models import Profile
 
 class ApiTests(BaseAPITestCase):
 
     def setUp(self):
-        
+
         # Create test users
         self.user = User.objects.create_user('testuser', password='testpass')
         self.anotheruser = User.objects.create_user('anotheruser', password='anotherpass')
@@ -18,8 +18,8 @@ class ApiTests(BaseAPITestCase):
 
 
     def test_api_web_auth(self):
-        '''Test auth using login api''' 
-         
+        '''Test auth using login api'''
+
         # No user at all
         resp = self.post('/api/v1/base/login/', data={})
         self.assertEqual(resp.status_code, 401)
@@ -46,4 +46,4 @@ class ApiTests(BaseAPITestCase):
 
 
 
-        
+

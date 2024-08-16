@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html" %}
 {% include "logo.html" %}
@@ -6,11 +6,11 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      
+
       {% if data.details or data.container %}
       {% if data.container_families %}
       <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / {{ data.containers.0.name }}</span></h1>
-      {% else %}      
+      {% else %}
       <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / <a href="/software/?container_family_id={{data.container.family_id}}&details=True">{{ data.container.name }}</a> / {{ data.container.image_tag}}</span></h1>
       {% endif %}
       {% else %}
@@ -18,62 +18,62 @@
       <h1>New Task</h1>
       <hr/>
       <div style="padding-left:10px; padding-top:1px"><h4>Software container</h4></div>
-      <br/> 
+      <br/>
       {% else %}
       <h1>Software containers</h1>
       <hr/>
       {% endif %}
- 
 
-      
-      
+
+
+
       <div class="form-filter" style="margin-bottom:20px">
         <form action="" method="POST">
-          
+
           <input type="hidden" name="mode" value="{{data.mode}}">
-                    
+
           <input type="text" class="form-control" id="search_text" name="search_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.search_text}}" autofocus>
 
           <!-- onchange="this.form.submit()"  -->
           <select class="form-control" id="search_owner" name="search_owner" style="width:120px; margin:0; display:inline">
-            
+
             {% if data.search_owner == 'All' %}
             <option selected>All</option>
             {% else %}
-            <option>All</option>            
+            <option>All</option>
             {% endif %}
-            
+
             {% if data.search_owner == 'Platform' %}
             <option selected>Platform</option>
             {% else %}
-            <option>Platform</option>            
+            <option>Platform</option>
             {% endif %}
-            
+
             {% if data.search_owner == 'User' %}
             <option selected>User</option>
             {% else %}
-            <option>User</option>            
+            <option>User</option>
             {% endif %}
-            
+
           </select>
           {% csrf_token %}
           <button type="submit" class="btn btn-secondary">Go</button>
-          
+
           &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/add_software">Add new...</a>
-          
+
         </form>
-        
-        
-              
+
+
+
       </div>
-      
-      
+
+
       {% endif %}
-      
+
       <div class="row" style="padding:5px">
       {% if data.container %}
       {% include "components/container.html" with container=data.container details=True %}
-      {% else %}     
+      {% else %}
       {% if data.container_families %}
       {% for container_family_id, container_family in data.container_families.items %}
       {% include "components/container_family.html" with container_family=container_family container_family_id=container_family_id%}
@@ -82,10 +82,10 @@
       {% for container in data.containers %}
       {% include "components/container.html" with container=container %}
       {% endfor %}
-      {% endif  %}      
+      {% endif  %}
       {% endif %}
       </div>
-        
+
       <br/>
       <br/>
       <br/>
@@ -102,7 +102,7 @@
 <script>
 
 $(document).ready(function() {
-	  
+
     var search_text_input = $("#search_text");
     var len = search_text_input.val().length;
     search_text_input[0].focus();
@@ -110,6 +110,7 @@ $(document).ready(function() {
 
 });
 </script>
+
 
 
 

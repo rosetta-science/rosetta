@@ -1,4 +1,4 @@
-{% load static %} 
+{% load static %}
 {% include "header.html" %}
 {% include "navigation.html"%}
 {% include "logo.html" %}
@@ -17,44 +17,44 @@
         <input type="password" class="form-control" placeholder="Password" name='password'>
         <br />
         <input type='submit' style="width:110px" class="btn btn-lg btn-success btn-block" value='Log in' />
-        
+
 
         <div style="margin-top:25px; margin-bottom:15px">
         {% if OPENID_ENABLED %}<font color="#a9a9a9"> — OR —</font>{% endif %}
         </div>
-        
+
         {% if OPENID_ENABLED %}
         <a href="{% url 'oidc_authentication_init' %}">Login with OpenID Connect &nbsp;</a>
         {% endif %}
-        
+
         <br /><br />
-        
+
         {% if data.error %}
         <br/>
         <div class='centerbox-error'>
           {{ data.error }}
         </div>
-        
+
         {% elif data.success %}
         <br/>
         <div class='centerbox-success'>
           {{data.success}}
         </div>
-        
+
         {% else %}
         <br />
-        
+
         {% endif %}
-             
+
 
         </p>
-        
-      </form>      
+
+      </form>
     </div>
     {% if not data.success %}
     <b>Forgot password?</b><br/> Just leave it empty to get a login link by email!
     {% endif %}
-    
+
     <br /><br /><br />
     </center>
 
@@ -62,3 +62,4 @@
 
 
 {% include "footer.html" %}
+
