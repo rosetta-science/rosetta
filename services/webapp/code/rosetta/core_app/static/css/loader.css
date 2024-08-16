@@ -1,0 +1,29 @@
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+#navigate-away-loader {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	z-index: 2000;
+	align-items: center;
+	justify-content: center;
+	color: white;
+
+	transition: opacity 0.4s ease-in-out;
+
+	visibility: hidden;
+	pointer-events: none;
+	display: flex;
+
+	& > svg {
+		animation: spin 1.5s infinite linear;
+		opacity: 0.5;
+	}
+}
