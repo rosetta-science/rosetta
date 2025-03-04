@@ -310,9 +310,12 @@ print(port)
 
         elif action=='set_ip_port':
 
-            task_interface_ip   = request.GET.get('ip', None)
-            if not task_interface_ip:
-                return HttpResponse('IP not valid (got "{}")'.format(task_interface_ip))
+            if task.computing.type == 'standalone':
+                _, task_interface_ip, _, _ = get_ssh_access_mode_credentials(task.computing, task.user)
+            else:
+                task_interface_ip   = request.GET.get('ip', None)
+                if not task_interface_ip:
+                    return HttpResponse('IP not valid (got "{}")'.format(task_interface_ip))
 
             task_interface_port = request.GET.get('port', None)
             if not task_interface_port:
