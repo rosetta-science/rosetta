@@ -259,7 +259,10 @@ logger.info('Reporting for task uuid: "{}"'.format(task_uuid))
 # Get IP
 ip = socket.gethostbyname(hostname)
 if ip == '127.0.1.1':
-    ip = socket.gethostbyname(hostname+'.local')
+    try:
+        ip = socket.gethostbyname(hostname+'.local')
+    except:
+        pass
 logger.info(' - ip: "{}"'.format(ip))
 
 # Get port
