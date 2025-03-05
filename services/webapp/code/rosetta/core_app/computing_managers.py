@@ -322,6 +322,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             # Handle storages (binds)
             binds = ''
             storages = Storage.objects.filter(computing=self.computing)
+            initialize_bind_paths_command = ''
             for storage in storages:
                 if storage.type == 'generic_posix' and storage.bind_path:
 
@@ -334,6 +335,8 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                             raise NotImplementedError('Accessing a storage with ssh+cli without going through its computing resource is not implemented')
                     if '$USER' in expanded_base_path:
                         expanded_base_path = expanded_base_path.replace('$USER', task.user.username)
+
+                    initialize_bind_paths_command += 'mkdir -p {} && '.format(expanded_base_path)
 
                     # Expand the bind_path
                     expanded_bind_path = storage.bind_path
@@ -355,7 +358,7 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
             prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
 
             run_command  = 'ssh -p {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{} '.format(computing_port, computing_keys.private_key_file, computing_user, computing_host)
-            run_command += '/bin/bash -c \'"rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(task.uuid, task.uuid, task.uuid)
+            run_command += '/bin/bash -c \'"{}rm -rf /tmp/{}_data && mkdir /tmp/{}_data && chmod 700 /tmp/{}_data && '.format(initialize_bind_paths_command, task.uuid, task.uuid, task.uuid)
             run_command += 'curl {} {}/api/v1/base/agent/?task_uuid={} -o /tmp/{}_data/agent.py &> /dev/null && export TASK_PORT=\$(python3 /tmp/{}_data/agent.py 2> /tmp/{}_data/task.log) && '.format(CHECK_CURL_CERT_STR, webapp_conn_string, task.uuid, task.uuid, task.uuid, task.uuid)
             run_command += 'exec nohup {} {} run -p \$TASK_PORT:{} {} {} {} '.format(prefix, container_engine, task.container.interface_port, authstring, varsstring, binds)
             if container_engine == 'podman':
