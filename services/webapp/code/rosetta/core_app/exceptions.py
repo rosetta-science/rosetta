@@ -4,3 +4,6 @@ class ErrorMessage(Exception):
 
 class ConsistencyException(Exception):
     pass
+
+class PermissionDenied(Exception):
+    pass

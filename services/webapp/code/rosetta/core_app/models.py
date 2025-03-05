@@ -387,6 +387,9 @@ class Storage(models.Model):
     base_path = models.CharField('Base path', max_length=4096, blank=False, null=False)
     bind_path = models.CharField('Bind path', max_length=4096, blank=True, null=True)
 
+    # Read only?
+    read_only = models.BooleanField('Read only? (if supported)', default=False)
+
     # Link with a computing resource
     computing = models.ForeignKey(Computing, related_name='storages', on_delete=models.CASCADE, blank=True, null=True) # Make optional?
     access_through_computing = models.BooleanField('Access through linked computing resource?', default=False)

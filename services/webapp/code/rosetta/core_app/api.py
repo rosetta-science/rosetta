@@ -13,7 +13,7 @@ from rest_framework import status, serializers, viewsets
 from rest_framework.views import APIView
 from .utils import format_exception, send_email, os_shell, now_t, get_ssh_access_mode_credentials, get_or_create_container_from_repository, booleanize
 from .models import Profile, Task, TaskStatuses, Computing, Storage, KeyPair
-from .exceptions import ConsistencyException
+from .exceptions import PermissionDenied
 import json
 
 # Setup logging
@@ -153,8 +153,12 @@ class PrivatePOSTAPI(APIView):
             # Call API logic
             return self._post(request)
         except Exception as e:
-            logger.error(format_exception(e))
-            return error500('Got error in processing request: {}'.format(e))
+            # TODO: refactor me
+            if isinstance(e, PermissionDenied):
+                return error400(format(e))
+            else:
+                logger.error(format_exception(e))
+                return error500('Got error in processing request: {}'.format(e))
 
 class PrivateGETAPI(APIView):
     '''Base private GET API class'''
@@ -174,9 +178,12 @@ class PrivateGETAPI(APIView):
             # Call API logic
             return self._get(request)
         except Exception as e:
-            logger.error(format_exception(e))
-            return error500('Got error in processing request: {}'.format(e))
-
+            # TODO: refactor me
+            if isinstance(e, PermissionDenied):
+                return error400(format(e))
+            else:
+                logger.error(format_exception(e))
+                return error500('Got error in processing request: {}'.format(e))
 
 
 #==============================
@@ -689,6 +696,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
     def delete(self, path, user, storage):
 
+        if storage.read_only:
+            raise PermissionDenied('This storage is read-only')
+
         if storage.type == 'generic_posix':
 
             shell_path = self.sanitize_and_prepare_shell_path(path, user, storage)
@@ -706,6 +716,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
     def mkdir(self, path, user, storage, force=False):
+
+        if storage.read_only:
+            raise PermissionDenied('This storage is read-only')
 
         path = self.sanitize_and_prepare_shell_path(path, user, storage)
 
@@ -751,6 +764,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
     def rename(self, old, new, user, storage):
 
+        if storage.read_only:
+            raise PermissionDenied('This storage is read-only')
+
         if storage.type == 'generic_posix':
 
             old = self.sanitize_and_prepare_shell_path(old, user, storage)
@@ -771,6 +787,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
     def copy(self, source, target, user, storage):
+
+        if storage.read_only:
+            raise PermissionDenied('This storage is read-only')
 
         if storage.type == 'generic_posix':
 
@@ -804,6 +823,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
 
 
     def scp_to(self, source, target, user, storage, mode='get'):
+
+        if storage.read_only:
+            raise PermissionDenied('This storage is read-only')
 
         source = self.sanitize_shell_path(source) # This is a folder on Rosetta (/tmp)
         target = self.sanitize_and_prepare_shell_path(target, user, storage)

@@ -147,11 +147,17 @@ class InternalStandaloneComputingManager(StandaloneComputingManager):
                 if '$USER' in expanded_bind_path:
                     expanded_bind_path = expanded_bind_path.replace('$USER', task.user.username)
 
+                # Read only?
+                if storage.read_only:
+                    mode_string = ':ro'
+                else:
+                    mode_string = ''
+
                 # Add the bind
                 if not binds:
-                    binds = '-v{}:{}'.format(expanded_base_path, expanded_bind_path)
+                    binds = '-v{}:{}{}'.format(expanded_base_path, expanded_bind_path, mode_string)
                 else:
-                    binds += ' -v{}:{}'.format(expanded_base_path, expanded_bind_path)
+                    binds += ' -v{}:{}{}'.format(expanded_base_path, expanded_bind_path, mode_string)
 
         # Host name, image entry command
         run_command += ' {} -h task-{} --name task-{} -d -t {}/{}:{}'.format(binds, task.short_uuid, task.short_uuid, task.container.registry, task.container.image_name, task.container.image_tag)
@@ -348,11 +354,17 @@ class SSHStandaloneComputingManager(StandaloneComputingManager, SSHComputingMana
                     if '$USER' in expanded_bind_path:
                         expanded_bind_path = expanded_bind_path.replace('$USER', task.user.username)
 
+                    # Read only?
+                    if storage.read_only:
+                        mode_string = ':ro'
+                    else:
+                        mode_string = ''
+
                     # Add the bind
                     if not binds:
-                        binds = '-v{}:{}'.format(expanded_base_path, expanded_bind_path)
+                        binds = '-v{}:{}{}'.format(expanded_base_path, expanded_bind_path, mode_string)
                     else:
-                        binds += ' -v{}:{}'.format(expanded_base_path, expanded_bind_path)
+                        binds += ' -v{}:{}{}'.format(expanded_base_path, expanded_bind_path, mode_string)
 
             # TODO: remove this hardcoding
             prefix = 'sudo' if (computing_host == 'slurmclusterworker' and container_engine=='docker') else ''
