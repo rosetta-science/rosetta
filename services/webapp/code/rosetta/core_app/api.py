@@ -565,7 +565,9 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
             # https://askubuntu.com/questions/1116634/ls-command-show-time-only-in-iso-format
             # https://www.howtogeek.com/451022/how-to-use-the-stat-command-on-linux/
 
-            command = self.prepare_sh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(shell_path), user, storage)
+            # This potentially raises a "stat: cannot statx '.*': No such file or directory"
+            #command = self.prepare_sh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' * .*'.format(shell_path), user, storage)
+            command = self.prepare_sh_command('cd {} && stat --printf=\'%F/%s/%Y/%n\\n\' *'.format(shell_path), user, storage)
 
             # Execute_command
             out = os_shell(command, capture=True)
