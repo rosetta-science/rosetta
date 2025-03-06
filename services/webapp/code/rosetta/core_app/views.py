@@ -6,6 +6,7 @@ import requests
 import socket
 import subprocess
 import base64
+import time
 import datetime
 from django.conf import settings
 from django.shortcuts import render
@@ -1151,11 +1152,27 @@ def task_connect(request):
         if task.container.interface_protocol.startswith('http'):
             try:
                 if task.requires_tcp_tunnel:
-                    requests.get('{}://localhost:{}'.format(task.container.interface_protocol, task.tcp_tunnel_port), timeout=3)
+                    # Check three times, as there might be some delay in establishing the tunnel
+                    # in background in the above setup_tunnel_and_proxy() call
+                    attempts = 0
+                    while True:
+                        try:
+                            requests.get('{}://localhost:{}'.format(task.container.interface_protocol, task.tcp_tunnel_port), timeout=3)
+                            logger.debug('Task interface is answering')
+                            task.interface_status = 'running'
+                        except:
+                            if attempts > 2:
+                                logger.debug('Too many attempts, giving up')
+                                raise
+                            else:
+                                sleep_time = attempts + 1
+                                logger.debug('Task interface not answering, retrying ({}s)...'.format(sleep_time))
+                                attempts += 1
+                                time.sleep(sleep_time)
+                        else:
+                            break
                 else:
                     requests.get('{}://{}:{}'.format(task.container.interface_protocol, task.interface_ip, task.interface_port), timeout=3)
-                logger.debug('Task interface is answering')
-                task.interface_status = 'running'
             except Exception as e:
                 logger.debug('Could not connect to task interface ({})'.format(e))
 
