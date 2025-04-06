@@ -725,6 +725,8 @@ Listen '''+str(task.tcp_tunnel_port)+'''
       AuthUserFile /shared/etc_apache2_sites_enabled/'''+str(task.uuid)+'''.htpasswd
       Require valid-user
 
+      Redirect "/ad5aad4c-f68e-4077-b92f-8d9fd8f55428" "/"
+
       # preserve Host header to avoid cross-origin problems
       ProxyPreserveHost on
       # proxy to the port

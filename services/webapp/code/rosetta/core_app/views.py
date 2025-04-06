@@ -1224,7 +1224,7 @@ def direct_connection_handler(request, uuid):
         if task.requires_proxy_auth and task.auth_token and not task.container.disable_http_basicauth_embedding:
             user = request.user.email
             password = task.auth_token
-            redirect_string = 'https://{}:{}@{}:{}'.format(user, password, rosetta_tasks_proxy_host, task.tcp_tunnel_port)
+            redirect_string = 'https://{}:{}@{}:{}/ad5aad4c-f68e-4077-b92f-8d9fd8f55428'.format(user, password, rosetta_tasks_proxy_host, task.tcp_tunnel_port)
         else:
             redirect_string = 'https://{}:{}'.format(rosetta_tasks_proxy_host, task.tcp_tunnel_port)
     else:
