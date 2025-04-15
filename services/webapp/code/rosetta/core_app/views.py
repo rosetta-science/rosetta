@@ -814,7 +814,7 @@ def software(request):
             return render(request, 'error.html', {'data': data})
 
     else:
-        # Ddo we have to operate on a container family?
+        # Do we have to operate on a container family?
         if container_family_id:
 
             # Get back name, registry and image from contsainer url
@@ -836,7 +836,7 @@ def software(request):
                 platform_containers = Container.objects.filter(user=None)
 
 
-        # Ok, nilter by owner
+        # Ok, filter by owner
         if search_owner != 'All':
             if search_owner == 'User':
                 platform_containers =[]
@@ -875,10 +875,25 @@ def software(request):
                     self.container_by_tags_by_arch[container.image_arch]={}
                 self.container_by_tags_by_arch[container.image_arch][container.image_tag] = container
 
-                # Lastly, add the container to the "all tags"
-                #if None not in self.container_by_tags_by_arch:
-                #    self.container_by_tags_by_arch[None]={}
-                #self.container_by_tags_by_arch[None][container.image_tag] = container
+
+            def finalize(self, desc=True):
+
+                # Order versions
+                for arch in self.container_by_tags_by_arch:
+                    latest = self.container_by_tags_by_arch[arch].pop('latest', None)
+                    container_by_tags_ordered = dict(sorted(self.container_by_tags_by_arch[arch].items(), reverse=desc))
+                    if latest:
+                        if desc:
+                            self.container_by_tags_by_arch[arch] = {'latest': latest}
+                            self.container_by_tags_by_arch[arch].update(container_by_tags_ordered)
+                        else:
+                            self.container_by_tags_by_arch[arch] = container_by_tags_ordered
+                            self.container_by_tags_by_arch[arch].update({'latest': latest})
+                    else:
+                        self.container_by_tags_by_arch[arch] = container_by_tags_ordered
+
+                # Order archs
+                self.container_by_tags_by_arch = dict(sorted(self.container_by_tags_by_arch.items(), reverse=False))
 
 
             @ property
@@ -893,11 +908,11 @@ def software(request):
             if container.family_id not in data['container_families']:
                 data['container_families'][container.family_id] = ContainerFamily(container.family_id, container.name, container.registry, container.image_name)
             data['container_families'][container.family_id].add(container)
+
         # Finalize the families
-        #for container.family_id in data['container_families']:
-        #    if len(data['container_families'][container.family_id].all_archs) == 1:
-        #        if data['container_families'][container.family_id].all_archs[0] != None:
-        #            data['container_families'][container.family_id].container_by_tags_by_arch.pop(None)
+        for container_family_id in data['container_families']:
+            data['container_families'][container_family_id].finalize()
+
 
     return render(request, 'software.html', {'data': data})
 
