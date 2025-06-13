@@ -410,7 +410,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
         if mode=='get':
             command = 'scp -P {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {}@{}:{} {}'.format(computing_port, computing_keys.private_key_file, computing_user, computing_host, source, dest)
         elif mode == 'put':
-            command = 'scp -P -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(computing_port, computing_keys.private_key_file, source, computing_user, computing_host, dest)
+            command = 'scp -P {} -o LogLevel=ERROR -i {} -4 -o StrictHostKeyChecking=no {} {}@{}:{}'.format(computing_port, computing_keys.private_key_file, source, computing_user, computing_host, dest)
         else:
             raise ValueError('Unknown mode "{}"'.format(mode))
 
@@ -1235,7 +1235,7 @@ class FileManagerAPI(PrivateGETAPI, PrivatePOSTAPI):
                 # Remove file
                 os.remove('/tmp/{}'.format(file_uuid))
 
-            if storage.access_mode == 'cli':
+            elif storage.access_mode == 'cli':
 
                 try:
                     as_user = storage.conf['as_user']
