@@ -46,6 +46,8 @@ RUN mkdir /singularity_images && chmod 777 /singularity_images
 COPY testimage.def /singularity_images/testimage.def
 RUN singularity build /singularity_images/testimage.simg /singularity_images/testimage.def
 
+# Add also curl
+RUN apt-get -y install curl
 
 #----------------------
 #  Slurm
