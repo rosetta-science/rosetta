@@ -50,7 +50,7 @@ services:
     environment:
       - SAFEMODE=False
     volumes:
-      - ./data/postgres/data:/data    
+      - ./data/postgres/data:/data
 
   webapp:
     image: "rosetta/webapp"
@@ -80,7 +80,7 @@ services:
       #- DJANGO_SECRET_KEY=""
       #- ROSETTA_TASKS_PROXY_HOST=
       #- ROSETTA_TASKS_TUNNEL_HOST=
-      - ROSETTA_HOST=localhost 
+      - ROSETTA_HOST=localhost
     ports:
       - "8080:8080"
       - "7000-7020:7000-7020"
@@ -95,6 +95,7 @@ services:
     image: "rosetta/proxy"
     container_name: proxy
     hostname: proxy
+    restart: unless-stopped
     environment:
       - SAFEMODE=False
       - ROSETTA_HOST=localhost
