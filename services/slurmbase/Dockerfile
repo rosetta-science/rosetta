@@ -19,35 +19,36 @@ RUN apt-get update && apt-get install -y \
 
 # Install GO
 RUN if [ "$(uname -i)" = "aarch64" ] ; then \
-    cd /tmp && wget https://dl.google.com/go/go1.11.linux-arm64.tar.gz && \
-    cd /tmp && tar -zxf go1.11.linux-arm64.tar.gz && mv go /usr/local; \
+    cd /tmp && wget https://dl.google.com/go/go1.17.linux-arm64.tar.gz && \
+    cd /tmp && tar -zxf go1.17.linux-arm64.tar.gz && mv go /usr/local; \
     else \
-    cd /tmp && wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
-    cd /tmp && tar -zxf go1.11.linux-amd64.tar.gz && mv go /usr/local; \
+    cd /tmp && wget https://dl.google.com/go/go1.17.linux-amd64.tar.gz && \
+    cd /tmp && tar -zxf go1.17.linux-amd64.tar.gz && mv go /usr/local; \
     fi
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/root/go
 ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
 # Install Singularity
-COPY singularity-3.4.1.tar.gz /tmp
+COPY singularity-3.8.6.tar.gz /tmp
 RUN mkdir -p /usr/local/var/singularity/mnt && \
     mkdir -p $GOPATH/src/github.com/sylabs && \
     cd $GOPATH/src/github.com/sylabs && \
-    mv /tmp/singularity-3.4.1.tar.gz ./ && \
-    tar -xzvf singularity-3.4.1.tar.gz
+    mv /tmp/singularity-3.8.6.tar.gz ./ && \
+    tar -xzvf singularity-3.8.6.tar.gz && \
+    mv singularity-3.8.6 singularity
 RUN cd $GOPATH/src/github.com/sylabs/singularity && \
     ./mconfig -p /usr/local && \
     make -C builddir && \
     make -C builddir install
 
 # Build test image
-RUN mkdir /singularity_images && chmod 777 /singularity_images
-COPY testimage.def /singularity_images/testimage.def
-RUN singularity build /singularity_images/testimage.simg /singularity_images/testimage.def
+#RUN mkdir /singularity_images && chmod 777 /singularity_images
+#COPY testimage.def /singularity_images/testimage.def
+#RUN singularity build /singularity_images/testimage.simg /singularity_images/testimage.def
 
-# Add also curl
-RUN apt-get -y install curl
+# Add also curl and required timezone support
+RUN apt-get -y install curl tzdata
 
 #----------------------
 #  Slurm
