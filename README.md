@@ -205,5 +205,5 @@ It is common for the build process to fail with a "404 not found" error on an ap
 
 - Singularity has several issues, in particular the `.singularity` in user home might have limited space. Consider setting the `SINGULARITY_TMPDIR=/tmp/$USER` env var. 
 - Some Docker versions (e.g. old-ish on Mac) do not let Podman work due to fuse permissions.
-- SSH computing resources require python3 and wget installed, or will raise (empty) errors when submitting tasks. Check 127 error codes.
+- Computing resources require python3 and curl installed for the agent to work, or will raise (empty) errors when submitting tasks. Check 127 error codes.
 
