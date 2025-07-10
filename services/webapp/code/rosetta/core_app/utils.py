@@ -2,7 +2,6 @@ import os
 import re
 import hashlib
 import traceback
-import hashlib
 import json
 import requests
 import random
@@ -11,6 +10,7 @@ import logging
 from collections import namedtuple
 import datetime, calendar, pytz
 from dateutil.tz import tzoffset
+from django.core.mail import send_mail as django_send_mail
 
 from .exceptions import ErrorMessage
 
@@ -64,28 +64,15 @@ def send_email(to, subject, text):
     # Importing here instead of on top avoids circular dependencies problems when loading booleanize in settings
     from django.conf import settings
 
-    if settings.DJANGO_EMAIL_SERVICE == 'Sendgrid':
-        import sendgrid
-        from sendgrid.helpers.mail import Email,Content,Mail
-
-        sg = sendgrid.SendGridAPIClient(apikey=settings.DJANGO_EMAIL_APIKEY)
-        from_email = Email(settings.DJANGO_EMAIL_FROM)
-        to_email = Email(to)
-        subject = subject
-        content = Content('text/plain', text)
-        mail = Mail(from_email, subject, to_email, content)
-
-        try:
-            response = sg.client.mail.send.post(request_body=mail.get())
-
-            #logger.debug(response.status_code)
-            #logger.debug(response.body)
-            #logger.debug(response.headers)
-        except Exception as e:
-            logger.error(e)
-
-        #logger.debug(response)
-
+    if settings.EMAIL_HOST:
+        django_send_mail(
+            subject = subject,
+            message = text,
+            from_email = settings.DEFAULT_FROM_EMAIL,
+            recipient_list = [to],
+            fail_silently=False,
+        )
+        logger.debug('Sent email to "{}": "{}" - "{}"'.format(to, subject, text))
 
 def format_exception(e, debug=False):
 

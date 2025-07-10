@@ -159,11 +159,16 @@ ROSETTA_HOST = os.environ.get('ROSETTA_HOST', 'localhost')
 #  Email settings
 #===============================
 
-DJANGO_EMAIL_SERVICE = os.environ.get('DJANGO_EMAIL_SERVICE', 'Sendgrid')
-if not DJANGO_EMAIL_SERVICE in ['Sendgrid', None]:
-    raise ImproperlyConfigured('Invalid EMAIL_METHOD ("{}")'.format(DJANGO_EMAIL_SERVICE))
-DJANGO_EMAIL_FROM = os.environ.get('DJANGO_EMAIL_FROM', 'Rosetta <notifications@rosetta.local')
-DJANGO_EMAIL_APIKEY = os.environ.get('DJANGO_EMAIL_APIKEY', None)
+# Email settings
+EMAIL_BACKEND = os.environ.get('DJANGO_EMAIL_TYPE', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('DJANGO_EMAIL_HOST', None)
+EMAIL_PORT = int(os.environ.get('DJANGO_EMAIL_PORT', 587))
+EMAIL_USE_TLS = booleanize(os.environ.get('DJANGO_EMAIL_USE_TLS', True))
+EMAIL_USE_SSL = booleanize(os.environ.get('DJANGO_EMAIL_USE_SSL', False))
+EMAIL_HOST_USER = os.environ.get('DJANGO_EMAIL_HOST_USER', None)
+EMAIL_HOST_PASSWORD = os.environ.get('DJANGO_EMAIL_HOST_PASSWORD', None)
+DEFAULT_FROM_EMAIL = os.environ.get('DJANGO_EMAIL_FROM', 'Rosetta <notifications@rosetta.platform>')
+
 
 
 #===============================
