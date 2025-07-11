@@ -153,10 +153,22 @@ class Container(models.Model):
         return str('Container "{}" of user "{}" with image name "{}" and image tag "{}" on registry "{}" '.format(self.name, user_str, self.image_name, self.image_tag, self.registry))
 
     def save(self, *args, **kwargs):
-        # Check that digest starts with sha256:
+
+        if self.image_tag is None:
+            raise ValueError('The image tag field must be always set (e.g. using "latest")')
+        if not self.image_arch:
+            self.image_arch = None
+        if not self.image_os:
+            raise ValueError('The image must be always set')
         if self.image_digest and not self.image_digest.startswith('sha256:'):
             raise ValueError('The digest field must start with "sha256:"')
 
+        if not self.interface_port:
+            self.interface_port = None
+        if not self.interface_protocol:
+            self.interface_protocol = None
+        if not self.interface_transport:
+            self.interface_transport = None
         super(Container, self).save(*args, **kwargs)
 
     @property

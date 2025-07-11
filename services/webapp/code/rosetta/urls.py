@@ -48,6 +48,7 @@ urlpatterns = [
     # Software
     url(r'^software/$', core_app_views.software),
     url(r'^add_software/$', core_app_views.add_software),
+    url(r'^edit_software/$', core_app_views.edit_software),
     url(r'^import_repository/$', core_app_views.import_repository),
 
     #Computing

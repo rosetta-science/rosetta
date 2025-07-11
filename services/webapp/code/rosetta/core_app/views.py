@@ -865,15 +865,21 @@ def software(request):
             def add(self, container):
                 self.members.append(container)
 
+                container_image_arch = container.image_arch
+
+                # Handle None arch
+                if container_image_arch is None:
+                    container_image_arch = ''
+
                 if not self.description:
                     self.description = container.description
 
-                if not container.image_arch in self.all_archs:
-                    self.all_archs.append(container.image_arch)
+                if not container_image_arch in self.all_archs:
+                    self.all_archs.append(container_image_arch)
 
-                if not container.image_arch in self.container_by_tags_by_arch:
-                    self.container_by_tags_by_arch[container.image_arch]={}
-                self.container_by_tags_by_arch[container.image_arch][container.image_tag] = container
+                if not container_image_arch in self.container_by_tags_by_arch:
+                    self.container_by_tags_by_arch[container_image_arch]={}
+                self.container_by_tags_by_arch[container_image_arch][container.image_tag] = container
 
 
             def finalize(self, desc=True):
@@ -1046,6 +1052,82 @@ def add_software(request):
 
     return render(request, 'add_software.html', {'data': data})
 
+
+@private_view
+def edit_software(request):
+    data = {}
+    data['user'] = request.user
+
+    container_uuid = request.GET.get('container_uuid', None)
+    if not container_uuid:
+        data['error'] = 'No container specified.'
+        return render(request, 'error.html', {'data': data})
+
+    try:
+        container = Container.objects.get(uuid=container_uuid)
+    except Container.DoesNotExist:
+        data['error'] = 'Container does not exist.'
+        return render(request, 'error.html', {'data': data})
+
+    # Only allow editing if user owns the container or is admin
+    if not (container.user == request.user or request.user.is_superuser):
+        data['error'] = 'You do not have permission to edit this container.'
+        return render(request, 'error.html', {'data': data})
+
+    data['container'] = container
+    data['edited'] = False
+
+    if request.method == 'POST':
+        # Get all fields from POST, fallback to current values
+        container.name = request.POST.get('container_name', container.name)
+        container.description = request.POST.get('container_description', container.description)
+        container.registry = request.POST.get('container_registry', container.registry)
+        container.image_name = request.POST.get('container_image_name', container.image_name)
+        container.image_tag = request.POST.get('container_image_tag', container.image_tag)
+        container.image_arch = request.POST.get('container_image_arch', container.image_arch)
+        container.image_os = request.POST.get('container_image_os', container.image_os)
+        container.image_digest = request.POST.get('container_image_digest', container.image_digest)
+
+        interface_port = request.POST.get('container_interface_port', None)
+        if interface_port:
+            try:
+                container.interface_port = int(interface_port)
+            except Exception:
+                data['error'] = 'Invalid container port.'
+                return render(request, 'edit_software.html', {'data': data})
+        else:
+            container.interface_port = None
+
+        container.interface_protocol = request.POST.get('container_interface_protocol', container.interface_protocol)
+        container.interface_transport = request.POST.get('container_interface_transport', container.interface_transport)
+
+        supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
+        container.supports_custom_interface_port = supports_custom_interface_port == 'True'
+
+        supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
+        container.supports_interface_auth = supports_interface_auth == 'True'
+
+        disable_http_basicauth_embedding = request.POST.get('container_disable_http_basicauth_embedding', None)
+        container.disable_http_basicauth_embedding = disable_http_basicauth_embedding == 'True'
+
+        container_env_vars = request.POST.get('container_env_vars', None)
+        if container_env_vars:
+            try:
+                container.env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
+            except Exception:
+                data['error'] = 'Invalid environment variables format.'
+                return render(request, 'edit_software.html', {'data': data})
+        else:
+            container.env_vars = None
+
+        try:
+            container.save()
+            data['edited'] = True
+        except Exception as e:
+            data['error'] = f'Error saving container: {e}'
+            return render(request, 'edit_software.html', {'data': data})
+
+    return render(request, 'edit_software.html', {'data': data})
 
 
 #=========================

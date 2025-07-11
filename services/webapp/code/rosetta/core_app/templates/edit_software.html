@@ -1,0 +1,158 @@
+{% load static %}
+{% include "header.html" %}
+{% include "navigation.html" %}
+{% include "logo.html" %}
+
+<div class="container">
+  <div class="dashboard">
+    <div class="span8 offset2">
+      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / <a href="/software/?container_family_id={{data.container.family_id}}&details=True">{{ data.container.name }}</a> / {{ data.container.image_tag}} / edit</span></h1>
+      <hr>
+
+      {% if data.error %}
+        <div class="alert alert-danger">{{ data.error }}</div>
+      {% endif %}
+      {% if data.edited %}
+        <div class="alert alert-success">Container updated successfully.</div>
+      {% endif %}
+
+      <form action="#" method="POST">
+      {% csrf_token %}
+      <table class="dashboard" style="width:400px; margin-bottom:25px">
+        <tr>
+          <td><b>Name</b></td>
+          <td><input type="text" name="container_name" value="{{ data.container.name }}" size="23" required /></td>
+        </tr>
+        <tr>
+          <td><b>Description</b></td>
+          <td><textarea name="container_description" rows="3" cols="22">{{ data.container.description }}</textarea></td>
+        </tr>
+        <tr>
+          <td><b>Registry</b></td>
+          <td><input type="text" name="container_registry" value="{{ data.container.registry }}" size="23" required /></td>
+        </tr>
+        <tr>
+          <td><b>Image&nbsp;name</b></td>
+          <td><input type="text" name="container_image_name" value="{{ data.container.image_name }}" size="23" required /></td>
+        </tr>
+        <tr>
+          <td><b>Image tag</b></td>
+          <td><input type="text" name="container_image_tag" value="{{ data.container.image_tag }}" size="23" required /></td>
+        </tr>
+      </table>
+
+      <h4>Interface</h4>
+      <table class="dashboard" style="width:400px; margin-bottom:25px">
+        <tr>
+          <td><b>Interface port</b></td>
+          {% if data.container.interface_port %}
+          <td><input type="text" name="container_interface_port" value="{{ data.container.interface_port }}" size="5" /></td>
+          {% else %}
+          <td><input type="text" name="container_interface_port" value="" size="5" /></td>
+          {% endif %}
+        </tr>
+        <tr>
+          <td><b>Interface protocol</b></td>
+          <td>
+            {% if request.user.profile.is_power_user %}
+              <input type="text" name="container_interface_protocol" value="{{ data.container.interface_protocol }}" size="5" />
+            {% else %}
+              <select name="container_interface_protocol">
+                <option value="http" {% if data.container.interface_protocol == 'http' %}selected{% endif %}>http</option>
+                <option value="https" {% if data.container.interface_protocol == 'https' %}selected{% endif %}>https</option>
+              </select>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+
+      <a href="javascript:void(0);" id="show_button" onclick="toggle_visibility('advanced_div')">Advanced...</a>
+      <div id="advanced_div" style="display:none; width:400px;">
+        <h4>Advanced <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('advanced_div')" style="display:none">hide</a></font></h4>
+        <table class="dashboard" style="width:400px; margin-bottom:25px">
+          <tr>
+            <td><b>Image arch</b></td>
+            {% if data.container.image_arch %}
+            <td><input type="text" name="container_image_arch" value="{{ data.container.image_arch }}" size="5" /></td>
+            {% else %}
+            <td><input type="text" name="container_image_arch" value="" size="5" /></td>
+            {% endif %}
+          </tr>
+          <tr>
+            <td><b>Image OS</b></td>
+            <td>
+              <select name="container_image_os">
+                <option value="linux" {% if data.container.image_os == 'linux' %}selected{% endif %}>linux</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td><b>Image digest</b></td>
+            {% if data.container.image_digest %}
+            <td><input type="text" name="container_image_digest" value="{{ data.container.image_digest }}" size="15" /></td>
+            {% else %}
+            <td><input type="text" name="container_image_digest" value="" size="15" /></td>
+            {% endif %}
+          </tr>
+          <tr>
+            <td><b>Interface transport</b></td>
+            <td>
+              <select name="container_interface_transport">
+                <option value="tcp/ip" {% if data.container.interface_transport == 'tcp/ip' %}selected{% endif %}>tcp/ip</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td colspan=2>
+              <b>Supports custom interface port</b> &nbsp;
+              <input type="checkbox" name="container_supports_custom_interface_port" value="True" {% if data.container.supports_custom_interface_port %}checked{% endif %} />
+            </td>
+          </tr>
+          <tr>
+            <td colspan=2>
+              <b>Supports interface auth</b> &nbsp;
+              <input type="checkbox" name="container_supports_interface_auth" value="True" {% if data.container.supports_interface_auth %}checked{% endif %} />
+            </td>
+          </tr>
+          <tr>
+            <td colspan=2>
+              <b>Disable HTTP auth embedding</b> &nbsp;
+              <input type="checkbox" name="container_disable_http_basicauth_embedding" value="True" {% if data.container.disable_http_basicauth_embedding %}checked{% endif %} />
+            </td>
+          </tr>
+          <tr>
+            <td><b>Environment variables</b></td>
+            <td><textarea name="container_env_vars" rows="2" cols="22">{{ data.container.env_vars|default_if_none:'' }}</textarea></td>
+          </tr>
+        </table>
+      </div>
+      <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
+        <tr><td align="center">
+          <a href="/software/?container_family_id={{data.container.family_id}}&details=True" class="btn btn-primary" style="margin-left:10px">Back</a>
+          &nbsp;
+          <input type="submit" value="Save changes" class="btn btn-primary">
+        </td></tr>
+      </table>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% include "footer.html" %}
+
+<script>
+function toggle_visibility(id) {
+  var e = document.getElementById(id);
+  var showBtn = document.getElementById('show_button');
+  var hideBtn = document.getElementById('hide_button');
+  if(e.style.display == 'block') {
+    e.style.display = 'none';
+    if (showBtn) showBtn.style.display = 'inline';
+    if (hideBtn) hideBtn.style.display = 'none';
+  } else {
+    e.style.display = 'block';
+    if (showBtn) showBtn.style.display = 'none';
+    if (hideBtn) hideBtn.style.display = 'inline';
+  }
+}
+</script> 
