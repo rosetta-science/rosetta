@@ -362,8 +362,8 @@ print(port)
             # Notify the user that the task called back home if using a WMS
             if task.computing.wms:
                 logger.info('Agent API sending task ready mail notification to "{}"'.format(task.user.email))
-                mail_subject = 'Your Task "{}" is now starting up'.format(task.container.name)
-                mail_text = 'Hello,\n\nyour Task "{}" on {} is now starting up. Check logs or connect here: https://{}/tasks/?uuid={}\n\nThe Rosetta notifications bot.'.format(task.container.name, task.computing, settings.ROSETTA_HOST, task.uuid)
+                mail_subject = 'Your task "{}" is now starting up'.format(task.container.name)
+                mail_text = 'Hello,\n\nyour task "{}" on the computing resource "{}" is now starting up. Connect or check logs here: https://{}/tasks/?uuid={}\n\nThe Rosetta platform.'.format(task.container.name, task.computing.name, settings.ROSETTA_HOST, task.uuid)
                 try:
                     send_email(to=task.user.email, subject=mail_subject, text=mail_text)
                 except Exception as e:

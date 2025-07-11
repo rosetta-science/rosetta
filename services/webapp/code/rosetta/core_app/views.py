@@ -106,7 +106,7 @@ def login_view(request):
                         loginToken.token = token
                         loginToken.save()
                     try:
-                        send_email(to=user.email, subject='Rosetta login link', text='Hello,\n\nhere is your login link: https://{}/login/?token={}\n\nOnce logged in, you can go to "My Account" and change password (or just keep using the login link feature).\n\nThe Rosetta Team.'.format(settings.ROSETTA_HOST, token))
+                        send_email(to=user.email, subject='Rosetta login link', text='Hello,\n\nhere is your login link: https://{}/login/?token={}\n\nOnce logged in, you can go to "My Account" and change password (or just keep using the login link feature).\n\nThe Rosetta platform.'.format(settings.ROSETTA_HOST, token))
                     except Exception as e:
                         logger.error(format_exception(e))
                         raise ErrorMessage('Something went wrong. Please retry later.')
