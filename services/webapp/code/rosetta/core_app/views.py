@@ -1069,8 +1069,8 @@ def edit_software(request):
         data['error'] = 'Container does not exist.'
         return render(request, 'error.html', {'data': data})
 
-    # Only allow editing if user owns the container or is admin
-    if not (container.user == request.user or request.user.is_superuser):
+    # Only allow editing if user owns the container or staff
+    if not (container.user == request.user or request.user.is_staff):
         data['error'] = 'You do not have permission to edit this container.'
         return render(request, 'error.html', {'data': data})
 
