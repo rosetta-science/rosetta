@@ -246,6 +246,29 @@ class Computing(models.Model):
     def default_container_engine(self):
         return self.container_engines[0]
 
+    @property
+    def container_engines_json(self):
+        if not self.container_engines:
+            return''
+        return json.dumps(self.container_engines)
+
+    @property
+    def supported_archs_json(self):
+        if not self.supported_archs:
+            return ''
+        return json.dumps(self.supported_archs)
+
+    @property
+    def emulated_archs_json(self):
+        if not self.emulated_archs:
+            return ''
+        return json.dumps(self.emulated_archs)
+
+    @property
+    def conf_json(self):
+        if not self.conf:
+            return ''
+        return json.dumps(self.conf)
 
     #=======================
     # Computing manager

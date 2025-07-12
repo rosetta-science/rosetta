@@ -69,6 +69,16 @@
         </td>
        </tr>
 
+       {% if request.user.is_staff %}
+       <tr>
+        <td><b>Actions</b></td>
+        <td>
+        <a href="/edit_computing/?uuid={{ data.computing.uuid }}" >Edit</a>
+        </td>
+       </tr>
+       {% endif %}
+
+
 
 
       </table>
@@ -80,7 +90,7 @@
       {% load computing_helpers %}
       {% is_computing_configured computing request.user as computing_configured %}
 
-      <!-- Insert an "if false" here to let the computign show up even when creating the task but to not allow to be chosen (greyed out button) -->
+      <!-- Insert an "if false" here to let the computing show up even when creating the task but to not allow to be chosen (greyed out button) -->
       {% if container and not computing_configured %}
       {% else%}
 

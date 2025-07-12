@@ -1161,6 +1161,77 @@ def computing(request):
     return render(request, 'computing.html', {'data': data})
 
 
+@private_view
+def edit_computing(request):
+    data = {}
+    data['user'] = request.user
+
+    computing_uuid = request.GET.get('uuid', None)
+    if not computing_uuid:
+        data['error'] = 'No computing resource specified.'
+        return render(request, 'error.html', {'data': data})
+
+    try:
+        computing = Computing.objects.get(uuid=computing_uuid)
+    except Computing.DoesNotExist:
+        data['error'] = 'Computing resource does not exist.'
+        return render(request, 'error.html', {'data': data})
+
+    # Only allow editing if user is admin (or group owner, if you want to extend)
+    if not request.user.is_staff:
+        data['error'] = 'You do not have permission to edit this computing resource.'
+        return render(request, 'error.html', {'data': data})
+
+    data['computing'] = computing
+    data['edited'] = False
+
+    if request.method == 'POST':
+        computing.name = request.POST.get('name', computing.name)
+        computing.description = request.POST.get('description', computing.description)
+        computing.type = request.POST.get('type', computing.type)
+        computing.arch = request.POST.get('arch', computing.arch)
+        computing.access_mode = request.POST.get('access_mode', computing.access_mode)
+        computing.auth_mode = request.POST.get('auth_mode', computing.auth_mode)
+        computing.wms = request.POST.get('wms', computing.wms)
+        # JSON fields
+        container_engines = request.POST.get('container_engines', None)
+        if container_engines:
+            try:
+                computing.container_engines = json.loads(container_engines)
+            except Exception:
+                data['error'] = 'Invalid container engines format (must be JSON list).'
+                return render(request, 'edit_computing.html', {'data': data})
+        supported_archs = request.POST.get('supported_archs', None)
+        if supported_archs:
+            try:
+                computing.supported_archs = json.loads(supported_archs)
+            except Exception:
+                data['error'] = 'Invalid supported archs format (must be JSON list).'
+                return render(request, 'edit_computing.html', {'data': data})
+        emulated_archs = request.POST.get('emulated_archs', None)
+        if emulated_archs:
+            try:
+                computing.emulated_archs = json.loads(emulated_archs)
+            except Exception:
+                data['error'] = 'Invalid emulated archs format (must be JSON dict).'
+                return render(request, 'edit_computing.html', {'data': data})
+        conf = request.POST.get('conf', None)
+        if conf:
+            try:
+                computing.conf = json.loads(conf)
+            except Exception:
+                data['error'] = 'Invalid conf format (must be JSON dict).'
+                return render(request, 'edit_computing.html', {'data': data})
+        try:
+            computing.save()
+            data['edited'] = True
+        except Exception as e:
+            data['error'] = f'Error saving computing resource: {e}'
+            return render(request, 'edit_computing.html', {'data': data})
+
+    return render(request, 'edit_computing.html', {'data': data})
+
+
 #=========================
 #  Storage
 #=========================
