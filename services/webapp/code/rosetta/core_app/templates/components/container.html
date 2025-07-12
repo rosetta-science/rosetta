@@ -121,7 +121,7 @@
        </tr>
        {% endif %}
 
-       {% if container.user or user.is_staff %}
+       {% if container.user == request.user or user.is_staff %}
        <tr>
         <td><b>Operations</b></td>
         <td>
