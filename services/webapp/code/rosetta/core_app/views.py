@@ -15,7 +15,7 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.db.models import Q
-from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
+from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page, Storage
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_rosetta_tasks_tunnel_host
 from .utils import get_rosetta_tasks_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .utils import sanitize_container_env_vars, get_or_create_container_from_repository
@@ -1237,14 +1237,151 @@ def edit_computing(request):
 #=========================
 @private_view
 def storage(request):
-
-    # Set data & render
     data = {}
     data['user'] = request.user
+
+    data['manage'] = request.GET.get('manage', False)
+
+    storage_uuid = request.GET.get('uuid', None)
+    action = request.GET.get('action', None)
+    search_text = request.POST.get('search_text', '')
+    search_owner = request.POST.get('search_owner', 'All')
+    data['search_text'] = search_text
+    data['search_owner'] = search_owner
+
+    # Handle delete action
+    if action == 'delete' and storage_uuid:
+        if not request.user.is_staff:
+            data['error'] = 'You do not have permission to delete this storage.'
+            return render(request, 'error.html', {'data': data})
+        try:
+            storage = Storage.objects.get(uuid=storage_uuid)
+            storage.delete()
+            return redirect('/storage/?manage=True')
+        except Storage.DoesNotExist:
+            data['error'] = 'Storage not found.'
+            return render(request, 'error.html', {'data': data})
+        except Exception as e:
+            data['error'] = f'Error deleting storage: {e}'
+            return render(request, 'error.html', {'data': data})
+
+    # Handle duplicate action
+    if action == 'duplicate' and storage_uuid:
+        if not request.user.is_staff:
+            data['error'] = 'You do not have permission to duplicate this storage.'
+            return render(request, 'error.html', {'data': data})
+        try:
+            storage = Storage.objects.get(uuid=storage_uuid)
+            # Create a copy
+            from copy import deepcopy
+            new_storage = Storage(
+                name=f"{storage.name} (copy)",
+                type=storage.type,
+                access_mode=storage.access_mode,
+                auth_mode=storage.auth_mode,
+                base_path=storage.base_path,
+                bind_path=storage.bind_path,
+                read_only=storage.read_only,
+                browsable=storage.browsable,
+                group=storage.group,
+                computing=storage.computing,
+                access_through_computing=storage.access_through_computing,
+                conf=deepcopy(storage.conf) if storage.conf else None
+            )
+            new_storage.save()
+            return redirect(f'/edit_storage/?uuid={new_storage.uuid}')
+        except Storage.DoesNotExist:
+            data['error'] = 'Storage not found.'
+            return render(request, 'error.html', {'data': data})
+        except Exception as e:
+            data['error'] = f'Error duplicating storage: {e}'
+            return render(request, 'error.html', {'data': data})
+
+    if storage_uuid:
+        try:
+            storage = Storage.objects.get(uuid=storage_uuid)
+            data['storages'] = [storage]
+            data['storage'] = storage
+        except Storage.DoesNotExist:
+            data['storages'] = []
+            data['storage'] = None
+            data['error'] = 'Storage not found.'
+    else:
+        storages = Storage.objects.all()
+        # Filtering by search_text
+        if search_text:
+            from django.db.models import Q
+            storages = storages.filter(
+                Q(name__icontains=search_text) |
+                Q(base_path__icontains=search_text) |
+                Q(bind_path__icontains=search_text) |
+                Q(description__icontains=search_text)
+            )
+        # Filtering by owner
+        if search_owner != 'All':
+            if search_owner == 'Platform':
+                storages = storages.filter(group=None)
+            elif search_owner == 'User' or search_owner == 'Group':
+                storages = storages.exclude(group=None)
+        data['storages'] = list(storages)
+        data['storage'] = None
 
     return render(request, 'storage.html', {'data': data})
 
 
+@private_view
+def edit_storage(request):
+    data = {}
+    data['user'] = request.user
+
+    storage_uuid = request.GET.get('uuid', None)
+    if not storage_uuid:
+        data['error'] = 'No storage specified.'
+        return render(request, 'error.html', {'data': data})
+
+    try:
+        storage = Storage.objects.get(uuid=storage_uuid)
+    except Storage.DoesNotExist:
+        data['error'] = 'Storage does not exist.'
+        return render(request, 'error.html', {'data': data})
+
+    if not request.user.is_staff:
+        data['error'] = 'You do not have permission to edit this storage.'
+        return render(request, 'error.html', {'data': data})
+
+    data['storage'] = storage
+    data['edited'] = False
+
+    # For JSON field display
+    data['conf_json'] = json.dumps(storage.conf, indent=2) if storage.conf else ''
+
+    if request.method == 'POST':
+        storage.name = request.POST.get('name', storage.name)
+        storage.type = request.POST.get('type', storage.type)
+        storage.access_mode = request.POST.get('access_mode', storage.access_mode)
+        storage.auth_mode = request.POST.get('auth_mode', storage.auth_mode)
+        storage.base_path = request.POST.get('base_path', storage.base_path)
+        storage.bind_path = request.POST.get('bind_path', storage.bind_path)
+        storage.read_only = bool(request.POST.get('read_only', False))
+        storage.browsable = bool(request.POST.get('browsable', False))
+
+        # Foreign keys (group, computing) not handled for now
+        conf = request.POST.get('conf', None)
+        if conf:
+            try:
+                storage.conf = json.loads(conf)
+            except Exception:
+                data['error'] = 'Invalid conf format (must be JSON dict).'
+                return render(request, 'edit_storage.html', {'data': data})
+        try:
+            storage.save()
+            data['edited'] = True
+            data['conf_json'] = json.dumps(storage.conf, indent=2) if storage.conf else ''
+        except Exception as e:
+            data['error'] = f'Error saving storage: {e}'
+            return render(request, 'edit_storage.html', {'data': data})
+
+    return render(request, 'edit_storage.html', {'data': data})
 
 
 #=========================
@@ -1498,5 +1635,52 @@ def import_repository(request):
     # Render the import page. This will call an API, and when the import is done, it
     # will automatically say "Ok, crrated, go to software".
     return render(request, 'import_repository.html', {'data': data})
+
+
+@private_view
+def add_storage(request):
+    data = {}
+    data['user'] = request.user
+    data['added'] = False
+    if not request.user.is_staff:
+        data['error'] = 'You do not have permission to add storage.'
+        return render(request, 'error.html', {'data': data})
+
+    if request.method == 'POST':
+        name = request.POST.get('name', None)
+        type_ = request.POST.get('type', None)
+        access_mode = request.POST.get('access_mode', None)
+        auth_mode = request.POST.get('auth_mode', None)
+        base_path = request.POST.get('base_path', None)
+        bind_path = request.POST.get('bind_path', None)
+        read_only = bool(request.POST.get('read_only', False))
+        browsable = bool(request.POST.get('browsable', False))
+        conf = request.POST.get('conf', None)
+        conf_obj = None
+        if conf:
+            try:
+                conf_obj = json.loads(conf)
+            except Exception:
+                data['error'] = 'Invalid conf format (must be JSON dict).'
+                return render(request, 'add_storage.html', {'data': data})
+        try:
+            Storage.objects.create(
+                name=name,
+                type=type_,
+                access_mode=access_mode,
+                auth_mode=auth_mode,
+                base_path=base_path,
+                bind_path=bind_path,
+                read_only=read_only,
+                browsable=browsable,
+                conf=conf_obj
+            )
+            data['added'] = True
+            return redirect('/storage/?manage=True')
+        except Exception as e:
+            data['error'] = f'Error creating storage: {e}'
+            return render(request, 'add_storage.html', {'data': data})
+
+    return render(request, 'add_storage.html', {'data': data})
 
 

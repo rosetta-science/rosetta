@@ -57,6 +57,8 @@ urlpatterns = [
 
     # Storage
     url(r'^storage/$', core_app_views.storage),
+    url(r'^edit_storage/$', core_app_views.edit_storage),
+    url(r'^add_storage/$', core_app_views.add_storage),
 
     # Tasks
     url(r'^tasks/$', core_app_views.tasks),
