@@ -1179,6 +1179,53 @@ def computing(request):
     data['details'] = details
     data['action'] = action
 
+    # Handle delete action
+    if action == 'delete' and uuid:
+        if not request.user.is_staff:
+            data['error'] = 'You do not have permission to delete this computing resource.'
+            return render(request, 'error.html', {'data': data})
+        try:
+            computing = Computing.objects.get(uuid=uuid)
+            computing.delete()
+            return redirect('/computing')
+        except Computing.DoesNotExist:
+            data['error'] = 'Computing resource not found.'
+            return render(request, 'error.html', {'data': data})
+        except Exception as e:
+            data['error'] = f'Error deleting computing resource: {e}'
+            return render(request, 'error.html', {'data': data})
+
+    # Handle duplicate action
+    if action == 'duplicate' and uuid:
+        if not request.user.is_staff:
+            data['error'] = 'You do not have permission to duplicate this computing resource.'
+            return render(request, 'error.html', {'data': data})
+        try:
+            computing = Computing.objects.get(uuid=uuid)
+            from copy import deepcopy
+            new_computing = Computing(
+                name=f"{computing.name} (copy)",
+                description=computing.description,
+                type=computing.type,
+                arch=computing.arch,
+                access_mode=computing.access_mode,
+                auth_mode=computing.auth_mode,
+                wms=computing.wms,
+                container_engines=deepcopy(computing.container_engines) if computing.container_engines else None,
+                supported_archs=deepcopy(computing.supported_archs) if computing.supported_archs else None,
+                emulated_archs=deepcopy(computing.emulated_archs) if computing.emulated_archs else None,
+                conf=deepcopy(computing.conf) if computing.conf else None,
+                group=computing.group
+            )
+            new_computing.save()
+            return redirect(f'/edit_computing/?uuid={new_computing.uuid}')
+        except Computing.DoesNotExist:
+            data['error'] = 'Computing resource not found.'
+            return render(request, 'error.html', {'data': data})
+        except Exception as e:
+            data['error'] = f'Error duplicating computing resource: {e}'
+            return render(request, 'error.html', {'data': data})
+
     if details and computing_uuid:
         try:
             data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
