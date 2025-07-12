@@ -125,9 +125,11 @@
        <tr>
         <td><b>Operations</b></td>
         <td>
-          <a href="?action=delete&container_uuid={{ container.uuid }}">Delete</a>
+          <a href="?action=delete&container_uuid={{ container.uuid }}" onclick="return confirm('Are you sure you want to delete this container?');">Delete</a>
           &nbsp;|&nbsp;
           <a href="/edit_software?container_uuid={{ container.uuid }}">Edit</a>
+          &nbsp;|&nbsp;
+          <a href="?action=duplicate&container_uuid={{ container.uuid }}" onclick="return confirm('Duplicate this container?');">Duplicate</a>
         </td>
        </tr>
        {% endif %}

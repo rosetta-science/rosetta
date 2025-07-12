@@ -808,6 +808,35 @@ def software(request):
                 # Redirect
                 return HttpResponseRedirect('/software')
 
+            # Duplicate action
+            if action and action=='duplicate':
+                if not (request.user.is_staff or (container.user and container.user == request.user)):
+                    data['error'] = 'You do not have permission to duplicate this container.'
+                    return render(request, 'error.html', {'data': data})
+                from copy import deepcopy
+                new_container = Container(
+                    user=container.user,
+                    name=f"{container.name} (copy)",
+                    description=container.description,
+                    registry=container.registry,
+                    image_name=container.image_name,
+                    image_tag=container.image_tag,
+                    image_arch=container.image_arch,
+                    image_os=container.image_os,
+                    image_digest=container.image_digest,
+                    interface_port=container.interface_port,
+                    interface_protocol=container.interface_protocol,
+                    interface_transport=container.interface_transport,
+                    supports_custom_interface_port=container.supports_custom_interface_port,
+                    supports_interface_auth=container.supports_interface_auth,
+                    interface_auth_user=container.interface_auth_user,
+                    disable_http_basicauth_embedding=container.disable_http_basicauth_embedding,
+                    env_vars=deepcopy(container.env_vars) if container.env_vars else None,
+                    group=container.group
+                )
+                new_container.save()
+                return redirect(f'/edit_software?container_uuid={new_container.uuid}')
+
         except Exception as e:
             data['error'] = 'Error in getting the software container or performing the required action'
             logger.error('Error in getting container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
