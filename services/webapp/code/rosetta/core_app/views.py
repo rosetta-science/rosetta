@@ -12,7 +12,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.shortcuts import redirect
 from django.db.models import Q
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page, Storage
@@ -1227,12 +1227,18 @@ def computing(request):
             return render(request, 'error.html', {'data': data})
 
     if details and computing_uuid:
-        try:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
-        except Computing.DoesNotExist:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
+        if request.user.is_staff:
+            data['computing'] = Computing.objects.get(uuid=computing_uuid)
+        else:
+            try:
+                data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
+            except Computing.DoesNotExist:
+                data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
     else:
-        data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
+        if request.user.is_staff:
+            data['computings'] = Computing.objects.all()
+        else:
+            data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
 
     return render(request, 'computing.html', {'data': data})
 
@@ -1260,6 +1266,7 @@ def edit_computing(request):
 
     data['computing'] = computing
     data['edited'] = False
+    data['groups'] = Group.objects.all()
 
     if request.method == 'POST':
         computing.name = request.POST.get('name', computing.name)
@@ -1298,6 +1305,15 @@ def edit_computing(request):
             except Exception:
                 data['error'] = 'Invalid conf format (must be JSON dict).'
                 return render(request, 'edit_computing.html', {'data': data})
+        # Handle group selection
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            try:
+                computing.group = Group.objects.get(id=group_id)
+            except Group.DoesNotExist:
+                computing.group = None
+        else:
+            computing.group = None
         try:
             computing.save()
             data['edited'] = True
