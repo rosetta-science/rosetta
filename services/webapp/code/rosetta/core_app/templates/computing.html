@@ -12,8 +12,36 @@
       {% else %}
       <h1>Computing resources</h1>
       {% endif %}
-
       <hr/>
+
+      {% if not data.computing %}
+      <div class="form-filter" style="margin-bottom:20px">
+        <form action="" method="POST">
+          <input type="text" class="form-control" id="search_text" name="search_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.search_text}}" autofocus>
+          <select class="form-control" id="search_owner" name="search_owner" style="width:120px; margin:0; display:inline">
+            {% if data.search_owner == 'All' %}
+            <option selected>All</option>
+            {% else %}
+            <option>All</option>
+            {% endif %}
+            {% if data.search_owner == 'Platform' %}
+            <option selected>Platform</option>
+            {% else %}
+            <option>Platform</option>
+            {% endif %}
+            {% if data.search_owner == 'User' %}
+            <option selected>User</option>
+            {% else %}
+            <option>User</option>
+            {% endif %}
+          </select>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary">Go</button>
+          &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="#" class="disabled" style="pointer-events: none; color: #aaa;">Add new...</a>
+        </form>
+      </div>
+      {% endif %}
+
       <div class="row" style="padding:5px">
       {% if data.computing %}
       {% include "components/computing.html" with computing=data.computing details=True %}

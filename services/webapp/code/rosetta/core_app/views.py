@@ -1204,6 +1204,12 @@ def computing(request):
     data['details'] = details
     data['action'] = action
 
+    # Search/filter logic
+    search_text = request.POST.get('search_text', '')
+    search_owner = request.POST.get('search_owner', 'All')
+    data['search_text'] = search_text
+    data['search_owner'] = search_owner
+
     # Handle delete action
     if action == 'delete' and uuid:
         if not request.user.is_staff:
@@ -1260,10 +1266,27 @@ def computing(request):
             except Computing.DoesNotExist:
                 data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
     else:
-        if request.user.is_staff:
-            data['computings'] = Computing.objects.all()
-        else:
-            data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
+        # Filtering logic for list view
+        computings = Computing.objects.all()
+        from django.db.models import Q
+        if search_text:
+            computings = computings.filter(
+                Q(name__icontains=search_text) |
+                Q(description__icontains=search_text) |
+                Q(type__icontains=search_text) |
+                Q(arch__icontains=search_text)
+            )
+        if search_owner != 'All':
+            # User computign resurces not yet implemented
+            if search_owner == 'Platform':
+                pass
+            else:
+                computings = []
+            #if search_owner == 'Platform':
+            #    computings = computings.filter(user=None)
+            #elif search_owner == 'User':
+            #    computings = computings.filter(user=None)
+        data['computings'] = list(computings)
 
     return render(request, 'computing.html', {'data': data})
 
