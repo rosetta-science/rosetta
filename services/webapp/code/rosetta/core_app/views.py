@@ -1450,6 +1450,12 @@ def storage(request):
 def edit_storage(request):
     data = {}
     data['user'] = request.user
+    if request.user.is_staff:
+        from django.contrib.auth.models import Group
+        data['groups'] = Group.objects.all()
+    else:
+        from django.contrib.auth.models import Group
+        data['groups'] = request.user.groups.all()
 
     storage_uuid = request.GET.get('uuid', None)
     if not storage_uuid:
@@ -1495,6 +1501,16 @@ def edit_storage(request):
                 storage.computing = None
         else:
             storage.computing = None
+
+        # Handle group selection
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            try:
+                storage.group = Group.objects.get(id=group_id)
+            except Group.DoesNotExist:
+                storage.group = None
+        else:
+            storage.group = None
 
         # Foreign keys (group, computing) not handled for now
         conf = request.POST.get('conf', None)
@@ -1773,6 +1789,12 @@ def add_storage(request):
     data = {}
     data['user'] = request.user
     data['added'] = False
+    if request.user.is_staff:
+        from django.contrib.auth.models import Group
+        data['groups'] = Group.objects.all()
+    else:
+        from django.contrib.auth.models import Group
+        data['groups'] = request.user.groups.all()
     from .models import Computing
     data['computings'] = Computing.objects.all()
     if not request.user.is_staff:
@@ -1803,6 +1825,13 @@ def add_storage(request):
             except Exception:
                 data['error'] = 'Invalid conf format (must be JSON dict).'
                 return render(request, 'add_storage.html', {'data': data})
+        group_id = request.POST.get('group_id', None)
+        group = None
+        if group_id:
+            try:
+                group = Group.objects.get(id=group_id)
+            except Group.DoesNotExist:
+                group = None
         try:
             Storage.objects.create(
                 name=name,
@@ -1814,7 +1843,8 @@ def add_storage(request):
                 read_only=read_only,
                 browsable=browsable,
                 conf=conf_obj,
-                computing=computing
+                computing=computing,
+                group=group
             )
             data['added'] = True
             return redirect('/storage/?manage=True')

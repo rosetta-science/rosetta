@@ -44,6 +44,17 @@
           <td><input type="text" name="bind_path" value="" size="30" /></td>
         </tr>
         <tr>
+          <td><b>Group</b></td>
+          <td>
+            <select name="group_id" style="width: 220px;">
+              <option value="">None</option>
+              {% for group in data.groups %}
+                <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
           <td><b>Computing</b></td>
           <td>
             <select name="computing_uuid" style="width: 220px;">

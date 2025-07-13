@@ -6,7 +6,7 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1><a href="/storage">Storage resources</a> <span style="font-size:18px"> / <a href="/storage/?uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a> /edit</span></h1>
+      <h1><a href="/storage">Storage resources</a> <span style="font-size:18px"> / <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a> /edit</span></h1>
       <hr>
 
       {% if data.error %}
@@ -42,6 +42,17 @@
         <tr>
           <td><b>Bind path</b></td>
           <td><input type="text" name="bind_path" value="{{ data.storage.bind_path }}" size="30" /></td>
+        </tr>
+        <tr>
+          <td><b>Group</b></td>
+          <td>
+            <select name="group_id" style="width: 220px;">
+              <option value="">None</option>
+              {% for group in data.groups %}
+                <option value="{{ group.id }}" {% if data.storage.group and group.id == data.storage.group.id %}selected{% endif %}>{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Computing</b></td>
