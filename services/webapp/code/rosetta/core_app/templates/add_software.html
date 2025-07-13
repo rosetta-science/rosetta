@@ -37,8 +37,18 @@
            <tr>
             <td><b>Description</b></td>
             <td>
-             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
-             ​<textarea name="container_description" rows="3" cols="35"></textarea>
+             <textarea name="container_description" rows="3" cols="35"></textarea>
+            </td>
+           </tr>
+           <tr>
+            <td><b>Group</b></td>
+            <td>
+              <select name="group_id" style="width: 220px;">
+                <option value="">None</option>
+                {% for group in data.groups %}
+                  <option value="{{ group.id }}">{{ group.name }}</option>
+                {% endfor %}
+              </select>
             </td>
            </tr>
           </table>
@@ -190,8 +200,7 @@
            <tr>
             <td><b>Description</b></td>
             <td>
-             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
-             ​<textarea name="container_description" rows="3" cols="35"></textarea>
+             <textarea name="container_description" rows="3" cols="35"></textarea>
             </td>
            </tr>
 

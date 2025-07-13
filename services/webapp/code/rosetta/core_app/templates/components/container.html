@@ -25,6 +25,11 @@
        </tr>
 
        <tr>
+        <td><b>Group</b></td>
+        <td>{% if container.group %}{{ container.group }}{% else %}None{% endif %}</td>
+       </tr>
+
+       <tr>
         <td><b>Registry</b></td>
         <td>{{ container.registry }}</td>
        </tr>

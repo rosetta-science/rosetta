@@ -963,6 +963,10 @@ def add_software(request):
     # Init data
     data = {}
     data['user'] = request.user
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
 
     # Loop back the new container mode in the page to handle the switch
     data['new_container_from'] = request.GET.get('new_container_from', 'registry')
@@ -1045,6 +1049,13 @@ def add_software(request):
             #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
 
             # Create
+            group_id = request.POST.get('group_id', None)
+            group = None
+            if group_id:
+                try:
+                    group = Group.objects.get(id=group_id)
+                except Group.DoesNotExist:
+                    group = None
             Container.objects.create(user         = request.user,
                                      name         = container_name,
                                      description  = container_description,
@@ -1060,7 +1071,8 @@ def add_software(request):
                                      supports_custom_interface_port = container_supports_custom_interface_port,
                                      supports_interface_auth = container_supports_interface_auth,
                                      disable_http_basicauth_embedding = container_disable_http_basicauth_embedding,
-                                     env_vars = container_env_vars)
+                                     env_vars = container_env_vars,
+                                     group = group)
 
         elif new_container_from == 'repository':
 
@@ -1086,6 +1098,10 @@ def add_software(request):
 def edit_software(request):
     data = {}
     data['user'] = request.user
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
 
     container_uuid = request.GET.get('container_uuid', None)
     if not container_uuid:
@@ -1149,6 +1165,15 @@ def edit_software(request):
         else:
             container.env_vars = None
 
+        # Handle group selection
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            try:
+                container.group = Group.objects.get(id=group_id)
+            except Group.DoesNotExist:
+                container.group = None
+        else:
+            container.group = None
         try:
             container.save()
             data['edited'] = True
