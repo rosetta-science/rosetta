@@ -1431,6 +1431,10 @@ def edit_storage(request):
     # For JSON field display
     data['conf_json'] = json.dumps(storage.conf, indent=2) if storage.conf else ''
 
+    # Provide all computing resources for the dropdown
+    from .models import Computing
+    data['computings'] = Computing.objects.all()
+
     if request.method == 'POST':
         storage.name = request.POST.get('name', storage.name)
         storage.type = request.POST.get('type', storage.type)
@@ -1440,6 +1444,16 @@ def edit_storage(request):
         storage.bind_path = request.POST.get('bind_path', storage.bind_path)
         storage.read_only = bool(request.POST.get('read_only', False))
         storage.browsable = bool(request.POST.get('browsable', False))
+
+        # Handle computing resource link
+        computing_uuid = request.POST.get('computing_uuid', None)
+        if computing_uuid:
+            try:
+                storage.computing = Computing.objects.get(uuid=computing_uuid)
+            except Computing.DoesNotExist:
+                storage.computing = None
+        else:
+            storage.computing = None
 
         # Foreign keys (group, computing) not handled for now
         conf = request.POST.get('conf', None)
@@ -1718,6 +1732,8 @@ def add_storage(request):
     data = {}
     data['user'] = request.user
     data['added'] = False
+    from .models import Computing
+    data['computings'] = Computing.objects.all()
     if not request.user.is_staff:
         data['error'] = 'You do not have permission to add storage.'
         return render(request, 'error.html', {'data': data})
@@ -1733,6 +1749,13 @@ def add_storage(request):
         browsable = bool(request.POST.get('browsable', False))
         conf = request.POST.get('conf', None)
         conf_obj = None
+        computing_uuid = request.POST.get('computing_uuid', None)
+        computing = None
+        if computing_uuid:
+            try:
+                computing = Computing.objects.get(uuid=computing_uuid)
+            except Computing.DoesNotExist:
+                computing = None
         if conf:
             try:
                 conf_obj = json.loads(conf)
@@ -1749,7 +1772,8 @@ def add_storage(request):
                 bind_path=bind_path,
                 read_only=read_only,
                 browsable=browsable,
-                conf=conf_obj
+                conf=conf_obj,
+                computing=computing
             )
             data['added'] = True
             return redirect('/storage/?manage=True')
