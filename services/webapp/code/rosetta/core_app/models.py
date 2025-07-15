@@ -19,6 +19,20 @@ class ConfigurationError(Exception):
 class ConsistencyError(Exception):
     pass
 
+def get_computing_manager(computing):
+    from . import computing_managers
+    # Hash table mapping
+    managers_mapping = {}
+    managers_mapping['cluster'+'ssh+cli'+'user_keys'+'slurm'] = computing_managers.SlurmSSHClusterComputingManager
+    managers_mapping['standalone'+'ssh+cli'+'user_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
+    managers_mapping['standalone'+'ssh+cli'+'platform_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
+    managers_mapping['standalone'+'internal'+'internal'+'None'] = computing_managers.InternalStandaloneComputingManager
+
+    try:
+        return  managers_mapping[computing.type+computing.access_mode+computing.auth_mode+str(computing.wms)](computing)
+    except KeyError:
+        raise ValueError('No computing manager defined for type="{}", access_mode="{}", auth_mode="{}", wms="{}"'
+                         .format(computing.type, computing.access_mode, computing.auth_mode, computing.wms)) from None
 
 # Setup logging
 import logging
@@ -232,6 +246,25 @@ class Computing(models.Model):
         else:
             return str('Computing "{}"'.format(self.name))
 
+
+    def save(self, *args, **kwargs):
+
+        if not self.container_engines:
+            self.container_engines = None
+        if not self.supported_archs:
+            self.supported_archs = None
+        if not self.emulated_archs:
+            self.emulated_archs = None
+        if not self.conf:
+            self.conf = None
+
+        try:
+            get_computing_manager(self)
+        except:
+            raise
+            raise ValueError('Unsupported combination of type, access_mode, auth_mode, and wms')
+        super(Computing, self).save(*args, **kwargs)
+
     @property
     def uuid_as_str(self):
         return str(self.uuid)
@@ -276,27 +309,13 @@ class Computing(models.Model):
 
     @property
     def manager(self):
-        from . import computing_managers
-
-        # Hash table mapping
-        managers_mapping = {}
-        managers_mapping['cluster'+'ssh+cli'+'user_keys'+'slurm'] = computing_managers.SlurmSSHClusterComputingManager
-        managers_mapping['standalone'+'ssh+cli'+'user_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
-        managers_mapping['standalone'+'ssh+cli'+'platform_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
-        managers_mapping['standalone'+'internal'+'internal'+'None'] = computing_managers.InternalStandaloneComputingManager
 
         # Instantiate the computing manager and return (if not already done)
         try:
             return self._manager
         except AttributeError:
-            try:
-                self._manager = managers_mapping[self.type+self.access_mode+self.auth_mode+str(self.wms)](self)
-            except KeyError:
-                raise ValueError('No computing resource manager for type="{}", access_mode="{}", auth_mode="{}", wms="{}"'
-                                 .format(self.type, self.access_mode, self.auth_mode, self.wms)) from None
-            else:
-                return self._manager
-
+            self._manager = get_computing_manager(self)
+        return self._manager
 
 
 #=========================

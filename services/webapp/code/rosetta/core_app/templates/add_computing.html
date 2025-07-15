@@ -1,0 +1,111 @@
+{% load static %}
+{% include "header.html" %}
+{% include "navigation.html" %}
+{% include "logo.html" %}
+
+<div class="container">
+  <div class="dashboard">
+    <div class="span8 offset2">
+      <h1><a href="/computing">Computing resources</a> <span style="font-size:18px"> / add</span></h1>
+      <hr>
+
+      {% if data.error %}
+        <div class="alert alert-danger">{{ data.error }}</div>
+      {% endif %}
+      {% if data.added %}
+        <div class="alert alert-success">Resource added successfully.</div>
+      {% endif %}
+
+      <form action="#" method="POST">
+      {% csrf_token %}
+      <table class="dashboard" style="width:500px; margin-bottom:25px">
+        <tr>
+          <td><b>Name</b></td>
+          <td><input type="text" name="name" value="" size="30" required /></td>
+        </tr>
+        <tr>
+          <td><b>Description</b></td>
+          <td><textarea name="description" rows="3" cols="30"></textarea></td>
+        </tr>
+        <tr>
+          <td><b>Group</b></td>
+          <td>
+            <select name="group_id" style="width: 220px;">
+              <option value="">None</option>
+              {% for group in data.groups %}
+                <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Type</b></td>
+          <td>
+            <select name="type" style="width: 220px;" required>
+              <option value="cluster">cluster</option>
+              <option value="standalone">standalone</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Arch</b></td>
+          <td><input type="text" name="arch" value="" size="30" required /></td>
+        </tr>
+        <tr>
+          <td><b>Access mode</b></td>
+          <td>
+            <select name="access_mode" style="width: 220px;" required>
+              <option value="ssh+cli">ssh+cli</option>
+              <option value="internal">internal</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Auth mode</b></td>
+          <td>
+            <select name="auth_mode" style="width: 220px;" required>
+              <option value="user_keys">user_keys</option>
+              <option value="platform_keys">platform_keys</option>
+              <option value="internal">internal</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>WMS</b></td>
+          <td>
+            <select name="wms" style="width: 220px;">
+              <option value="">None</option>
+              <option value="slurm">slurm</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Container engines</b><br/><span style="font-size:0.8em">(JSON list)</span></td>
+          <td><textarea name="container_engines" rows="2" cols="30" required></textarea></td>
+        </tr>
+        <tr>
+          <td><b>Supported archs</b><br/><span style="font-size:0.8em">(JSON list)</span></td>
+          <td><textarea name="supported_archs" rows="2" cols="30"></textarea></td>
+        </tr>
+        <tr>
+          <td><b>Emulated archs</b><br/><span style="font-size:0.8em">(JSON dict)</span></td>
+          <td><textarea name="emulated_archs" rows="2" cols="30"></textarea></td>
+        </tr>
+        <tr>
+          <td><b>Conf</b><br/><span style="font-size:0.8em">(JSON dict)</span></td>
+          <td><textarea name="conf" rows="2" cols="30"></textarea></td>
+        </tr>
+      </table>
+      <table style="width:500px; border:0; background:#ffffff; margin-top:20px">
+        <tr><td align="center">
+          <a href="/computing" class="btn btn-primary" style="margin-left:10px">Back</a>
+          &nbsp;
+          <input type="submit" value="Add" class="btn btn-primary">
+        </td></tr>
+      </table>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% include "footer.html" %} 

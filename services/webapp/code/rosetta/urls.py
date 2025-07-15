@@ -54,6 +54,7 @@ urlpatterns = [
     #Computing
     url(r'^computing/$', core_app_views.computing),
     url(r'^edit_computing/$', core_app_views.edit_computing),
+    url(r'^add_computing/$', core_app_views.add_computing),
 
     # Storage
     url(r'^storage/$', core_app_views.storage),

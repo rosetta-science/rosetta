@@ -14,6 +14,7 @@
       {% endif %}
       <hr/>
 
+      {% if request.user.is_staff %}
       {% if not data.computing %}
       <div class="form-filter" style="margin-bottom:20px">
         <form action="" method="POST">
@@ -37,9 +38,10 @@
           </select>
           {% csrf_token %}
           <button type="submit" class="btn btn-secondary">Go</button>
-          &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="#" class="disabled" style="pointer-events: none; color: #aaa;">Add new...</a>
+          &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/add_computing">Add new...</a>
         </form>
       </div>
+      {% endif %}
       {% endif %}
 
       <div class="row" style="padding:5px">

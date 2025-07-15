@@ -1267,8 +1267,7 @@ def computing(request):
                 data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
     else:
         # Filtering logic for list view
-        computings = Computing.objects.all()
-        from django.db.models import Q
+        computings = Computing.objects.filter(Q(group__user=request.user) | Q(group=None))
         if search_text:
             computings = computings.filter(
                 Q(name__icontains=search_text) |
@@ -1450,7 +1449,6 @@ def storage(request):
         storages = Storage.objects.all()
         # Filtering by search_text
         if search_text:
-            from django.db.models import Q
             storages = storages.filter(
                 Q(name__icontains=search_text) |
                 Q(base_path__icontains=search_text) |
@@ -1876,5 +1874,59 @@ def add_storage(request):
             return render(request, 'add_storage.html', {'data': data})
 
     return render(request, 'add_storage.html', {'data': data})
+
+
+@private_view
+def add_computing(request):
+    data = {}
+    data['user'] = request.user
+    data['added'] = False
+    data['groups'] = Group.objects.all()
+    if not request.user.is_staff:
+        data['error'] = 'You do not have permission to add computing resources.'
+        return render(request, 'error.html', {'data': data})
+
+    if request.method == 'POST':
+        name = request.POST.get('name', None)
+        description = request.POST.get('description', None)
+        type_ = request.POST.get('type', None)
+        arch = request.POST.get('arch', None)
+        access_mode = request.POST.get('access_mode', None)
+        auth_mode = request.POST.get('auth_mode', None)
+        wms = request.POST.get('wms', None)
+        container_engines = request.POST.get('container_engines', None)
+        supported_archs = request.POST.get('supported_archs', None)
+        emulated_archs = request.POST.get('emulated_archs', None)
+        conf = request.POST.get('conf', None)
+        group_id = request.POST.get('group_id', None)
+        group = None
+        if group_id:
+            try:
+                group = Group.objects.get(id=group_id)
+            except Group.DoesNotExist:
+                group = None
+        try:
+            new_computing = Computing(
+                name=name,
+                description=description,
+                type=type_,
+                arch=arch,
+                access_mode=access_mode,
+                auth_mode=auth_mode,
+                wms=wms,
+                container_engines=json.loads(container_engines) if container_engines else [],
+                supported_archs=json.loads(supported_archs) if supported_archs else [],
+                emulated_archs=json.loads(emulated_archs) if emulated_archs else {},
+                conf=json.loads(conf) if conf else {},
+                group=group
+            )
+            new_computing.save()
+            data['added'] = True
+            return redirect(f'/edit_computing/?uuid={new_computing.uuid}')
+        except Exception as e:
+            data['error'] = f'Error creating computing resource: {e}'
+            return render(request, 'add_computing.html', {'data': data})
+
+    return render(request, 'add_computing.html', {'data': data})
 
 

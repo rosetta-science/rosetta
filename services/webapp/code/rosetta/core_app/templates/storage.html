@@ -27,6 +27,7 @@
       <hr style="margin-top:0;">
 
 
+      {% if request.user.is_staff %}
       {% if not data.storage %}
       <div class="form-filter" style="margin-bottom:20px">
         <form action="" method="POST">
@@ -43,6 +44,7 @@
           {% endif %}
         </form>
       </div>
+      {% endif %}
       {% endif %}
 
       <div class="row" style="padding:5px">

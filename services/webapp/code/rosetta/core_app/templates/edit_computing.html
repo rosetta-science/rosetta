@@ -40,7 +40,12 @@
         </tr>
         <tr>
           <td><b>Type</b></td>
-          <td><input type="text" name="type" value="{{ data.computing.type }}" size="30" required /></td>
+          <td>
+            <select name="type" style="width: 220px;" required>
+              <option value="cluster" {% if data.computing.type == 'cluster' %}selected{% endif %}>cluster</option>
+              <option value="standalone" {% if data.computing.type == 'standalone' %}selected{% endif %}>standalone</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Arch</b></td>
@@ -48,15 +53,31 @@
         </tr>
         <tr>
           <td><b>Access mode</b></td>
-          <td><input type="text" name="access_mode" value="{{ data.computing.access_mode }}" size="30" required /></td>
+          <td>
+            <select name="access_mode" style="width: 220px;" required>
+              <option value="ssh+cli" {% if data.computing.access_mode == 'ssh+cli' %}selected{% endif %}>ssh+cli</option>
+              <option value="internal" {% if data.computing.access_mode == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Auth mode</b></td>
-          <td><input type="text" name="auth_mode" value="{{ data.computing.auth_mode }}" size="30" required /></td>
+          <td>
+            <select name="auth_mode" style="width: 220px;" required>
+              <option value="user_keys" {% if data.computing.auth_mode == 'user_keys' %}selected{% endif %}>user_keys</option>
+              <option value="platform_keys" {% if data.computing.auth_mode == 'platform_keys' %}selected{% endif %}>platform_keys</option>
+              <option value="internal" {% if data.computing.auth_mode == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>WMS</b></td>
-          <td><input type="text" name="wms" value="{{ data.computing.wms }}" size="30" /></td>
+          <td>
+            <select name="wms" style="width: 220px;">
+              <option value="" {% if not data.computing.wms %}selected{% endif %}>None</option>
+              <option value="slurm" {% if data.computing.wms == 'slurm' %}selected{% endif %}>slurm</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Container engines</b><br/><span style="font-size:0.8em">(JSON list)</span></td>
