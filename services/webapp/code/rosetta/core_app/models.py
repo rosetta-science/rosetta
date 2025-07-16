@@ -207,8 +207,10 @@ class Container(models.Model):
 class Computing(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='computings', on_delete=models.CASCADE, blank=True, null=True)
+    # If a computing has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
     group = models.ForeignKey(Group, related_name='computings', on_delete=models.CASCADE, blank=True, null=True)
-    # If a compute resource has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
+    # If a computing resource has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
 
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
@@ -425,7 +427,10 @@ class Task(models.Model):
 class Storage(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='storages', on_delete=models.CASCADE, blank=True, null=True)
+    # If a storage has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
     group = models.ForeignKey(Group, related_name='storages', on_delete=models.CASCADE, blank=True, null=True)
+    # If a comstorageputing has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
 
     name = models.CharField('Name', max_length=255, blank=False, null=False)
     #description = models.TextField('Description', blank=True, null=True)
