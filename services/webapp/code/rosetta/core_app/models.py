@@ -478,7 +478,11 @@ class Storage(models.Model):
     def id(self):
         return (self.name if not self.computing else '{}:{}'.format(self.computing.name,self.name))
 
-
+    @property
+    def conf_json(self):
+        if not self.conf:
+            return ''
+        return json.dumps(self.conf)
 
 
 

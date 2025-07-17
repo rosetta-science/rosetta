@@ -15,6 +15,7 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
 from django.contrib.auth.models import User, Group
 from django.shortcuts import redirect
 from django.db.models import Q
+from django.core.exceptions import FieldError
 from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page, Storage
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_rosetta_tasks_tunnel_host
 from .utils import get_rosetta_tasks_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
@@ -29,6 +30,80 @@ logger = logging.getLogger(__name__)
 
 # Task cache
 _task_cache = {}
+
+
+#====================
+# Support functions
+#====================
+
+def get_objects(entity, user):
+    if user.is_staff:
+        objects = entity.objects.all()
+    else:
+        objects = entity.objects.filter(Q(user=user) | Q(group__user=user) | Q(group=None))
+    return objects
+
+def filter_objects(entity, user, text=None, owner='all'):
+
+    objects = get_objects(entity, user)
+
+    if owner == 'all':
+        pass
+    elif owner == 'platform':
+        objects = objects.filter(group=None)
+    elif owner == 'user':
+        objects = objects.filter(user=user)
+    elif owner.startswith('group:'):
+        # Get the group
+        group_name = owner[6:]
+        group = Group.objects.get(name=group_name)
+        if group not in user.groups.all():
+            raise PermissionError('Not part of the requested group')
+        objects = objects.filter(group=group)
+
+    if text:
+        try:
+            # Try filtering with description
+            objects = objects.filter(
+                Q(name__icontains=text) |
+                Q(description__icontains=text)
+            )
+        except FieldError:
+            # Fall back on filtering only for the name
+            objects = objects.filter(
+                Q(name__icontains=text)
+            )
+    return objects
+
+def get_object(entity, user, uuid):
+    object = entity.objects.get(uuid=uuid)
+    if  user.is_staff:
+        return object
+    if object.user == user or object.group is None or object in object.group.user_set.all():
+        return object
+    else:
+        raise PermissionError('Cannot get as not staff, user or part of same group')
+
+def get_object_for_edit(entity, user, uuid):
+    object = entity.objects.get(uuid=uuid)
+    if  user.is_staff:
+        return object
+    if object.user == user:
+        return object
+    else:
+        raise PermissionError('Cannot get as not staff, user or part of same group')
+
+def get_group(user, id):
+    retrieved_group = Group.objects.get(id=id)
+    if not user.is_staff and retrieved_group not in user.groups.all():
+        raise PermissionError('Not staff not part of the requested group')
+    return retrieved_group
+
+def get_user(user, id):
+    retrieved_user = User.objects.get(id=id)
+    if not user.is_staff and retrieved_user != user:
+        raise PermissionError('Not staff nor the same user')
+    return retrieved_user
 
 
 #====================
@@ -1371,137 +1446,155 @@ def edit_computing(request):
     return render(request, 'edit_computing.html', {'data': data})
 
 
+
+
+
+
 #=========================
 #  Storage
 #=========================
 @private_view
 def storage(request):
+
+    # Get data
+    manage  = request.GET.get('manage', False) # Mainly a UI switch, actually
+    uuid = request.GET.get('uuid', None)
+    action = request.GET.get('action', None)
+    filter_text = request.POST.get('filter_text', None)
+    filter_owner = request.POST.get('filter_owner', 'all')
+
+    # Set in the page
     data = {}
     data['user'] = request.user
+    data['manage'] = manage
+    data['filter_text'] = filter_text
+    data['filter_owner'] = filter_owner
 
-    data['manage'] = request.GET.get('manage', False)
-
-    storage_uuid = request.GET.get('uuid', None)
-    action = request.GET.get('action', None)
-    search_text = request.POST.get('search_text', '')
-    search_owner = request.POST.get('search_owner', 'All')
-    data['search_text'] = search_text
-    data['search_owner'] = search_owner
+    # Get the storage if a specific uuid is given, or get them all, possibly filtering
+    if uuid:
+        storage = get_object(Storage, user=request.user, uuid=uuid)
+        data['storage'] = storage
+    else:
+        storages = filter_objects(Storage, user=request.user, text=filter_text, owner=filter_owner)
+        data['storages'] = storages
 
     # Handle delete action
-    if action == 'delete' and storage_uuid:
-        if not request.user.is_staff:
-            data['error'] = 'You do not have permission to delete this storage.'
-            return render(request, 'error.html', {'data': data})
-        try:
-            storage = Storage.objects.get(uuid=storage_uuid)
-            storage.delete()
-            return redirect('/storage/?manage=True')
-        except Storage.DoesNotExist:
-            data['error'] = 'Storage not found.'
-            return render(request, 'error.html', {'data': data})
-        except Exception as e:
-            data['error'] = f'Error deleting storage: {e}'
-            return render(request, 'error.html', {'data': data})
+    if action == 'delete':
+        storage = get_object_for_edit(Storage, request.user, uuid)
+        storage.delete()
+        return redirect('/storage/?manage=True')
 
     # Handle duplicate action
-    if action == 'duplicate' and storage_uuid:
+    if action == 'duplicate':
         if not request.user.is_staff:
-            data['error'] = 'You do not have permission to duplicate this storage.'
-            return render(request, 'error.html', {'data': data})
-        try:
-            storage = Storage.objects.get(uuid=storage_uuid)
-            # Create a copy
-            from copy import deepcopy
-            new_storage = Storage(
-                name=f"{storage.name} (copy)",
-                type=storage.type,
-                access_mode=storage.access_mode,
-                auth_mode=storage.auth_mode,
-                base_path=storage.base_path,
-                bind_path=storage.bind_path,
-                read_only=storage.read_only,
-                browsable=storage.browsable,
-                group=storage.group,
-                computing=storage.computing,
-                access_through_computing=storage.access_through_computing,
-                conf=deepcopy(storage.conf) if storage.conf else None
-            )
-            new_storage.save()
-            return redirect(f'/edit_storage/?uuid={new_storage.uuid}')
-        except Storage.DoesNotExist:
-            data['error'] = 'Storage not found.'
-            return render(request, 'error.html', {'data': data})
-        except Exception as e:
-            data['error'] = f'Error duplicating storage: {e}'
-            return render(request, 'error.html', {'data': data})
-
-    if storage_uuid:
-        try:
-            storage = Storage.objects.get(uuid=storage_uuid)
-            data['storages'] = [storage]
-            data['storage'] = storage
-        except Storage.DoesNotExist:
-            data['storages'] = []
-            data['storage'] = None
-            data['error'] = 'Storage not found.'
-    else:
-        storages = Storage.objects.all()
-        # Filtering by search_text
-        if search_text:
-            storages = storages.filter(
-                Q(name__icontains=search_text) |
-                Q(base_path__icontains=search_text) |
-                Q(bind_path__icontains=search_text) |
-                Q(description__icontains=search_text)
-            )
-        # Filtering by owner
-        if search_owner != 'All':
-            if search_owner == 'Platform':
-                storages = storages.filter(group=None)
-            elif search_owner == 'User' or search_owner == 'Group':
-                storages = storages.exclude(group=None)
-        data['storages'] = list(storages)
-        data['storage'] = None
+            if storage.user != request.user:
+                raise ErrorMessage('Can duplicate only storages owned by the user')
+        new_storage = Storage(
+            name='{} (copy)'.format(storage.name),
+            type=storage.type,
+            access_mode=storage.access_mode,
+            auth_mode=storage.auth_mode,
+            base_path=storage.base_path,
+            bind_path=storage.bind_path,
+            read_only=storage.read_only,
+            browsable=storage.browsable,
+            group=storage.group,
+            user=request.user, # This always changes, set to the user who duplicates
+            computing=storage.computing,
+            access_through_computing=storage.access_through_computing,
+            conf=storage.conf
+        )
+        new_storage.save()
+        return redirect('/edit_storage/?uuid={}&created=True'.format(new_storage.uuid))
 
     return render(request, 'storage.html', {'data': data})
 
 
 @private_view
-def edit_storage(request):
+def add_storage(request):
+
+    # Set data
     data = {}
     data['user'] = request.user
     if request.user.is_staff:
-        from django.contrib.auth.models import Group
+        data['computings'] = Computing.objects.all()
+    else:
+        data['computings'] = Computing.objects.filter(user=request.user)
+    if request.user.is_staff:
         data['groups'] = Group.objects.all()
     else:
-        from django.contrib.auth.models import Group
         data['groups'] = request.user.groups.all()
 
+    if request.method == 'POST':
+        storage = Storage()
+        storage.name = request.POST.get('name', None)
+        storage.type = request.POST.get('type', None)
+        storage.access_mode = request.POST.get('access_mode', None)
+        storage.auth_mode = request.POST.get('auth_mode', None)
+        storage.base_path = request.POST.get('base_path', None)
+        storage.bind_path = request.POST.get('bind_path', None)
+        storage.read_only = bool(request.POST.get('read_only', False))
+        storage.browsable = bool(request.POST.get('browsable', False))
+
+        # Set the computing resource
+        computing_uuid = request.POST.get('computing_uuid', None)
+        if computing_uuid:
+            storage.computing = get_object(Computing, user=request.user, uuid=computing_uuid)
+        else:
+            storage.computing = None
+
+        # Set the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            storage.user = get_user(request.user, id=user_id)
+        else:
+            storage.user = None
+
+        # Set the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            storage.group = get_group(request.user, id=group_id)
+        else:
+            if request.user.is_staff:
+                storage.group = None
+
+        # Set the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            storage.conf = json.loads(conf)
+        else:
+            storage.conf = None
+
+        # Save & redirect
+        storage.save()
+        return redirect('/edit_storage/?uuid={}&created=True'.format(storage.uuid))
+
+    return render(request, 'add_storage.html', {'data': data})
+
+
+@private_view
+def edit_storage(request):
+
+    # Get data
+    created = request.GET.get('created', False)
+    saved = request.GET.get('saved', False)
     storage_uuid = request.GET.get('uuid', None)
-    if not storage_uuid:
-        data['error'] = 'No storage specified.'
-        return render(request, 'error.html', {'data': data})
+    storage = get_object_for_edit(Storage, user=request.user, uuid=storage_uuid)
 
-    try:
-        storage = Storage.objects.get(uuid=storage_uuid)
-    except Storage.DoesNotExist:
-        data['error'] = 'Storage does not exist.'
-        return render(request, 'error.html', {'data': data})
-
-    if not request.user.is_staff:
-        data['error'] = 'You do not have permission to edit this storage.'
-        return render(request, 'error.html', {'data': data})
-
+    # Set data
+    data = {}
+    data['user'] = request.user
+    data['created'] = created
+    data['saved'] = saved
     data['storage'] = storage
-    data['edited'] = False
-
-    # For JSON field display
-    data['conf_json'] = json.dumps(storage.conf, indent=2) if storage.conf else ''
-
-    # Provide all computing resources for the dropdown
-    from .models import Computing
-    data['computings'] = Computing.objects.all()
+    if request.user.is_staff:
+        data['computings'] = Computing.objects.all()
+    else:
+        data['computings'] = Computing.objects.filter(user=request.user)
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
 
     if request.method == 'POST':
         storage.name = request.POST.get('name', storage.name)
@@ -1513,41 +1606,38 @@ def edit_storage(request):
         storage.read_only = bool(request.POST.get('read_only', False))
         storage.browsable = bool(request.POST.get('browsable', False))
 
-        # Handle computing resource link
+        # Update the computing resource
         computing_uuid = request.POST.get('computing_uuid', None)
         if computing_uuid:
-            try:
-                storage.computing = Computing.objects.get(uuid=computing_uuid)
-            except Computing.DoesNotExist:
-                storage.computing = None
+            storage.computing = get_object(Computing, user=request.user, uuid=computing_uuid)
         else:
             storage.computing = None
 
-        # Handle group selection
+        # Update the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            storage.user = get_user(request.user, id=user_id)
+        else:
+            storage.user = None
+
+        # Update the group
         group_id = request.POST.get('group_id', None)
         if group_id:
-            try:
-                storage.group = Group.objects.get(id=group_id)
-            except Group.DoesNotExist:
-                storage.group = None
+            storage.group = get_group(request.user, id=group_id)
         else:
-            storage.group = None
+            if request.user.is_staff:
+                storage.group = None
 
-        # Foreign keys (group, computing) not handled for now
+        # Update the conf
         conf = request.POST.get('conf', None)
         if conf:
-            try:
-                storage.conf = json.loads(conf)
-            except Exception:
-                data['error'] = 'Invalid conf format (must be JSON dict).'
-                return render(request, 'edit_storage.html', {'data': data})
-        try:
-            storage.save()
-            data['edited'] = True
-            data['conf_json'] = json.dumps(storage.conf, indent=2) if storage.conf else ''
-        except Exception as e:
-            data['error'] = f'Error saving storage: {e}'
-            return render(request, 'edit_storage.html', {'data': data})
+            storage.conf = json.loads(conf)
+        else:
+            storage.conf = None
+
+        # Save & redirect
+        storage.save()
+        return redirect('/edit_storage/?uuid={}&saved=True'.format(storage.uuid))
 
     return render(request, 'edit_storage.html', {'data': data})
 
@@ -1803,77 +1893,6 @@ def import_repository(request):
     # Render the import page. This will call an API, and when the import is done, it
     # will automatically say "Ok, crrated, go to software".
     return render(request, 'import_repository.html', {'data': data})
-
-
-@private_view
-def add_storage(request):
-    data = {}
-    data['user'] = request.user
-    data['added'] = False
-    if request.user.is_staff:
-        from django.contrib.auth.models import Group
-        data['groups'] = Group.objects.all()
-    else:
-        from django.contrib.auth.models import Group
-        data['groups'] = request.user.groups.all()
-    from .models import Computing
-    data['computings'] = Computing.objects.all()
-    if not request.user.is_staff:
-        data['error'] = 'You do not have permission to add storage.'
-        return render(request, 'error.html', {'data': data})
-
-    if request.method == 'POST':
-        name = request.POST.get('name', None)
-        type_ = request.POST.get('type', None)
-        access_mode = request.POST.get('access_mode', None)
-        auth_mode = request.POST.get('auth_mode', None)
-        base_path = request.POST.get('base_path', None)
-        bind_path = request.POST.get('bind_path', None)
-        read_only = bool(request.POST.get('read_only', False))
-        browsable = bool(request.POST.get('browsable', False))
-        conf = request.POST.get('conf', None)
-        conf_obj = None
-        computing_uuid = request.POST.get('computing_uuid', None)
-        computing = None
-        if computing_uuid:
-            try:
-                computing = Computing.objects.get(uuid=computing_uuid)
-            except Computing.DoesNotExist:
-                computing = None
-        if conf:
-            try:
-                conf_obj = json.loads(conf)
-            except Exception:
-                data['error'] = 'Invalid conf format (must be JSON dict).'
-                return render(request, 'add_storage.html', {'data': data})
-        group_id = request.POST.get('group_id', None)
-        group = None
-        if group_id:
-            try:
-                group = Group.objects.get(id=group_id)
-            except Group.DoesNotExist:
-                group = None
-        try:
-            Storage.objects.create(
-                name=name,
-                type=type_,
-                access_mode=access_mode,
-                auth_mode=auth_mode,
-                base_path=base_path,
-                bind_path=bind_path,
-                read_only=read_only,
-                browsable=browsable,
-                conf=conf_obj,
-                computing=computing,
-                group=group
-            )
-            data['added'] = True
-            return redirect('/storage/?manage=True')
-        except Exception as e:
-            data['error'] = f'Error creating storage: {e}'
-            return render(request, 'add_storage.html', {'data': data})
-
-    return render(request, 'add_storage.html', {'data': data})
 
 
 @private_view

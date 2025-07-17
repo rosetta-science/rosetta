@@ -1,19 +1,56 @@
 
-{% if data.storage and storage.uuid == data.storage.uuid %}
+{% if details %}
+{% if data.created %}
+<div class="alert alert-success" style="width:500px;">Storage created successfully.</div>
+{% endif %}
 <div style="float:left; width:500px; margin:10px; margin-bottom:20px">
   <table class="dashboard" style="width:100%">
-    <tr><td><b>Name</b></td><td>{{ storage.name }}</td></tr>
-    <tr><td><b>Type</b></td><td>{{ storage.type }}</td></tr>
-    <tr><td><b>Access mode</b></td><td>{{ storage.access_mode }}</td></tr>
-    <tr><td><b>Auth mode</b></td><td>{{ storage.auth_mode }}</td></tr>
-    <tr><td><b>Base path</b></td><td><code>{{ storage.base_path }}</code></td></tr>
-    <tr><td><b>Bind path</b></td><td><code>{{ storage.bind_path }}</code></td></tr>
-    <tr><td><b>Read only</b></td><td>{% if storage.read_only %}Yes{% else %}No{% endif %}</td></tr>
-    <tr><td><b>Browsable</b></td><td>{% if storage.browsable %}Yes{% else %}No{% endif %}</td></tr>
-    <tr><td><b>Group</b></td><td>{% if storage.group %}{{ storage.group }}{% else %}Platform{% endif %}</td></tr>
-    <tr><td><b>Computing</b></td><td>{% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}</td></tr>
-    <tr><td><b>Conf</b></td><td><pre style="font-size:0.9em">{{ storage.conf|default_if_none:'' }}</pre></td></tr>
-    {% if request.user.is_staff %}
+    <tr>
+      <td><b>Name</b></td>
+      <td>{{ storage.name }}</td>
+    </tr>
+    <tr>
+      <td><b>Owner</b></td>
+      <td>{% if data.storage.user %}{{ data.storage.user }}{% else %}Platform{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Group</b></td>
+      <td>{{ data.storage.group }}</td>
+    </tr>
+    <tr>
+      <td><b>Type</b></td>
+      <td>{{ storage.type }}</td>
+    </tr>
+    <tr>
+      <td><b>Access mode</b></td>
+      <td>{{ storage.access_mode }}</td>
+    </tr>
+      <tr><td><b>Auth mode</b></td>
+      <td>{{ storage.auth_mode }}</td>
+    </tr>
+    <tr>
+      <td><b>Base path</b></td>
+      <td><code>{{ storage.base_path }}</code></td>
+    </tr>
+    <tr>
+      <td><b>Bind path</b></td>
+      <td><code>{{ storage.bind_path }}</code></td>
+    </tr>
+    <tr>
+      <td><b>Computing</b></td>
+      <td>{% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Read only</b></td>
+      <td>{% if storage.read_only %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Browsable</b></td>
+      <td>{% if storage.browsable %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Conf</b></td><td><pre style="font-size:0.9em">{{ storage.conf_json }}</pre></td></tr>
+    {% if storage.user == data.user or data.user.is_staff %}
     <tr>
       <td><b>Actions</b></td>
       <td>
