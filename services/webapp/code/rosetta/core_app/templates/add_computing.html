@@ -24,6 +24,15 @@
           <td><input type="text" name="name" value="" size="30" required /></td>
         </tr>
         <tr>
+          <td><b>Owner</b></td>
+          <td>
+            <select name="user_id" style="width: 220px;">
+              <option value="{{ data.user.id }}">{{ data.user.email }}</option>
+              {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
+            </select>
+          </td>
+        </tr>
+        <tr>
           <td><b>Description</b></td>
           <td><textarea name="description" rows="3" cols="30"></textarea></td>
         </tr>
@@ -98,9 +107,7 @@
       </table>
       <table style="width:500px; border:0; background:#ffffff; margin-top:20px">
         <tr><td align="center">
-          <a href="/computing" class="btn btn-primary" style="margin-left:10px">Back</a>
-          &nbsp;
-          <input type="submit" value="Add" class="btn btn-primary">
+          <input type="submit" value="Create" class="btn btn-primary">
         </td></tr>
       </table>
       </form>

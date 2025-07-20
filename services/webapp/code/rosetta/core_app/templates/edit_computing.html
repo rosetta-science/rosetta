@@ -10,10 +10,13 @@
       <hr>
 
       {% if data.error %}
-        <div class="alert alert-danger">{{ data.error }}</div>
+        <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
       {% endif %}
-      {% if data.edited %}
-        <div class="alert alert-success">Resource updated successfully.</div>
+      {% if data.saved %}
+        <div class="alert alert-success" style="width:500px;">Computing updated successfully.</div>
+      {% endif %}
+      {% if data.created %}
+        <div class="alert alert-success" style="width:500px;">Computing created successfully.</div>
       {% endif %}
 
       <form action="#" method="POST">
@@ -22,6 +25,19 @@
         <tr>
           <td><b>Name</b></td>
           <td><input type="text" name="name" value="{{ data.computing.name }}" size="30" required /></td>
+        </tr>
+        <tr>
+          <td><b>Owner</b></td>
+          <td>
+            <select name="user_id" style="width: 220px;">
+              {% if data.computing.user %}
+                <option value="{{ data.computing.user.id }}">{{ data.computing.user.email }}</option>
+                {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
+              {% else %}
+                <option value="">Platform</option>
+              {% endif %}
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Description</b></td>
@@ -98,9 +114,7 @@
       </table>
       <table style="width:500px; border:0; background:#ffffff; margin-top:20px">
         <tr><td align="center">
-          <a href="/computing/?uuid={{ data.computing.uuid }}" class="btn btn-primary" style="margin-left:10px">Back</a>
-          &nbsp;
-          <input type="submit" value="Save changes" class="btn btn-primary">
+          <input type="submit" value="Save" class="btn btn-primary">
         </td></tr>
       </table>
       </form>

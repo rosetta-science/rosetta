@@ -12,58 +12,40 @@
       {% else %}
       <h1>Computing resources</h1>
       {% endif %}
-      <hr/>
+      <br/>
 
-      {% if request.user.is_staff %}
-      {% if not data.computing %}
+      {% if data.computing %}
+
+        {% include "components/computing_component.html" with computing=data.computing details=True %}
+
+      {% else %}
       <div class="form-filter" style="margin-bottom:20px">
         <form action="" method="POST">
-          <input type="text" class="form-control" id="search_text" name="search_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.search_text}}" autofocus>
-          <select class="form-control" id="search_owner" name="search_owner" style="width:120px; margin:0; display:inline">
-            {% if data.search_owner == 'All' %}
-            <option selected>All</option>
-            {% else %}
-            <option>All</option>
-            {% endif %}
-            {% if data.search_owner == 'Platform' %}
-            <option selected>Platform</option>
-            {% else %}
-            <option>Platform</option>
-            {% endif %}
-            {% if data.search_owner == 'User' %}
-            <option selected>User</option>
-            {% else %}
-            <option>User</option>
-            {% endif %}
+          <input type="text" class="form-control" id="filter_text" name="filter_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.filter_text}}" autofocus>
+          <select class="form-control" id="filter_owner" name="filter_owner" style="width:120px; margin:0; display:inline">
+            <option value="all" {% if data.filter_owner == 'all' %}selected{% endif %}>All</option>
+            <option value="platform" {% if data.filter_owner == 'platform' %}selected{% endif %}>Platform</option>
+            <option value="user" {% if data.filter_owner == 'user' %}selected{% endif %}>Personal</option>
+            {% for group in user.groups.all %}
+              {% with "group:"|add:group.name as group_identifier %}
+              <option value="group:{{ group.name }}" {% if data.filter_owner == group_identifier %}selected{% endif %}>{{ group.name }}</option>
+              {% endwith %}
+            {% endfor %}
           </select>
           {% csrf_token %}
           <button type="submit" class="btn btn-secondary">Go</button>
           &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/add_computing">Add new...</a>
         </form>
       </div>
-      {% endif %}
-      {% endif %}
 
       <div class="row" style="padding:5px">
-      {% if data.computing %}
-      {% include "components/computing.html" with computing=data.computing details=True %}
-      {% else %}
-      {% for computing in data.computings %}
-      {% include "components/computing.html" with computing=computing %}
-      {% endfor %}
-      {% endif %}
+        {% for computing in data.computings %}
+          {% include "components/computing_component.html" with computing=computing %}
+        {% empty %}
+          <p>No computing resources found.</p>
+        {% endfor %}
       </div>
-
-      <!-- <div class="row" style="padding:10px; padding-left:15px">
-      <a href="/add_container">Add new...</a>
-      </div> -->
-
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
+      {% endif %}
 
     </div>
   </div>

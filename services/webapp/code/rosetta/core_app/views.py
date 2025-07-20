@@ -1263,132 +1263,152 @@ def edit_software(request):
 #  Computing resources
 #=========================
 
+
 @private_view
 def computing(request):
 
-    # Init data
-    data={}
-    data['user'] = request.user
-    data['name'] = request.POST.get('name',None)
+    # Get data
+    user = request.user
+    uuid = request.GET.get('uuid', None)
+    action = request.GET.get('action', None)
+    filter_text = request.POST.get('filter_text', '')
+    filter_owner = request.POST.get('filter_owner', 'all')
 
-    # Get action/details if any
-    uuid    = request.GET.get('uuid', None)
-    action  = request.GET.get('action', None)
-    details = booleanize(request.GET.get('details', None))
-    computing_uuid = request.GET.get('uuid', None)
-    data['details'] = details
-    data['action'] = action
+    # Set in the page
+    data = {}
+    data['user'] = user
+    data['filter_text'] = filter_text
+    data['filter_owner'] = filter_owner
 
-    # Search/filter logic
-    search_text = request.POST.get('search_text', '')
-    search_owner = request.POST.get('search_owner', 'All')
-    data['search_text'] = search_text
-    data['search_owner'] = search_owner
+    # Get the computing if a specific uuid is given, or get them all, possibly filtering
+    if uuid:
+        computing = get_object(Computing, user=user, uuid=uuid)
+        data['computing'] = computing
+    else:
+        computings = filter_objects(Computing, user=user, text=filter_text, owner=filter_owner)
+        data['computings'] = computings
 
     # Handle delete action
-    if action == 'delete' and uuid:
-        if not request.user.is_staff:
-            data['error'] = 'You do not have permission to delete this computing resource.'
-            return render(request, 'error.html', {'data': data})
-        try:
-            computing = Computing.objects.get(uuid=uuid)
-            computing.delete()
-            return redirect('/computing')
-        except Computing.DoesNotExist:
-            data['error'] = 'Computing resource not found.'
-            return render(request, 'error.html', {'data': data})
-        except Exception as e:
-            data['error'] = f'Error deleting computing resource: {e}'
-            return render(request, 'error.html', {'data': data})
+    if action == 'delete':
+        computing = get_object_for_edit(Computing, user, uuid)
+        computing.delete()
+        return redirect('/computing/')
 
     # Handle duplicate action
-    if action == 'duplicate' and uuid:
-        if not request.user.is_staff:
-            data['error'] = 'You do not have permission to duplicate this computing resource.'
-            return render(request, 'error.html', {'data': data})
-        try:
-            computing = Computing.objects.get(uuid=uuid)
-            from copy import deepcopy
-            new_computing = Computing(
-                name=f"{computing.name} (copy)",
-                description=computing.description,
-                type=computing.type,
-                arch=computing.arch,
-                access_mode=computing.access_mode,
-                auth_mode=computing.auth_mode,
-                wms=computing.wms,
-                container_engines=deepcopy(computing.container_engines) if computing.container_engines else None,
-                supported_archs=deepcopy(computing.supported_archs) if computing.supported_archs else None,
-                emulated_archs=deepcopy(computing.emulated_archs) if computing.emulated_archs else None,
-                conf=deepcopy(computing.conf) if computing.conf else None,
-                group=computing.group
-            )
-            new_computing.save()
-            return redirect(f'/edit_computing/?uuid={new_computing.uuid}')
-        except Computing.DoesNotExist:
-            data['error'] = 'Computing resource not found.'
-            return render(request, 'error.html', {'data': data})
-        except Exception as e:
-            data['error'] = f'Error duplicating computing resource: {e}'
-            return render(request, 'error.html', {'data': data})
-
-    if details and computing_uuid:
-        if request.user.is_staff:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid)
-        else:
-            try:
-                data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
-            except Computing.DoesNotExist:
-                data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
-    else:
-        # Filtering logic for list view
-        computings = Computing.objects.filter(Q(group__user=request.user) | Q(group=None))
-        if search_text:
-            computings = computings.filter(
-                Q(name__icontains=search_text) |
-                Q(description__icontains=search_text) |
-                Q(type__icontains=search_text) |
-                Q(arch__icontains=search_text)
-            )
-        if search_owner != 'All':
-            # User computign resurces not yet implemented
-            if search_owner == 'Platform':
-                pass
-            else:
-                computings = []
-            #if search_owner == 'Platform':
-            #    computings = computings.filter(user=None)
-            #elif search_owner == 'User':
-            #    computings = computings.filter(user=None)
-        data['computings'] = list(computings)
+    if action == 'duplicate':
+        if not user.is_staff:
+            if computing.user != user:
+                raise ErrorMessage('Can duplicate only computing resources owned by the user')
+        new_computing = Computing(
+            name='{} (copy)'.format(computing.name),
+            description=computing.description,
+            type=computing.type,
+            arch=computing.arch,
+            access_mode=computing.access_mode,
+            auth_mode=computing.auth_mode,
+            wms=computing.wms,
+            container_engines=computing.container_engines,
+            supported_archs=computing.supported_archs,
+            emulated_archs=computing.emulated_archs,
+            conf=computing.conf,
+            group=computing.group
+        )
+        new_computing.save()
+        return redirect('/edit_computing/?uuid={}&created=True'.format(new_computing.uuid))
 
     return render(request, 'computing.html', {'data': data})
 
 
 @private_view
-def edit_computing(request):
+def add_computing(request):
+
+    # Set data
     data = {}
     data['user'] = request.user
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
 
+    if request.method == 'POST':
+        computing = Computing()
+        computing.name = request.POST.get('name', None)
+        computing.description = request.POST.get('description', None)
+        computing.type = request.POST.get('type', None)
+        computing.arch = request.POST.get('arch', None)
+        computing.access_mode = request.POST.get('access_mode', None)
+        computing.auth_mode = request.POST.get('auth_mode', None)
+        computing.wms = request.POST.get('wms', None)
+
+        # Set the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            computing.user = get_user(request.user, id=user_id)
+        else:
+            computing.user = None
+
+        # Set the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            computing.group = get_group(request.user, id=group_id)
+        else:
+            if request.user.is_staff:
+                computing.group = None
+
+        # Set json fields
+        container_engines = request.POST.get('container_engines', None)
+        if container_engines:
+            computing.container_engines = json.loads(container_engines)
+        else:
+            computing.container_engines = None
+
+        supported_archs = request.POST.get('supported_archs', None)
+        if supported_archs:
+            computing.supported_archs = json.loads(supported_archs)
+        else:
+            computing.supported_archs = None
+
+        emulated_archs = request.POST.get('emulated_archs', None)
+        if emulated_archs:
+            computing.emulated_archs = json.loads(emulated_archs)
+        else:
+            computing.emulated_archs = None
+
+        # Set the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            computing.conf = json.loads(conf)
+        else:
+            computing.conf = None
+
+        # Save & redirect
+        computing.save()
+        return redirect('/edit_computing/?uuid={}&created=True'.format(computing.uuid))
+
+    return render(request, 'add_computing.html', {'data': data})
+
+
+
+@private_view
+def edit_computing(request):
+
+    # Get data
+    user = request.user
+    created = request.GET.get('created', False)
+    saved = request.GET.get('saved', False)
     computing_uuid = request.GET.get('uuid', None)
-    if not computing_uuid:
-        data['error'] = 'No computing resource specified.'
-        return render(request, 'error.html', {'data': data})
+    computing = get_object_for_edit(Computing, user=user, uuid=computing_uuid)
 
-    try:
-        computing = Computing.objects.get(uuid=computing_uuid)
-    except Computing.DoesNotExist:
-        data['error'] = 'Computing resource does not exist.'
-        return render(request, 'error.html', {'data': data})
-
-    # Only allow editing if user is admin (or group owner, if you want to extend)
-    if not request.user.is_staff:
-        data['error'] = 'You do not have permission to edit this computing resource.'
-        return render(request, 'error.html', {'data': data})
-
+    # Set in the page
+    data = {}
+    data['user'] = user
+    data['created'] = created
+    data['saved'] = saved
     data['computing'] = computing
-    data['edited'] = False
-    data['groups'] = Group.objects.all()
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
 
     if request.method == 'POST':
         computing.name = request.POST.get('name', computing.name)
@@ -1398,56 +1418,52 @@ def edit_computing(request):
         computing.access_mode = request.POST.get('access_mode', computing.access_mode)
         computing.auth_mode = request.POST.get('auth_mode', computing.auth_mode)
         computing.wms = request.POST.get('wms', computing.wms)
-        # JSON fields
-        container_engines = request.POST.get('container_engines', None)
-        if container_engines:
-            try:
-                computing.container_engines = json.loads(container_engines)
-            except Exception:
-                data['error'] = 'Invalid container engines format (must be JSON list).'
-                return render(request, 'edit_computing.html', {'data': data})
-        supported_archs = request.POST.get('supported_archs', None)
-        if supported_archs:
-            try:
-                computing.supported_archs = json.loads(supported_archs)
-            except Exception:
-                data['error'] = 'Invalid supported archs format (must be JSON list).'
-                return render(request, 'edit_computing.html', {'data': data})
-        emulated_archs = request.POST.get('emulated_archs', None)
-        if emulated_archs:
-            try:
-                computing.emulated_archs = json.loads(emulated_archs)
-            except Exception:
-                data['error'] = 'Invalid emulated archs format (must be JSON dict).'
-                return render(request, 'edit_computing.html', {'data': data})
-        conf = request.POST.get('conf', None)
-        if conf:
-            try:
-                computing.conf = json.loads(conf)
-            except Exception:
-                data['error'] = 'Invalid conf format (must be JSON dict).'
-                return render(request, 'edit_computing.html', {'data': data})
-        # Handle group selection
+
+        # Update the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            computing.user = get_user(request.user, id=user_id)
+        else:
+            computing.user = None
+
+        # Update the group
         group_id = request.POST.get('group_id', None)
         if group_id:
-            try:
-                computing.group = Group.objects.get(id=group_id)
-            except Group.DoesNotExist:
-                computing.group = None
+            computing.group = get_group(request.user, id=group_id)
         else:
             computing.group = None
-        try:
-            computing.save()
-            data['edited'] = True
-        except Exception as e:
-            data['error'] = f'Error saving computing resource: {e}'
-            return render(request, 'edit_computing.html', {'data': data})
+
+        # Set json fields
+        container_engines = request.POST.get('container_engines', None)
+        if container_engines:
+            computing.container_engines = json.loads(container_engines)
+        else:
+            computing.container_engines = None
+
+        supported_archs = request.POST.get('supported_archs', None)
+        if supported_archs:
+            computing.supported_archs = json.loads(supported_archs)
+        else:
+            computing.supported_archs = None
+
+        emulated_archs = request.POST.get('emulated_archs', None)
+        if emulated_archs:
+            computing.emulated_archs = json.loads(emulated_archs)
+        else:
+            computing.emulated_archs = None
+
+        # Update the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            computing.conf = json.loads(conf)
+        else:
+            computing.conf = None
+
+        # Save & redirect
+        computing.save()
+        return redirect('/edit_computing/?uuid={}&saved=True'.format(computing.uuid))
 
     return render(request, 'edit_computing.html', {'data': data})
-
-
-
-
 
 
 #=========================
@@ -1460,7 +1476,7 @@ def storage(request):
     manage  = request.GET.get('manage', False) # Mainly a UI switch, actually
     uuid = request.GET.get('uuid', None)
     action = request.GET.get('action', None)
-    filter_text = request.POST.get('filter_text', None)
+    filter_text = request.POST.get('filter_text', '')
     filter_owner = request.POST.get('filter_owner', 'all')
 
     # Set in the page
@@ -1893,59 +1909,5 @@ def import_repository(request):
     # Render the import page. This will call an API, and when the import is done, it
     # will automatically say "Ok, crrated, go to software".
     return render(request, 'import_repository.html', {'data': data})
-
-
-@private_view
-def add_computing(request):
-    data = {}
-    data['user'] = request.user
-    data['added'] = False
-    data['groups'] = Group.objects.all()
-    if not request.user.is_staff:
-        data['error'] = 'You do not have permission to add computing resources.'
-        return render(request, 'error.html', {'data': data})
-
-    if request.method == 'POST':
-        name = request.POST.get('name', None)
-        description = request.POST.get('description', None)
-        type_ = request.POST.get('type', None)
-        arch = request.POST.get('arch', None)
-        access_mode = request.POST.get('access_mode', None)
-        auth_mode = request.POST.get('auth_mode', None)
-        wms = request.POST.get('wms', None)
-        container_engines = request.POST.get('container_engines', None)
-        supported_archs = request.POST.get('supported_archs', None)
-        emulated_archs = request.POST.get('emulated_archs', None)
-        conf = request.POST.get('conf', None)
-        group_id = request.POST.get('group_id', None)
-        group = None
-        if group_id:
-            try:
-                group = Group.objects.get(id=group_id)
-            except Group.DoesNotExist:
-                group = None
-        try:
-            new_computing = Computing(
-                name=name,
-                description=description,
-                type=type_,
-                arch=arch,
-                access_mode=access_mode,
-                auth_mode=auth_mode,
-                wms=wms,
-                container_engines=json.loads(container_engines) if container_engines else [],
-                supported_archs=json.loads(supported_archs) if supported_archs else [],
-                emulated_archs=json.loads(emulated_archs) if emulated_archs else {},
-                conf=json.loads(conf) if conf else {},
-                group=group
-            )
-            new_computing.save()
-            data['added'] = True
-            return redirect(f'/edit_computing/?uuid={new_computing.uuid}')
-        except Exception as e:
-            data['error'] = f'Error creating computing resource: {e}'
-            return render(request, 'add_computing.html', {'data': data})
-
-    return render(request, 'add_computing.html', {'data': data})
 
 
