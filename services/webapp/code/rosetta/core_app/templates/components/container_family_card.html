@@ -1,7 +1,7 @@
 
 {% if data.details %}
 {% for container in container_family.members %}
-{% include "components/container.html" with container=container details=data.details %}
+{% include "components/container_card.html" with container=container details=data.details %}
 {% endfor %}
 {% else %}
 <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">

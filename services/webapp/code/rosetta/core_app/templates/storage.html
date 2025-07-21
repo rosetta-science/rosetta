@@ -22,7 +22,7 @@
 
       {% if data.storage %}
 
-        {% include "components/storage_component.html" with storage=data.storage details=True %}
+        {% include "components/storage_card.html" with storage=data.storage details=True %}
 
       {% else %}
       <div class="form-filter" style="margin-bottom:20px">
@@ -46,7 +46,7 @@
 
       <div class="row" style="padding:5px">
         {% for storage in data.storages %}
-          {% include "components/storage_component.html" with storage=storage %}
+          {% include "components/storage_card.html" with storage=storage %}
         {% empty %}
           <p>No storage resources found.</p>
         {% endfor %}

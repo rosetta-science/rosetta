@@ -22,7 +22,7 @@
       <div style="float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:20px">
           <h4>Software container</h4>
           <div class="row" style="padding:5px">
-          {% include "components/container.html" with container=data.task_container container_arch=data.task_container_arch disable_play_button=True  %}
+          {% include "components/container_card.html" with container=data.task_container container_arch=data.task_container_arch disable_play_button=True  %}
           </div>
       </div>
       {% endif %}
@@ -34,7 +34,7 @@
           <h4>Computing resource</h4>
           <div class="row" style="padding:5px">
           {% for computing in data.computings %}
-          {% include "components/computing.html" with container=data.task_container container_arch=data.task_container_arch %}
+          {% include "components/computing_card.html" with container=data.task_container container_arch=data.task_container_arch %}
           {% endfor %}
           </div>
       </div>
@@ -46,7 +46,7 @@
       <div style="width:300px; float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:0px">
           <h4>Computing resource</h4>
           <div class="row" style="padding:5px">
-          {% include "components/computing.html" with computing=data.task_computing %}
+          {% include "components/computing_card.html" with computing=data.task_computing %}
           </div>
       </div>
 

@@ -16,7 +16,7 @@
 
       {% if data.computing %}
 
-        {% include "components/computing_component.html" with computing=data.computing details=True %}
+        {% include "components/computing_card.html" with computing=data.computing details=True %}
 
       {% else %}
       <div class="form-filter" style="margin-bottom:20px">
@@ -40,7 +40,7 @@
 
       <div class="row" style="padding:5px">
         {% for computing in data.computings %}
-          {% include "components/computing_component.html" with computing=computing %}
+          {% include "components/computing_card.html" with computing=computing %}
         {% empty %}
           <p>No computing resources found.</p>
         {% endfor %}
