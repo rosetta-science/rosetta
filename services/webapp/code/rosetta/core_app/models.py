@@ -19,6 +19,20 @@ class ConfigurationError(Exception):
 class ConsistencyError(Exception):
     pass
 
+def get_computing_manager(computing):
+    from . import computing_managers
+    # Hash table mapping
+    managers_mapping = {}
+    managers_mapping['cluster'+'ssh+cli'+'user_keys'+'slurm'] = computing_managers.SlurmSSHClusterComputingManager
+    managers_mapping['standalone'+'ssh+cli'+'user_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
+    managers_mapping['standalone'+'ssh+cli'+'platform_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
+    managers_mapping['standalone'+'internal'+'internal'+'None'] = computing_managers.InternalStandaloneComputingManager
+
+    try:
+        return  managers_mapping[computing.type+computing.access_mode+computing.auth_mode+str(computing.wms)](computing)
+    except KeyError:
+        raise ValueError('No computing manager defined for type="{}", access_mode="{}", auth_mode="{}", wms="{}"'
+                         .format(computing.type, computing.access_mode, computing.auth_mode, computing.wms)) from None
 
 # Setup logging
 import logging
@@ -153,10 +167,22 @@ class Container(models.Model):
         return str('Container "{}" of user "{}" with image name "{}" and image tag "{}" on registry "{}" '.format(self.name, user_str, self.image_name, self.image_tag, self.registry))
 
     def save(self, *args, **kwargs):
-        # Check that digest starts with sha256:
+
+        if self.image_tag is None:
+            raise ValueError('The image tag field must be always set (e.g. using "latest")')
+        if not self.image_arch:
+            self.image_arch = None
+        if not self.image_os:
+            raise ValueError('The image must be always set')
         if self.image_digest and not self.image_digest.startswith('sha256:'):
             raise ValueError('The digest field must start with "sha256:"')
 
+        if not self.interface_port:
+            self.interface_port = None
+        if not self.interface_protocol:
+            self.interface_protocol = None
+        if not self.interface_transport:
+            self.interface_transport = None
         super(Container, self).save(*args, **kwargs)
 
     @property
@@ -171,6 +197,11 @@ class Container(models.Model):
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
 
+    @property
+    def env_vars_json(self):
+        if not self.env_vars:
+            return''
+        return json.dumps(self.env_vars)
 
 
 
@@ -181,8 +212,10 @@ class Container(models.Model):
 class Computing(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='computings', on_delete=models.CASCADE, blank=True, null=True)
+    # If a computing has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
     group = models.ForeignKey(Group, related_name='computings', on_delete=models.CASCADE, blank=True, null=True)
-    # If a compute resource has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
+    # If a computing resource has no group, it will be available to anyone. Can be created, edited and deleted only by admins.
 
     name        = models.CharField('Name', max_length=255, blank=False, null=False)
     description = models.TextField('Description', blank=True, null=True)
@@ -220,6 +253,25 @@ class Computing(models.Model):
         else:
             return str('Computing "{}"'.format(self.name))
 
+
+    def save(self, *args, **kwargs):
+
+        if not self.container_engines:
+            self.container_engines = None
+        if not self.supported_archs:
+            self.supported_archs = None
+        if not self.emulated_archs:
+            self.emulated_archs = None
+        if not self.conf:
+            self.conf = None
+
+        try:
+            get_computing_manager(self)
+        except:
+            raise
+            raise ValueError('Unsupported combination of type, access_mode, auth_mode, and wms')
+        super(Computing, self).save(*args, **kwargs)
+
     @property
     def uuid_as_str(self):
         return str(self.uuid)
@@ -234,6 +286,29 @@ class Computing(models.Model):
     def default_container_engine(self):
         return self.container_engines[0]
 
+    @property
+    def container_engines_json(self):
+        if not self.container_engines:
+            return''
+        return json.dumps(self.container_engines)
+
+    @property
+    def supported_archs_json(self):
+        if not self.supported_archs:
+            return ''
+        return json.dumps(self.supported_archs)
+
+    @property
+    def emulated_archs_json(self):
+        if not self.emulated_archs:
+            return ''
+        return json.dumps(self.emulated_archs)
+
+    @property
+    def conf_json(self):
+        if not self.conf:
+            return ''
+        return json.dumps(self.conf)
 
     #=======================
     # Computing manager
@@ -241,27 +316,13 @@ class Computing(models.Model):
 
     @property
     def manager(self):
-        from . import computing_managers
-
-        # Hash table mapping
-        managers_mapping = {}
-        managers_mapping['cluster'+'ssh+cli'+'user_keys'+'slurm'] = computing_managers.SlurmSSHClusterComputingManager
-        managers_mapping['standalone'+'ssh+cli'+'user_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
-        managers_mapping['standalone'+'ssh+cli'+'platform_keys'+'None'] = computing_managers.SSHStandaloneComputingManager
-        managers_mapping['standalone'+'internal'+'internal'+'None'] = computing_managers.InternalStandaloneComputingManager
 
         # Instantiate the computing manager and return (if not already done)
         try:
             return self._manager
         except AttributeError:
-            try:
-                self._manager = managers_mapping[self.type+self.access_mode+self.auth_mode+str(self.wms)](self)
-            except KeyError:
-                raise ValueError('No computing resource manager for type="{}", access_mode="{}", auth_mode="{}", wms="{}"'
-                                 .format(self.type, self.access_mode, self.auth_mode, self.wms)) from None
-            else:
-                return self._manager
-
+            self._manager = get_computing_manager(self)
+        return self._manager
 
 
 #=========================
@@ -371,7 +432,10 @@ class Task(models.Model):
 class Storage(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='storages', on_delete=models.CASCADE, blank=True, null=True)
+    # If a storage has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
     group = models.ForeignKey(Group, related_name='storages', on_delete=models.CASCADE, blank=True, null=True)
+    # If a comstorageputing has no user, it will be available to anyone. Can be created, edited and deleted only by admins.
 
     name = models.CharField('Name', max_length=255, blank=False, null=False)
     #description = models.TextField('Description', blank=True, null=True)
@@ -419,7 +483,11 @@ class Storage(models.Model):
     def id(self):
         return (self.name if not self.computing else '{}:{}'.format(self.computing.name,self.name))
 
-
+    @property
+    def conf_json(self):
+        if not self.conf:
+            return ''
+        return json.dumps(self.conf)
 
 
 

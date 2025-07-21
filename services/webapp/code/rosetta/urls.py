@@ -48,13 +48,18 @@ urlpatterns = [
     # Software
     url(r'^software/$', core_app_views.software),
     url(r'^add_software/$', core_app_views.add_software),
+    url(r'^edit_software/$', core_app_views.edit_software),
     url(r'^import_repository/$', core_app_views.import_repository),
 
     #Computing
     url(r'^computing/$', core_app_views.computing),
+    url(r'^edit_computing/$', core_app_views.edit_computing),
+    url(r'^add_computing/$', core_app_views.add_computing),
 
     # Storage
     url(r'^storage/$', core_app_views.storage),
+    url(r'^edit_storage/$', core_app_views.edit_storage),
+    url(r'^add_storage/$', core_app_views.add_storage),
 
     # Tasks
     url(r'^tasks/$', core_app_views.tasks),

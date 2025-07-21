@@ -6,83 +6,94 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1>Add software container</h1>
-      <hr>
+      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / add</span></h1>
+      <br/>
 
       {% if not data.added %}
 
-          Here you can add a new software container on the platform. You can add containers from image registries
+          <!--  Here you can add a new software container on the platform. You can add containers from image registries
           as <a href="https://hub.docker.com/">Docker Hub </a>or by importing Git repositories, provided that they
           are compatible with <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.
           <br/>
           <br/>
+          -->
 
           {% if data.new_container_from == 'registry' %}
-          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from registry</div>
-          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">New container from Git repository</a></div>
+          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">From registry</div>
+          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">From repository</a></div>
           <hr style="margin-top:0;">
-
-          <h4>Basics</h4>
 
           <form action="#" method="POST">
           {% csrf_token %}
 
-          <table class="dashboard" style="width:400px; margin-bottom:25px">
+          <table class="dashboard" style="width:500px; margin-bottom:25px">
 
            <tr>
             <td><b>Name</b></td>
             <td>
-             <input type="text" name="container_name" value="" placeholder="" size="23" required />
+             <input type="text" name="container_name" value="" placeholder="" size="36" required />
             </td>
            </tr>
 
            <tr>
             <td><b>Description</b></td>
             <td>
-             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
-             ​<textarea name="container_description" rows="3" cols="22"></textarea>
+             <textarea name="container_description" rows="3" cols="35"></textarea>
             </td>
            </tr>
+           <tr>
+            <td><b>Group</b></td>
+            <td>
+              <select name="group_id" style="width: 220px;">
+                <option value="">None</option>
+                {% for group in data.groups %}
+                  <option value="{{ group.id }}">{{ group.name }}</option>
+                {% endfor %}
+              </select>
+            </td>
+           </tr>
+          </table>
+
+          <!-- <h4>Registry & image</h4> -->
+          <table class="dashboard" style="width:500px; margin-bottom:25px">
 
            <tr>
             <td><b>Registry</b></td><td>
-             <input type="text" name="container_registry" value="docker.io" size="23" required />
+             <input type="text" name="container_registry" value="docker.io" size="36" required />
             </td>
            </tr>
 
            <tr>
             <td><b>Image&nbsp;name</b></td>
             <td>
-             <input type="text" name="container_image_name" value="" placeholder="" size="23" required />
+             <input type="text" name="container_image_name" value="" placeholder="" size="36" required />
             </td>
            </tr>
 
            <tr>
             <td><b>Image tag</b></td>
             <td>
-             <input type="text" name="container_image_tag" value="latest" size="23" required />
+             <input type="text" name="container_image_tag" value="latest" size="36" required />
             </td>
            </tr>
 
-           </table>
+          </table>
 
-
-
-          <h4>Interface </h4>
-          <table class="dashboard" style="width:400px; margin-bottom:25px">
+          <!-- <h4>Interface</h4> -->
+          <table class="dashboard" style="width:500px; margin-bottom:25px">
 
            <tr>
-            <td><b>Interface port</b></td>
-             <td><input type="text" name="container_interface_port" value="" placeholder="" size="5" /></td>
+            <td style="width:180px"><b>Interface port</b></td>
+             <td><input type="text" name="container_interface_port" value="" placeholder="" size="6" /></td>
            </tr>
 
            <tr>
-            <td><b>Interface protocol</b></td>
+            <td style="width:180px"><b>Interface protocol</b></td>
             <td>
              {% if request.user.profile.is_power_user %}
-             <input type="text" value="http" name="container_interface_protocol" size="5" />
+             <input type="text" value="http" name="container_interface_protocol" size="6" />
              {% else %}
-             <select name="container_interface_protocol" >
+             <select name="container_interface_protocol" style="width:65px">
              <option value="http" selected>http</option>
              <option value="https">https</option>
              </select>
@@ -171,35 +182,37 @@
 
 
           {% else %}
-          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=registry">New container from registry</a></div>
-          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from Git repository</div>
+          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=registry">From registry</a></div>
+          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">From repository</div>
           <hr style="margin-top:0;">
-
-          <h4>Basics</h4>
 
           <form action="#" method="POST">
           {% csrf_token %}
 
-          <table class="dashboard" style="width:400px; margin-bottom:25px">
+          <table class="dashboard" style="width:500px; margin-bottom:25px">
 
            <tr>
             <td><b>Name</b></td>
             <td>
-             <input type="text" name="container_name" value="" placeholder="" size="23" required />
+             <input type="text" name="container_name" value="" placeholder="" size="36" required />
             </td>
            </tr>
 
            <tr>
             <td><b>Description</b></td>
             <td>
-             <!-- ><input type="text" name="container_description" value="" placeholder="" size="23" required /> -->
-             ​<textarea name="container_description" rows="3" cols="22"></textarea>
+             <textarea name="container_description" rows="3" cols="35"></textarea>
             </td>
            </tr>
 
+          </table>
+
+          <!-- <h4>Repository</h4> -->
+          <table class="dashboard" style="width:500px; margin-bottom:25px">
+
            <tr>
-            <td><b>Repository URL</b></td><td>
-             <input type="text" name="repository_url" size="23" required />
+            <td><b>Repository URL*</b></td><td>
+             <input type="text" name="repository_url" size="35" required />
             </td>
            </tr>
 
@@ -207,13 +220,16 @@
            <tr>
             <td><b>Repository tag</b></td>
             <td>
-             <input type="text" name="repository_tag" placeholder="Tag or hash, optional" value="" size="23" />
+             <input type="text" name="repository_tag" placeholder="Tag or hash, optional" value="" size="35" />
             </td>
            </tr>
 
-           </table>
-
-
+           <tr>
+            <td colspan=2>
+            *must comply with the <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.
+            </td>
+           </tr>
+          </table>
 
           <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
           <tr><td align="center">
@@ -221,9 +237,12 @@
           </td></tr>
           </table>
 
+
+
           <input type="hidden" name="new_container_from" value="repository">
 
           </form>
+
 
 
 

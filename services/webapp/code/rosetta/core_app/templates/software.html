@@ -72,15 +72,15 @@
 
       <div class="row" style="padding:5px">
       {% if data.container %}
-      {% include "components/container.html" with container=data.container details=True %}
+      {% include "components/container.html" with container=data.container user=data.user details=True %}
       {% else %}
       {% if data.container_families %}
       {% for container_family_id, container_family in data.container_families.items %}
-      {% include "components/container_family.html" with container_family=container_family container_family_id=container_family_id%}
+      {% include "components/container_family.html" with container_family=container_family container_family_id=container_family_id user=data.user%}
       {% endfor %}
       {% else %}
       {% for container in data.containers %}
-      {% include "components/container.html" with container=container %}
+      {% include "components/container.html" with container=container user=data.user %}
       {% endfor %}
       {% endif  %}
       {% endif %}

@@ -1,184 +1,154 @@
+{% if details %}
+<div style="width:400px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
+  <table class="dashboard" style="margin:0px; border:0px; width:398px">
+    <tr>
+      <td colspan=2 align=center style="padding:10px; font-size:1.2em"><a href="/software/?uuid={{ container.uuid }}">{{ container.name }} <font style="font-size:0.9em">({{ container.image_tag }})</font></a></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="background:{{ container.color }}; height:15px"></td>
+     </tr>
+    <tr>
+      <td colspan=2 style="height:5px"></td>
+    </tr>
+    <tr>
+      <td colspan=2>{{ container.description }}</td>
+    </tr>
+    <tr>
+      <td colspan=2><hr style="margin:5px"></td></tr>
+    <tr>
+      <td><b>Owner</b></td>
+      <td>{% if container.user %}{{ container.user }}{% else %}platform{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Group</b></td>
+      <td>{% if container.group %}{{ container.group }}{% else %}None{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Registry</b></td>
+      <td>{{ container.registry }}</td>
+    </tr>
+    <tr>
+      <td><b>Image&nbsp;name</b></td>
+      <td><code>{{ container.image_name }}</code></td>
+    </tr>
+    <tr>
+      <td><b>Image tag</b></td>
+      <td><span class="badge badge-secondary">{{ container.image_tag }}</span></td>
+    </tr>
+      <tr>
+        <td colspan=2><hr style="margin:5px"></td>
+      </tr>
+  </table>
 
-
-      {% if details %}
-
-      <div style="width:400px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
-      <table class="dashboard" style="margin:0px; border:0px; width:398px">
-
-       <tr>
-        <td colspan=2 align=center style="padding:10px; font-size:1.2em"><a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }} <font style="font-size:0.9em">({{ container.image_tag }})</font></a></td>
-       </tr>
-
-       <tr>
-        <td colspan="2" style="background:{{ container.color }}; height:15px"></td>
-       </tr>
-
-       <tr><td colspan=2 style="height:5px"></td></tr>
-
-       <tr>
-        <td colspan=2>{{ container.description }}</td>
-       </tr>
-
-       <tr><td colspan=2><hr style="margin:5px"></td></tr>
-
-       <tr>
-        <td><b>Owner</b></td>
-        <td>{% if container.user %}{{ container.user }}{% else %}platform{% endif %}</td>
-       </tr>
-
-       <tr>
-        <td><b>Registry</b></td>
-        <td>{{ container.registry }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Image&nbsp;name</b></td>
-        <td><code>{{ container.image_name }}</code></td>
-       </tr>
-
-       <tr>
-        <td><b>Image tag</b></td>
-        <td><span class="badge badge-secondary">{{ container.image_tag }}</span></td>
-       </tr>
-
-       <tr><td colspan=2><hr style="margin:5px"></td></tr>
-       </table>
-
-      <table class="dashboard" style="margin:0px; border:0px;">
-       <tr>
-        <td><b>Interface protocol</b></td>
-        <td>{{ container.interface_protocol }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Interface port</b></td>
-        <td>{{ container.interface_port }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Interface transport</b></td>
-        <td>{{ container.interface_transport }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Image arch</b></td>
-        <td>{{ container.image_arch }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Image OS</b></td>
-        <td>{{ container.image_os }}</td>
-       </tr>
-
-       <tr>
-        <td><b>Image&nbsp;digest</b></td>
-        <td>
+  <table class="dashboard" style="margin:0px; border:0px;">
+    <tr>
+      <td><b>Interface protocol</b></td>
+      <td>{{ container.interface_protocol }}</td>
+    </tr>
+    <tr>
+      <td><b>Interface port</b></td>
+      <td>{{ container.interface_port }}</td>
+    </tr>
+    <tr>
+      <td><b>Interface transport</b></td>
+      <td>{{ container.interface_transport }}</td>
+    </tr>
+    <tr>
+      <td><b>Image arch</b></td>
+      <td>{{ container.image_arch }}</td>
+    </tr>
+    <tr>
+      <td><b>Image OS</b></td>
+      <td>{{ container.image_os }}</td>
+    </tr>
+    <tr>
+      <td><b>Image&nbsp;digest</b></td>
+      <td>
         {% if container.image_digest %}
         <input type="text" style="margin:0 "size=25 class="form-control" placeholder="" value="{{ container.image_digest }}" name='digest' readonly>
         {% else %}
         None
         {% endif %}
-        </td>
-       </tr>
-
-       <tr><td colspan=2><hr style="margin:5px"></td></tr>
-
-       <tr>
-        <td colspan=2>
-         <b>Supports custom interface port</b> &nbsp;
-         {% if container.supports_custom_interface_port %}
-           <input type="checkbox" name="container_supports_user_auth" checked disabled/>
-         {% else %}
-           <input type="checkbox" name="container_supports_user_auth" disabled/>
-         {% endif %}
-        </td>
-       </tr>
-
-       <tr>
-        <td colspan=2>
-         <b>Supports interface auth</b> &nbsp;
-         {% if container.supports_interface_auth %}
-           <input type="checkbox" name="supports_interface_auth" checked disabled/>
-         {% else %}
-           <input type="checkbox" name="supports_interface_auth" disabled/>
-         {% endif %}
-         </td>
-       </tr>
-
-       <tr>
-        <td colspan=2>
-         <b>Disable HTTP auth embedding</b> &nbsp;
-         {% if container.disable_http_basicauth_embedding %}
-           <input type="checkbox" name="disable_http_basicauth_embedding" checked disabled/>
-         {% else %}
-           <input type="checkbox" name="disable_http_basicauth_embedding" disabled/>
-         {% endif %}
-         </td>
-       </tr>
-
-       {% if container.env_vars %}
-       <tr>
-        <td><b>Env vars</b></td>
-        <td><pre>{{container.env_vars}}</pre></td>
-       </tr>
-       {% endif %}
-
-       {% if container.user %}
-       <tr>
-        <td><b>Operations</b></td>
-        <td><a href="?action=delete&container_uuid={{ container.uuid }}">Delete</a></td>
-       </tr>
-       {% endif %}
-      </table>
-      </div>
-
-
-      {% else %}
-      <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
-
-
-        <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
-        <a href="/software/?container_uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp;
-        </div>
-
-        <div style="padding:10px; height: 110px; vertical-align: middle; ">
-
-        {% if container.description %}
-        <div class="description-box" title="{{ container.description }}">
-        {{ container.description }}
-        </div>
+      </td>
+    </tr>
+    <tr>
+      <td colspan=2><hr style="margin:5px"></td>
+    </tr>
+    <tr>
+      <td colspan=2>
+        <b>Supports custom interface port</b> &nbsp;
+        {% if container.supports_custom_interface_port %}
+        <input type="checkbox" name="container_supports_user_auth" checked disabled/>
         {% else %}
-        <br/>
+        <input type="checkbox" name="container_supports_user_auth" disabled/>
         {% endif %}
-
-        <div class="image-version-box">
-        <!-- <font style="font-family:monospace; font-size:1.2em"></font> -->
-        <b>Image:</b> <code>{{ container.image_name }}</code><br/>
-        <b>Tag:</b> &nbsp;<span class="badge badge-secondary" style="margin-right:3px">{{ container.image_tag }}</span>
-        {% if container.image_arch %}
-        <font style="font-size:0.9em">({{ container.image_arch }})</font>
+      </td>
+    </tr>
+    <tr>
+      <td colspan=2>
+        <b>Supports interface auth</b> &nbsp;
+        {% if container.supports_interface_auth %}
+        <input type="checkbox" name="supports_interface_auth" checked disabled/>
+        {% else %}
+        <input type="checkbox" name="supports_interface_auth" disabled/>
         {% endif %}
-
-        <!--  &nbsp; <b>Arch:</b> {{ container.image_arch }} -->
-        </div>
-
-        </div>
-
-        <div style="margin-bottom:18px; margin-top: 3px; text-align:center">
-        {% if not disable_play_button %}
-        <a href="/new_task?task_container_uuid={{ container.uuid }}&step=two" class="btn btn-light" style="border: #c0c0c0 1px solid">&nbsp;<i class="fa fa-play" style="color:green"></i></a>
+      </td>
+    </tr>
+    <tr>
+      <td colspan=2>
+        <b>Disable HTTP auth embedding {{user.is_admin }}</b> &nbsp;
+        {% if container.disable_http_basicauth_embedding %}
+        <input type="checkbox" name="disable_http_basicauth_embedding" checked disabled/>
+        {% else %}
+        <input type="checkbox" name="disable_http_basicauth_embedding" disabled/>
         {% endif %}
-        </div>
-
-
-
-      </div>
-
-      {% endif  %}
-
-
-
-
-
-
-
+      </td>
+    </tr>
+    {% if container.env_vars %}
+    <tr>
+      <td><b>Env vars</b></td>
+      <td><pre>{{container.env_vars}}</pre></td>
+    </tr>
+    {% endif %}
+    {% if container.user == request.user or user.is_staff %}
+    <tr>
+      <td><b>Actions</b></td>
+      <td>
+        <a href="?action=delete&uuid={{ container.uuid }}" onclick="return confirm('Are you sure you want to delete this container?');">Delete</a>
+        &nbsp;|&nbsp;
+        <a href="/edit_software?uuid={{ container.uuid }}">Edit</a>
+        &nbsp;|&nbsp;
+        <a href="?action=duplicate&uuid={{ container.uuid }}" onclick="return confirm('Duplicate this container?');">Duplicate</a>
+      </td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+{% else %}
+<div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px">
+  <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: {{container.color}} solid 10px; ">
+    <a href="/software/?uuid={{ container.uuid }}">{{ container.name }}</a>&nbsp;
+  </div>
+  <div style="padding:10px; height: 110px; vertical-align: middle; ">
+    {% if container.description %}
+    <div class="description-box" title="{{ container.description }}">
+    {{ container.description }}
+    </div>
+    {% else %}
+    <br/>
+    {% endif %}
+    <div class="image-version-box">
+      <b>Image:</b> <code>{{ container.image_name }}</code><br/>
+      <b>Tag:</b> &nbsp;<span class="badge badge-secondary" style="margin-right:3px">{{ container.image_tag }}</span>
+      {% if container.image_arch %}
+      <font style="font-size:0.9em">({{ container.image_arch }})</font>
+      {% endif %}
+    </div>
+  </div>
+  <div style="margin-bottom:18px; margin-top: 3px; text-align:center">
+    {% if not disable_play_button %}
+    <a href="/new_task?task_container_uuid={{ container.uuid }}&step=two" class="btn btn-light" style="border: #c0c0c0 1px solid">&nbsp;<i class="fa fa-play" style="color:green"></i></a>
+    {% endif %}
+  </div>
+</div>
+{% endif  %}

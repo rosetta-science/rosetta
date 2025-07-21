@@ -1,0 +1,87 @@
+
+{% if details %}
+{% if data.created %}
+<div class="alert alert-success" style="width:500px;">Storage created successfully.</div>
+{% endif %}
+<div style="float:left; width:500px; margin:10px; margin-bottom:20px">
+  <table class="dashboard" style="width:100%">
+    <tr>
+      <td><b>Name</b></td>
+      <td>{{ storage.name }}</td>
+    </tr>
+    <tr>
+      <td><b>Owner</b></td>
+      <td>{% if data.storage.user %}{{ data.storage.user }}{% else %}Platform{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Group</b></td>
+      <td>{{ data.storage.group }}</td>
+    </tr>
+    <tr>
+      <td><b>Type</b></td>
+      <td>{{ storage.type }}</td>
+    </tr>
+    <tr>
+      <td><b>Access mode</b></td>
+      <td>{{ storage.access_mode }}</td>
+    </tr>
+      <tr><td><b>Auth mode</b></td>
+      <td>{{ storage.auth_mode }}</td>
+    </tr>
+    <tr>
+      <td><b>Base path</b></td>
+      <td><code>{{ storage.base_path }}</code></td>
+    </tr>
+    <tr>
+      <td><b>Bind path</b></td>
+      <td><code>{{ storage.bind_path }}</code></td>
+    </tr>
+    <tr>
+      <td><b>Computing</b></td>
+      <td>{% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Read only</b></td>
+      <td>{% if storage.read_only %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Browsable</b></td>
+      <td>{% if storage.browsable %}Yes{% else %}No{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Conf</b></td><td><pre style="font-size:0.9em">{{ storage.conf_json }}</pre></td></tr>
+    {% if storage.user == data.user or data.user.is_staff %}
+    <tr>
+      <td><b>Actions</b></td>
+      <td>
+        <a href="/edit_storage/?uuid={{ storage.uuid }}">Edit</a>
+        &nbsp;|&nbsp;
+        <a href="/storage/?action=delete&uuid={{ storage.uuid }}" onclick="return confirm('Are you sure you want to delete this storage resource?');">Delete</a>
+        &nbsp;|&nbsp;
+        <a href="/storage/?action=duplicate&uuid={{ storage.uuid }}" onclick="return confirm('Duplicate this storage resource?');">Duplicate</a>
+      </td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+{% else %}
+<div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px;">
+  <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
+    {% if storage.computing %}
+      <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.name }}</a>
+      <br/><font size=-1>@{{ storage.computing.name }}</font>
+    {% else %}
+      <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.name }}</a>
+    {% endif %}
+  </div>
+  <div style="padding:10px;">
+    <div class="image-version-box">
+      <b>Type:</b> {{ storage.type }}<br/>
+      <b>Base path:</b> <code>{{ storage.base_path }}</code><br/>
+      <b>Bind path:</b> <code>{{ storage.bind_path }}</code><br/>
+      <b>Read only:</b> {% if storage.read_only %}Yes{% else %}No{% endif %}<br/>
+      <b>Browsable:</b> {% if storage.browsable %}Yes{% else %}No{% endif %}<br/>
+    </div>
+  </div>
+</div>
+{% endif %} 

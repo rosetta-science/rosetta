@@ -1,0 +1,118 @@
+
+{% if details %}
+{% if data.created %}
+<div class="alert alert-success" style="width:500px;">Computing resource created successfully.</div>
+{% endif %}
+
+<div style="float:left; width:500px; margin:10px; margin-bottom:20px">
+  <table class="dashboard" style="width:100%">
+    <tr>
+      <td><b>Name</b></td>
+      <td>{{ computing.name }}</td>
+    </tr>
+    <tr>
+      <td><b>Description</b></td>
+      <td>{{ computing.description }}</td>
+    </tr>
+    <tr>
+      <td><b>Owner</b></td>
+      <td>{% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Group</b></td>
+      <td>{{ computing.group }}</td>
+    </tr>
+    <tr>
+      <td><b>Type</b></td>
+      <td>{{ computing.type }}</td>
+    </tr>
+    <tr>
+      <td><b>Access mode</b></td>
+      <td>{{ computing.access_mode }}</td>
+    </tr>
+    <tr>
+      <td><b>Auth mode</b></td>
+      <td>{{ computing.auth_mode }}</td>
+    </tr>
+    <tr>
+      <td><b>WMS</b></td>
+      <td>{{ computing.wms }}</td>
+    </tr>
+    <tr>
+      <td><b>Arch</b></td>
+      <td>{{ computing.arch }}</td>
+    </tr>
+    <tr>
+      <td><b>Container engines</b></td>
+      <td>{{ computing.container_engines_json }}</td>
+    </tr>
+    <tr>
+      <td><b>Supported archs</b></td>
+      <td>{{ computing.supported_archs_json }}</td>
+    </tr>
+    <tr>
+      <td><b>Emulated archs</b></td>
+      <td>{{ computing.emulated_archs_json }}</td>
+    </tr>
+    <tr>
+      <td><b>Storages</b></td>
+      <td>
+        {% if not computing.storages.all %}
+          none
+        {% else %}
+          {% for storage in computing.storages.all %}
+            {% if storage.bind_path %}
+              {{ storage.name }} @ <code>{{ storage.bind_path }}</code><br/>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td><b>Conf</b></td>
+      <td><pre style="font-size:0.9em">{{ computing.conf_json }}</pre></td>
+    </tr>
+    {% if computing.user == data.user or data.user.is_staff %}
+    <tr>
+      <td><b>Actions</b></td>
+      <td>
+        <a href="/edit_computing/?uuid={{ computing.uuid }}">Edit</a>
+        &nbsp;|&nbsp;
+        <a href="/computing/?action=delete&uuid={{ computing.uuid }}" onclick="return confirm('Are you sure you want to delete this computing resource?');">Delete</a>
+        &nbsp;|&nbsp;
+        <a href="/computing/?action=duplicate&uuid={{ computing.uuid }}" onclick="return confirm('Duplicate this computing resource?');">Duplicate</a>
+      </td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+{% else %}
+<div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px;">
+  <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
+    <a href="/computing/?uuid={{ computing.uuid }}">{{ computing.name }}</a>
+  </div>
+  <div style="padding:10px;">
+    {% if computing.description %}
+      <div class="description-box" title="{{ computing.description }}">
+        {{ computing.description }}
+      </div>
+    {% else %}
+      <br/>
+    {% endif %}
+    <div class="image-version-box">
+      <b>Type:</b> {{ computing.type }} {% if computing.arch %}({{ computing.arch }}) {% endif %}<br/>
+      <b>Storages:</b>
+      {% if not computing.storages.all %}
+        None
+      {% else %}
+        <br/>
+        {% for storage in computing.storages.all %}
+          {% if storage.bind_path %}
+            &nbsp; {{ storage.name }} @ <code>{{ storage.bind_path }}</code><br/>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

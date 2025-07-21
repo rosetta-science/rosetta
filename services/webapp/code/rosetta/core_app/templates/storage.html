@@ -7,15 +7,59 @@
   <div class="dashboard" style="height:100%;">
     <div class="span8 offset2" style="height:100%;">
 
-
+      {% if data.storage %}
+      <h1><a href="/storage/?manage=True">Storage resources</a> <span style="font-size:18px"> / <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a></span></h1>
+      {% else %}
       <h1>Storage resources</h1>
+      {% endif %}
+      <br/>
 
-      <hr/>
+      {% if data.manage %}
 
+      <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="/storage/">Browse</a></div>
+      <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">Manage</div>
+      <hr style="margin-top:0;">
 
+      {% if data.storage %}
+
+        {% include "components/storage_component.html" with storage=data.storage details=True %}
+
+      {% else %}
+      <div class="form-filter" style="margin-bottom:20px">
+        <form action="" method="POST">
+          <input type="text" class="form-control" id="filter_text" name="filter_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.filter_text}}" autofocus>
+          <select class="form-control" id="filter_owner" name="filter_owner" style="width:120px; margin:0; display:inline">
+            <option value="all" {% if data.filter_owner == 'all' %}selected{% endif %}>All</option>
+            <option value="platform" {% if data.filter_owner == 'platform' %}selected{% endif %}>Platform</option>
+            <option value="user" {% if data.filter_owner == 'user' %}selected{% endif %}>Personal</option>
+            {% for group in user.groups.all %}
+              {% with "group:"|add:group.name as group_identifier %}
+              <option value="group:{{ group.name }}" {% if data.filter_owner == group_identifier %}selected{% endif %}>{{ group.name }}</option>
+              {% endwith %}
+            {% endfor %}
+          </select>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary">Go</button>
+          &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/add_storage/">Add new...</a>
+        </form>
+      </div>
+
+      <div class="row" style="padding:5px">
+        {% for storage in data.storages %}
+          {% include "components/storage_component.html" with storage=storage %}
+        {% empty %}
+          <p>No storage resources found.</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% else %}
+
+      <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">Browse</div>
+      <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="/storage/?manage=True">Manage</a></div>
+      <hr style="margin-top:0;">
       <iframe src="/static/RichFilemanager/index.html" style="overflow:hidden;height:100%;width:100%; border: 1px solid #c0c0c0" height="100%" width="100%"></iframe>
-
-
+      {% endif %}
     </div>
   </div>
 </div>

@@ -12,10 +12,11 @@ from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotFound
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.shortcuts import redirect
 from django.db.models import Q
-from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page
+from django.core.exceptions import FieldError
+from .models import Profile, LoginToken, Task, TaskStatuses, Container, Computing, KeyPair, Page, Storage
 from .utils import send_email, format_exception, timezonize, os_shell, booleanize, get_rosetta_tasks_tunnel_host
 from .utils import get_rosetta_tasks_proxy_host, random_username, setup_tunnel_and_proxy, finalize_user_creation
 from .utils import sanitize_container_env_vars, get_or_create_container_from_repository
@@ -29,6 +30,143 @@ logger = logging.getLogger(__name__)
 
 # Task cache
 _task_cache = {}
+
+
+#====================
+# Support functions
+#====================
+
+def get_objects(entity, user):
+    if user.is_staff:
+        objects = entity.objects.all()
+    else:
+        objects = entity.objects.filter(Q(user=user) | Q(group__user=user) | Q(group=None))
+    return objects
+
+def filter_objects(entity, user, text=None, owner='all'):
+
+    objects = get_objects(entity, user)
+
+    if owner == 'all':
+        pass
+    elif owner == 'platform':
+        objects = objects.filter(group=None)
+    elif owner == 'user':
+        objects = objects.filter(user=user)
+    elif owner.startswith('group:'):
+        # Get the group
+        group_name = owner[6:]
+        group = Group.objects.get(name=group_name)
+        if group not in user.groups.all():
+            raise PermissionError('Not part of the requested group')
+        objects = objects.filter(group=group)
+
+    if text:
+        try:
+            # Try filtering with description
+            objects = objects.filter(
+                Q(name__icontains=text) |
+                Q(description__icontains=text)
+            )
+        except FieldError:
+            # Fall back on filtering only for the name
+            objects = objects.filter(
+                Q(name__icontains=text)
+            )
+    return objects
+
+def get_object(entity, user, uuid):
+    object = entity.objects.get(uuid=uuid)
+    if  user.is_staff:
+        return object
+    if object.user == user or object.group is None or object in object.group.user_set.all():
+        return object
+    else:
+        raise PermissionError('Cannot get as not staff, user or part of same group')
+
+def get_object_for_edit(entity, user, uuid):
+    object = entity.objects.get(uuid=uuid)
+    if  user.is_staff:
+        return object
+    if object.user == user:
+        return object
+    else:
+        raise PermissionError('Cannot get as not staff, user or part of same group')
+
+def get_group(user, id):
+    retrieved_group = Group.objects.get(id=id)
+    if not user.is_staff and retrieved_group not in user.groups.all():
+        raise PermissionError('Not staff not part of the requested group')
+    return retrieved_group
+
+def get_user(user, id):
+    retrieved_user = User.objects.get(id=id)
+    if not user.is_staff and retrieved_user != user:
+        raise PermissionError('Not staff nor the same user')
+    return retrieved_user
+
+
+
+# Container family support class
+class ContainerFamily(object):
+
+    def __init__(self, id, name, registry, image_name):
+        self.id = id
+        self.name = name
+        self.registry = registry
+        self.image_name = image_name
+        self.description = None
+        self.members = []
+        self.all_archs = []
+        self.container_by_tags_by_arch = {}
+
+    def add(self, container):
+        self.members.append(container)
+
+        container_image_arch = container.image_arch
+
+        # Handle None arch
+        if container_image_arch is None:
+            container_image_arch = ''
+
+        if not self.description:
+            self.description = container.description
+
+        if not container_image_arch in self.all_archs:
+            self.all_archs.append(container_image_arch)
+
+        if not container_image_arch in self.container_by_tags_by_arch:
+            self.container_by_tags_by_arch[container_image_arch]={}
+        self.container_by_tags_by_arch[container_image_arch][container.image_tag] = container
+
+
+    def finalize(self, desc=True):
+
+        # Order versions
+        for arch in self.container_by_tags_by_arch:
+            latest = self.container_by_tags_by_arch[arch].pop('latest', None)
+            container_by_tags_ordered = dict(sorted(self.container_by_tags_by_arch[arch].items(), reverse=desc))
+            if latest:
+                if desc:
+                    self.container_by_tags_by_arch[arch] = {'latest': latest}
+                    self.container_by_tags_by_arch[arch].update(container_by_tags_ordered)
+                else:
+                    self.container_by_tags_by_arch[arch] = container_by_tags_ordered
+                    self.container_by_tags_by_arch[arch].update({'latest': latest})
+            else:
+                self.container_by_tags_by_arch[arch] = container_by_tags_ordered
+
+        # Order archs
+        self.container_by_tags_by_arch = dict(sorted(self.container_by_tags_by_arch.items(), reverse=False))
+
+
+    @ property
+    def color(self):
+        try:
+            return self.members[0].color
+        except IndexError:
+            return '#000000'
+
 
 
 #====================
@@ -749,8 +887,6 @@ def task_log(request):
 
 
 
-
-
 #=========================
 #  Software containers
 #=========================
@@ -758,325 +894,481 @@ def task_log(request):
 @private_view
 def software(request):
 
-    # Init data
-    data={}
-    data['user']    = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-
-    # Get action if any
-    container_uuid = request.GET.get('container_uuid', None)
-    container_family_id = request.GET.get('container_family_id', None)
+    # Get data
+    uuid = request.GET.get('uuid', None)
+    family_id = request.GET.get('container_family_id', None)
     action = request.GET.get('action', None)
+    filter_text = request.POST.get('filter_text', '')
+    filter_owner = request.POST.get('filter_owner', 'all')
     details = booleanize(request.GET.get('details', False))
 
-
-    # Get filter/search if any
-    search_text   = request.POST.get('search_text', '')
-    search_owner  = request.POST.get('search_owner', 'All')
-
-    # Set back to page data
-    data['search_owner'] = search_owner
-    data['search_text']  = search_text
+    # Set data
+    data = {}
+    data['user'] = request.user
+    data['filter_text'] = filter_text
+    data['filter_owner'] = filter_owner
     data['details'] = details
+
+    # Get the container if a specific uuid is given, or get them all, possibly filtering
+    if uuid:
+        container = get_object(Container, user=request.user, uuid=uuid)
+        data['container'] = container
+    else:
+        containers = filter_objects(Container, user=request.user, text=filter_text, owner=filter_owner)
+        # Handle operating on a container family: decode data from the family id and kepe only these containers
+        if family_id:
+            container_name, container_registry, container_image_name = base64.b64decode(family_id.encode('utf8')).decode('utf8').split('\t')
+            containers = containers.filter(name=container_name, registry=container_registry, image_name=container_image_name)
+        data['containers'] = containers
 
     # Are we using this page as first step of a new task?
     data['mode'] = request.GET.get('mode', None)
     if not data['mode']:
         data['mode'] = request.POST.get('mode', None)
 
+    # Handle delete action
+    if action == 'delete':
+        container = get_object_for_edit(Container, request.user, uuid)
+        container.delete()
+        return redirect('/software/')
 
-    # Do we have to operate on a specific container, or family of containers?
-    if container_uuid:
+    # Handle duplicate action
+    if action == 'duplicate':
+        if not request.user.is_staff:
+            if container.user != request.user:
+                raise ErrorMessage('Can duplicate only software containers owned by the user')
+        new_container = Container(
+            user=container.user,
+            name='{} (copy)'.format(container.name),
+            description=container.description,
+            registry=container.registry,
+            image_name=container.image_name,
+            image_tag=container.image_tag,
+            image_arch=container.image_arch,
+            image_os=container.image_os,
+            image_digest=container.image_digest,
+            interface_port=container.interface_port,
+            interface_protocol=container.interface_protocol,
+            interface_transport=container.interface_transport,
+            supports_custom_interface_port=container.supports_custom_interface_port,
+            supports_interface_auth=container.supports_interface_auth,
+            interface_auth_user=container.interface_auth_user,
+            disable_http_basicauth_embedding=container.disable_http_basicauth_embedding,
+            env_vars=container.env_vars,
+            group=container.group
+        )
+        new_container.save()
+        return redirect('/edit_software/?uuid={}&created=True'.format(new_container.uuid))
 
-        try:
+    if 'containers' in data:
 
-            # Get the container (raises if none available including no permission)
-            try:
-                container = Container.objects.get(uuid=container_uuid)
-            except Container.DoesNotExist:
-                raise ErrorMessage('Container does not exists or no access rights')
-            if container.user and container.user != request.user:
-                raise ErrorMessage('Container does not exists or no access rights')
-            data['container'] = container
-
-            # Container actions
-            if action and action=='delete':
-
-                # Delete
-                container.delete()
-
-                # Redirect
-                return HttpResponseRedirect('/software')
-
-        except Exception as e:
-            data['error'] = 'Error in getting the software container or performing the required action'
-            logger.error('Error in getting container with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
-            return render(request, 'error.html', {'data': data})
-
-    else:
-        # Do we have to operate on a container family?
-        if container_family_id:
-
-            # Get back name, registry and image from contsainer url
-            container_name, container_registry, container_image_name = base64.b64decode(container_family_id.encode('utf8')).decode('utf8').split('\t')
-
-            # get containers from the DB
-            user_containers = Container.objects.filter(user=request.user, name=container_name, registry=container_registry, image_name=container_image_name)
-            platform_containers = Container.objects.filter(user=None, name=container_name, registry=container_registry, image_name=container_image_name)
-
-        else:
-
-            # Get containers (fitered by search term, or all)
-            if search_text:
-                search_query=(Q(name__icontains=search_text) | Q(description__icontains=search_text) | Q(image_name__icontains=search_text))
-                user_containers = Container.objects.filter(search_query, user=request.user)
-                platform_containers = Container.objects.filter(search_query, user=None)
-            else:
-                user_containers = Container.objects.filter(user=request.user)
-                platform_containers = Container.objects.filter(user=None)
-
-
-        # Ok, filter by owner
-        if search_owner != 'All':
-            if search_owner == 'User':
-                platform_containers =[]
-            if search_owner == 'Platform':
-                user_containers = []
-
-        # Create all container list
-        data['containers'] = list(user_containers) + list(platform_containers)
-
-        # Merge containers with the same name, registry and image name
+        # Init container families 
         data['container_families'] = {}
 
-        # Container family support class
-        class ContainerFamily(object):
-
-            def __init__(self, id, name, registry, image_name):
-                self.id = id
-                self.name = name
-                self.registry = registry
-                self.image_name = image_name
-                self.description = None
-                self.members = []
-                self.all_archs = []
-                self.container_by_tags_by_arch = {}
-
-            def add(self, container):
-                self.members.append(container)
-
-                if not self.description:
-                    self.description = container.description
-
-                if not container.image_arch in self.all_archs:
-                    self.all_archs.append(container.image_arch)
-
-                if not container.image_arch in self.container_by_tags_by_arch:
-                    self.container_by_tags_by_arch[container.image_arch]={}
-                self.container_by_tags_by_arch[container.image_arch][container.image_tag] = container
-
-
-            def finalize(self, desc=True):
-
-                # Order versions
-                for arch in self.container_by_tags_by_arch:
-                    latest = self.container_by_tags_by_arch[arch].pop('latest', None)
-                    container_by_tags_ordered = dict(sorted(self.container_by_tags_by_arch[arch].items(), reverse=desc))
-                    if latest:
-                        if desc:
-                            self.container_by_tags_by_arch[arch] = {'latest': latest}
-                            self.container_by_tags_by_arch[arch].update(container_by_tags_ordered)
-                        else:
-                            self.container_by_tags_by_arch[arch] = container_by_tags_ordered
-                            self.container_by_tags_by_arch[arch].update({'latest': latest})
-                    else:
-                        self.container_by_tags_by_arch[arch] = container_by_tags_ordered
-
-                # Order archs
-                self.container_by_tags_by_arch = dict(sorted(self.container_by_tags_by_arch.items(), reverse=False))
-
-
-            @ property
-            def color(self):
-                try:
-                    return self.members[0].color
-                except IndexError:
-                    return '#000000'
-
-        # Populate container families
+        # Populate container families by merging containers with the same name, registry and image name
         for container in data['containers']:
             if container.family_id not in data['container_families']:
                 data['container_families'][container.family_id] = ContainerFamily(container.family_id, container.name, container.registry, container.image_name)
             data['container_families'][container.family_id].add(container)
 
         # Finalize the families
-        for container_family_id in data['container_families']:
-            data['container_families'][container_family_id].finalize()
-
+        for family_id in data['container_families']:
+            data['container_families'][family_id].finalize()
 
     return render(request, 'software.html', {'data': data})
 
 
-
-#=========================
-#  Add software container
-#=========================
-
 @private_view
 def add_software(request):
 
-    # Init data
+    # Get data
+    new_container_from = request.GET.get('new_container_from', 'registry')
+
+    # Set data
     data = {}
     data['user'] = request.user
+    data['new_container_from'] = new_container_from # To handle the UI switch 
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
 
-    # Loop back the new container mode in the page to handle the switch
-    data['new_container_from'] = request.GET.get('new_container_from', 'registry')
+    if request.method == 'POST':
 
-    # Container name if setting up a new container
-    container_name = request.POST.get('container_name', None)
-
-    if container_name:
-
-        # How do we have to add this new container?
         new_container_from = request.POST.get('new_container_from', None)
 
-        if new_container_from == 'registry':
-
-            # Container description
+        if new_container_from == 'repository':
+            container_name = request.POST.get('container_name', None)
             container_description = request.POST.get('container_description', None)
+            repository_url = request.POST.get('repository_url', None)
+            repository_tag = request.POST.get('repository_tag', 'HEAD')
+            return HttpResponseRedirect('/import_repository/?repository_url={}&repository_tag={}&container_name={}&container_description={}'.format(repository_url,repository_tag,container_name,container_description))
 
-            # Container registry
-            container_registry = request.POST.get('container_registry', None)
+        elif new_container_from == 'registry':
 
-            # Container image name
-            container_image_name = request.POST.get('container_image_name',None)
+            container = Container()
+            container.name = request.POST.get('container_name', None)
+            container.description = request.POST.get('container_description', None)
+            container.registry = request.POST.get('container_registry', None)
+            container.image_name = request.POST.get('container_image_name',None)
+            container.image_tag = request.POST.get('container_image_tag', None)
+            container.image_arch = request.POST.get('container_image_arch', None)
+            container.image_os = request.POST.get('container_image_os', None)
+            container.image_digest = request.POST.get('container_image_digest', None)
+            container.interface_transport = request.POST.get('container_interface_transport')
 
-            # Container image tag
-            container_image_tag = request.POST.get('container_image_tag', None)
-
-            # Container image architecture
-            container_image_arch = request.POST.get('container_image_arch', None)
-
-            # Container image OS
-            container_image_os = request.POST.get('container_image_os', None)
-
-            # Container image digest
-            container_image_digest = request.POST.get('container_image_digest', None)
-
-            # Container interface port
+            # Set fields requiring validation
             container_interface_port = request.POST.get('container_interface_port', None)
             if container_interface_port:
                 try:
-                    container_interface_port = int(container_interface_port)
+                    container.interface_port = int(container_interface_port)
                 except:
-                    raise ErrorMessage('Invalid container port "{}"')
+                    raise ErrorMessage('Invalid port "{}"')
             else:
-                container_interface_port = None
+                container.interface_port = None
 
-            # Container interface protocol
-            container_interface_protocol = request.POST.get('container_interface_protocol', None)
+            container.interface_protocol = request.POST.get('container_interface_protocol', None)
+            if container.interface_protocol and not container.interface_protocol in ['http','https']:
+                if not request.user.is_staff:
+                    raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
 
-            if container_interface_protocol and not container_interface_protocol in ['http','https']:
-                raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
-
-            # Container interface transport
-            container_interface_transport = request.POST.get('container_interface_transport')
-
-            # Capabilities
+            # Set booleans
             container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
             if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':
-                container_supports_custom_interface_port = True
+                container.supports_custom_interface_port = True
             else:
-                container_supports_custom_interface_port = False
+                container.supports_custom_interface_port = False
 
             container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
             if container_supports_interface_auth and container_supports_interface_auth == 'True':
-                container_supports_interface_auth = True
+                container.supports_interface_auth = True
             else:
-                container_supports_interface_auth = False
+                container.supports_interface_auth = False
 
             container_disable_http_basicauth_embedding = request.POST.get('container_disable_http_basicauth_embedding', None)
             if container_disable_http_basicauth_embedding and container_disable_http_basicauth_embedding == 'True':
-                container_disable_http_basicauth_embedding = True
+                container.disable_http_basicauth_embedding = True
             else:
-                container_disable_http_basicauth_embedding = False
+                container.disable_http_basicauth_embedding = False
 
-            # Environment variables
+            # Set environment variables
             container_env_vars = request.POST.get('container_env_vars', None)
             if container_env_vars:
                 container_env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
 
-            # Log
-            #logger.debug('Creating new container object with image="{}", type="{}", registry="{}", ports="{}"'.format(container_image, container_type, container_registry, container_ports))
+            # Set the group
+            group_id = request.POST.get('group_id', None)
+            if group_id:
+                container.group = get_group(request.user, id=group_id)
+            else:
+                if request.user.is_staff:
+                    container.group = None
+                else:
+                    raise PermissionError('Only admins can create platform containers')
 
-            # Create
-            Container.objects.create(user         = request.user,
-                                     name         = container_name,
-                                     description  = container_description,
-                                     registry     = container_registry,
-                                     image_name   = container_image_name,
-                                     image_tag    = container_image_tag,
-                                     image_arch   = container_image_arch,
-                                     image_os     = container_image_os,
-                                     image_digest = container_image_digest,
-                                     interface_port      = container_interface_port,
-                                     interface_protocol  = container_interface_protocol,
-                                     interface_transport = container_interface_transport,
-                                     supports_custom_interface_port = container_supports_custom_interface_port,
-                                     supports_interface_auth = container_supports_interface_auth,
-                                     disable_http_basicauth_embedding = container_disable_http_basicauth_embedding,
-                                     env_vars = container_env_vars)
-
-        elif new_container_from == 'repository':
-
-            container_description = request.POST.get('container_description', None)
-
-            repository_url = request.POST.get('repository_url', None)
-            repository_tag = request.POST.get('repository_tag', 'HEAD')
-
-            return HttpResponseRedirect('/import_repository/?repository_url={}&repository_tag={}&container_name={}&container_description={}'.format(repository_url,repository_tag,container_name,container_description))
-
-            # The return type here is a container, not created
-            #get_or_create_container_from_repository(request.user, repository_url, repository_tag=repository_tag, container_name=container_name, container_description=container_description)
+            # Save & redirect
+            container.save()
+            return redirect('/edit_software/?uuid={}&created=True'.format(container.uuid))
 
         else:
             raise Exception('Unknown new container mode "{}"'.format(new_container_from))
-        # Set added switch
-        data['added'] = True
 
     return render(request, 'add_software.html', {'data': data})
 
+
+@private_view
+def edit_software(request):
+
+    # Get data
+    created = request.GET.get('created', False)
+    saved = request.GET.get('saved', False)
+    container_uuid = request.GET.get('uuid', None)
+    container = get_object_for_edit(Container, user=request.user, uuid=container_uuid)
+
+    # Set data
+    data = {}
+    data['user'] = request.user
+    data['created'] = created
+    data['saved'] = saved
+    data['container'] = container
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
+
+    if request.method == 'POST':
+
+        container.name = request.POST.get('container_name', None)
+        container.description = request.POST.get('container_description', None)
+        container.registry = request.POST.get('container_registry', None)
+        container.image_name = request.POST.get('container_image_name',None)
+        container.image_tag = request.POST.get('container_image_tag', None)
+        container.image_arch = request.POST.get('container_image_arch', None)
+        container.image_os = request.POST.get('container_image_os', None)
+        container.image_digest = request.POST.get('container_image_digest', None)
+        container.interface_transport = request.POST.get('container_interface_transport')
+
+        # Set fields requiring validation
+        container_interface_port = request.POST.get('container_interface_port', None)
+        if container_interface_port:
+            try:
+                container.interface_port = int(container_interface_port)
+            except:
+                raise ErrorMessage('Invalid port "{}"')
+        else:
+            container.interface_port = None
+
+        container.interface_protocol = request.POST.get('container_interface_protocol', None)
+        if container.interface_protocol and not container.interface_protocol in ['http','https']:
+            if not request.user.is_staff:
+                raise ErrorMessage('Sorry, only power users can add custom software containers with interface protocols other than \'http\' or \'https\'.')
+
+        # Set booleans
+        container_supports_custom_interface_port = request.POST.get('container_supports_custom_interface_port', None)
+        if container_supports_custom_interface_port and container_supports_custom_interface_port == 'True':
+            container.supports_custom_interface_port = True
+        else:
+            container.supports_custom_interface_port = False
+
+        container_supports_interface_auth = request.POST.get('container_supports_interface_auth', None)
+        if container_supports_interface_auth and container_supports_interface_auth == 'True':
+            container.supports_interface_auth = True
+        else:
+            container.supports_interface_auth = False
+
+        container_disable_http_basicauth_embedding = request.POST.get('container_disable_http_basicauth_embedding', None)
+        if container_disable_http_basicauth_embedding and container_disable_http_basicauth_embedding == 'True':
+            container.disable_http_basicauth_embedding = True
+        else:
+            container.disable_http_basicauth_embedding = False
+
+        # Set environment variables
+        container_env_vars = request.POST.get('container_env_vars', None)
+        if container_env_vars:
+            container_env_vars = sanitize_container_env_vars(json.loads(container_env_vars))
+
+        # Set the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            container.group = get_group(request.user, id=group_id)
+        else:
+            if request.user.is_staff:
+                container.group = None
+            else:
+                raise PermissionError('Only admins can create platform containers')
+
+        # Save & redirect
+        container.save()
+        return redirect('/edit_software/?uuid={}&saved=True'.format(container.uuid))
+
+    return render(request, 'edit_software.html', {'data': data})
 
 
 #=========================
 #  Computing resources
 #=========================
 
+
 @private_view
 def computing(request):
 
-    # Init data
-    data={}
-    data['user'] = request.user
-    data['name'] = request.POST.get('name',None)
+    # Get data
+    user = request.user
+    uuid = request.GET.get('uuid', None)
+    action = request.GET.get('action', None)
+    filter_text = request.POST.get('filter_text', '')
+    filter_owner = request.POST.get('filter_owner', 'all')
 
-    # Get action/details if any
-    uuid    = request.GET.get('uuid', None)
-    action  = request.GET.get('action', None)
-    details = booleanize(request.GET.get('details', None))
-    computing_uuid = request.GET.get('uuid', None)
-    data['details'] = details
-    data['action'] = action
+    # Set in the page
+    data = {}
+    data['user'] = user
+    data['filter_text'] = filter_text
+    data['filter_owner'] = filter_owner
 
-    if details and computing_uuid:
-        try:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid, group__user=request.user)
-        except Computing.DoesNotExist:
-            data['computing'] = Computing.objects.get(uuid=computing_uuid, group=None)
+    # Get the computing if a specific uuid is given, or get them all, possibly filtering
+    if uuid:
+        computing = get_object(Computing, user=user, uuid=uuid)
+        data['computing'] = computing
     else:
-        data['computings'] = list(Computing.objects.filter(group=None)) + list(Computing.objects.filter(group__user=request.user))
+        computings = filter_objects(Computing, user=user, text=filter_text, owner=filter_owner)
+        data['computings'] = computings
+
+    # Handle delete action
+    if action == 'delete':
+        computing = get_object_for_edit(Computing, user, uuid)
+        computing.delete()
+        return redirect('/computing/')
+
+    # Handle duplicate action
+    if action == 'duplicate':
+        if not user.is_staff:
+            if computing.user != user:
+                raise ErrorMessage('Can duplicate only computing resources owned by the user')
+        new_computing = Computing(
+            name='{} (copy)'.format(computing.name),
+            description=computing.description,
+            type=computing.type,
+            arch=computing.arch,
+            access_mode=computing.access_mode,
+            auth_mode=computing.auth_mode,
+            wms=computing.wms,
+            container_engines=computing.container_engines,
+            supported_archs=computing.supported_archs,
+            emulated_archs=computing.emulated_archs,
+            conf=computing.conf,
+            group=computing.group
+        )
+        new_computing.save()
+        return redirect('/edit_computing/?uuid={}&created=True'.format(new_computing.uuid))
 
     return render(request, 'computing.html', {'data': data})
+
+
+@private_view
+def add_computing(request):
+
+    # Set data
+    data = {}
+    data['user'] = request.user
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
+
+    if request.method == 'POST':
+        computing = Computing()
+        computing.name = request.POST.get('name', None)
+        computing.description = request.POST.get('description', None)
+        computing.type = request.POST.get('type', None)
+        computing.arch = request.POST.get('arch', None)
+        computing.access_mode = request.POST.get('access_mode', None)
+        computing.auth_mode = request.POST.get('auth_mode', None)
+        computing.wms = request.POST.get('wms', None)
+
+        # Set the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            computing.user = get_user(request.user, id=user_id)
+        else:
+            computing.user = None
+
+        # Set the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            computing.group = get_group(request.user, id=group_id)
+        else:
+            if request.user.is_staff:
+                computing.group = None
+
+        # Set json fields
+        container_engines = request.POST.get('container_engines', None)
+        if container_engines:
+            computing.container_engines = json.loads(container_engines)
+        else:
+            computing.container_engines = None
+
+        supported_archs = request.POST.get('supported_archs', None)
+        if supported_archs:
+            computing.supported_archs = json.loads(supported_archs)
+        else:
+            computing.supported_archs = None
+
+        emulated_archs = request.POST.get('emulated_archs', None)
+        if emulated_archs:
+            computing.emulated_archs = json.loads(emulated_archs)
+        else:
+            computing.emulated_archs = None
+
+        # Set the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            computing.conf = json.loads(conf)
+        else:
+            computing.conf = None
+
+        # Save & redirect
+        computing.save()
+        return redirect('/edit_computing/?uuid={}&created=True'.format(computing.uuid))
+
+    return render(request, 'add_computing.html', {'data': data})
+
+
+
+@private_view
+def edit_computing(request):
+
+    # Get data
+    user = request.user
+    created = request.GET.get('created', False)
+    saved = request.GET.get('saved', False)
+    computing_uuid = request.GET.get('uuid', None)
+    computing = get_object_for_edit(Computing, user=user, uuid=computing_uuid)
+
+    # Set in the page
+    data = {}
+    data['user'] = user
+    data['created'] = created
+    data['saved'] = saved
+    data['computing'] = computing
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
+
+    if request.method == 'POST':
+        computing.name = request.POST.get('name', computing.name)
+        computing.description = request.POST.get('description', computing.description)
+        computing.type = request.POST.get('type', computing.type)
+        computing.arch = request.POST.get('arch', computing.arch)
+        computing.access_mode = request.POST.get('access_mode', computing.access_mode)
+        computing.auth_mode = request.POST.get('auth_mode', computing.auth_mode)
+        computing.wms = request.POST.get('wms', computing.wms)
+
+        # Update the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            computing.user = get_user(request.user, id=user_id)
+        else:
+            computing.user = None
+
+        # Update the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            computing.group = get_group(request.user, id=group_id)
+        else:
+            computing.group = None
+
+        # Set json fields
+        container_engines = request.POST.get('container_engines', None)
+        if container_engines:
+            computing.container_engines = json.loads(container_engines)
+        else:
+            computing.container_engines = None
+
+        supported_archs = request.POST.get('supported_archs', None)
+        if supported_archs:
+            computing.supported_archs = json.loads(supported_archs)
+        else:
+            computing.supported_archs = None
+
+        emulated_archs = request.POST.get('emulated_archs', None)
+        if emulated_archs:
+            computing.emulated_archs = json.loads(emulated_archs)
+        else:
+            computing.emulated_archs = None
+
+        # Update the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            computing.conf = json.loads(conf)
+        else:
+            computing.conf = None
+
+        # Save & redirect
+        computing.save()
+        return redirect('/edit_computing/?uuid={}&saved=True'.format(computing.uuid))
+
+    return render(request, 'edit_computing.html', {'data': data})
 
 
 #=========================
@@ -1085,13 +1377,190 @@ def computing(request):
 @private_view
 def storage(request):
 
-    # Set data & render
+    # Get data
+    manage  = request.GET.get('manage', False) # Mainly a UI switch, actually
+    uuid = request.GET.get('uuid', None)
+    action = request.GET.get('action', None)
+    filter_text = request.POST.get('filter_text', '')
+    filter_owner = request.POST.get('filter_owner', 'all')
+
+    # Set in the page
     data = {}
     data['user'] = request.user
+    data['manage'] = manage
+    data['filter_text'] = filter_text
+    data['filter_owner'] = filter_owner
+
+    # Get the storage if a specific uuid is given, or get them all, possibly filtering
+    if uuid:
+        storage = get_object(Storage, user=request.user, uuid=uuid)
+        data['storage'] = storage
+    else:
+        storages = filter_objects(Storage, user=request.user, text=filter_text, owner=filter_owner)
+        data['storages'] = storages
+
+    # Handle delete action
+    if action == 'delete':
+        storage = get_object_for_edit(Storage, request.user, uuid)
+        storage.delete()
+        return redirect('/storage/?manage=True')
+
+    # Handle duplicate action
+    if action == 'duplicate':
+        if not request.user.is_staff:
+            if storage.user != request.user:
+                raise ErrorMessage('Can duplicate only storages owned by the user')
+        new_storage = Storage(
+            name='{} (copy)'.format(storage.name),
+            type=storage.type,
+            access_mode=storage.access_mode,
+            auth_mode=storage.auth_mode,
+            base_path=storage.base_path,
+            bind_path=storage.bind_path,
+            read_only=storage.read_only,
+            browsable=storage.browsable,
+            group=storage.group,
+            user=request.user, # This always changes, set to the user who duplicates
+            computing=storage.computing,
+            access_through_computing=storage.access_through_computing,
+            conf=storage.conf
+        )
+        new_storage.save()
+        return redirect('/edit_storage/?uuid={}&created=True'.format(new_storage.uuid))
 
     return render(request, 'storage.html', {'data': data})
 
 
+@private_view
+def add_storage(request):
+
+    # Set data
+    data = {}
+    data['user'] = request.user
+    if request.user.is_staff:
+        data['computings'] = Computing.objects.all()
+    else:
+        data['computings'] = Computing.objects.filter(user=request.user)
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
+
+    if request.method == 'POST':
+        storage = Storage()
+        storage.name = request.POST.get('name', None)
+        storage.type = request.POST.get('type', None)
+        storage.access_mode = request.POST.get('access_mode', None)
+        storage.auth_mode = request.POST.get('auth_mode', None)
+        storage.base_path = request.POST.get('base_path', None)
+        storage.bind_path = request.POST.get('bind_path', None)
+        storage.read_only = bool(request.POST.get('read_only', False))
+        storage.browsable = bool(request.POST.get('browsable', False))
+
+        # Set the computing resource
+        computing_uuid = request.POST.get('computing_uuid', None)
+        if computing_uuid:
+            storage.computing = get_object(Computing, user=request.user, uuid=computing_uuid)
+        else:
+            storage.computing = None
+
+        # Set the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            storage.user = get_user(request.user, id=user_id)
+        else:
+            storage.user = None
+
+        # Set the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            storage.group = get_group(request.user, id=group_id)
+        else:
+            if request.user.is_staff:
+                storage.group = None
+
+        # Set the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            storage.conf = json.loads(conf)
+        else:
+            storage.conf = None
+
+        # Save & redirect
+        storage.save()
+        return redirect('/edit_storage/?uuid={}&created=True'.format(storage.uuid))
+
+    return render(request, 'add_storage.html', {'data': data})
+
+
+@private_view
+def edit_storage(request):
+
+    # Get data
+    created = request.GET.get('created', False)
+    saved = request.GET.get('saved', False)
+    storage_uuid = request.GET.get('uuid', None)
+    storage = get_object_for_edit(Storage, user=request.user, uuid=storage_uuid)
+
+    # Set data
+    data = {}
+    data['user'] = request.user
+    data['created'] = created
+    data['saved'] = saved
+    data['storage'] = storage
+    if request.user.is_staff:
+        data['computings'] = Computing.objects.all()
+    else:
+        data['computings'] = Computing.objects.filter(user=request.user)
+    if request.user.is_staff:
+        data['groups'] = Group.objects.all()
+    else:
+        data['groups'] = request.user.groups.all()
+
+    if request.method == 'POST':
+        storage.name = request.POST.get('name', storage.name)
+        storage.type = request.POST.get('type', storage.type)
+        storage.access_mode = request.POST.get('access_mode', storage.access_mode)
+        storage.auth_mode = request.POST.get('auth_mode', storage.auth_mode)
+        storage.base_path = request.POST.get('base_path', storage.base_path)
+        storage.bind_path = request.POST.get('bind_path', storage.bind_path)
+        storage.read_only = bool(request.POST.get('read_only', False))
+        storage.browsable = bool(request.POST.get('browsable', False))
+
+        # Update the computing resource
+        computing_uuid = request.POST.get('computing_uuid', None)
+        if computing_uuid:
+            storage.computing = get_object(Computing, user=request.user, uuid=computing_uuid)
+        else:
+            storage.computing = None
+
+        # Update the user
+        user_id = request.POST.get('user_id', None)
+        if user_id:
+            storage.user = get_user(request.user, id=user_id)
+        else:
+            storage.user = None
+
+        # Update the group
+        group_id = request.POST.get('group_id', None)
+        if group_id:
+            storage.group = get_group(request.user, id=group_id)
+        else:
+            if request.user.is_staff:
+                storage.group = None
+
+        # Update the conf
+        conf = request.POST.get('conf', None)
+        if conf:
+            storage.conf = json.loads(conf)
+        else:
+            storage.conf = None
+
+        # Save & redirect
+        storage.save()
+        return redirect('/edit_storage/?uuid={}&saved=True'.format(storage.uuid))
+
+    return render(request, 'edit_storage.html', {'data': data})
 
 
 #=========================

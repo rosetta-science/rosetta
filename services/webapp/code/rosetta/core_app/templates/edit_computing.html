@@ -1,0 +1,125 @@
+{% load static %}
+{% include "header.html" %}
+{% include "navigation.html" %}
+{% include "logo.html" %}
+
+<div class="container">
+  <div class="dashboard">
+    <div class="span8 offset2">
+      <h1><a href="/computing">Computing resources</a> <span style="font-size:18px"> / <a href="/computing/?uuid={{ data.computing.uuid }}">{{ data.computing.name }}</a> /edit</span></h1>
+      <hr>
+
+      {% if data.error %}
+        <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
+      {% endif %}
+      {% if data.saved %}
+        <div class="alert alert-success" style="width:500px;">Computing updated successfully.</div>
+      {% endif %}
+      {% if data.created %}
+        <div class="alert alert-success" style="width:500px;">Computing created successfully.</div>
+      {% endif %}
+
+      <form action="#" method="POST">
+      {% csrf_token %}
+      <table class="dashboard" style="width:500px; margin-bottom:25px">
+        <tr>
+          <td><b>Name</b></td>
+          <td><input type="text" name="name" value="{{ data.computing.name }}" size="30" required /></td>
+        </tr>
+        <tr>
+          <td><b>Owner</b></td>
+          <td>
+            <select name="user_id" style="width: 220px;">
+              {% if data.computing.user %}
+                <option value="{{ data.computing.user.id }}">{{ data.computing.user.email }}</option>
+                {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
+              {% else %}
+                <option value="">Platform</option>
+              {% endif %}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Description</b></td>
+          <td><textarea name="description" rows="3" cols="30">{{ data.computing.description }}</textarea></td>
+        </tr>
+        <tr>
+          <td><b>Group</b></td>
+          <td>
+            <select name="group_id" style="width: 220px;">
+              <option value="">None</option>
+              {% for group in data.groups %}
+                <option value="{{ group.id }}" {% if data.computing.group and group.id == data.computing.group.id %}selected{% endif %}>{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Type</b></td>
+          <td>
+            <select name="type" style="width: 220px;" required>
+              <option value="cluster" {% if data.computing.type == 'cluster' %}selected{% endif %}>cluster</option>
+              <option value="standalone" {% if data.computing.type == 'standalone' %}selected{% endif %}>standalone</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Arch</b></td>
+          <td><input type="text" name="arch" value="{{ data.computing.arch }}" size="30" required /></td>
+        </tr>
+        <tr>
+          <td><b>Access mode</b></td>
+          <td>
+            <select name="access_mode" style="width: 220px;" required>
+              <option value="ssh+cli" {% if data.computing.access_mode == 'ssh+cli' %}selected{% endif %}>ssh+cli</option>
+              <option value="internal" {% if data.computing.access_mode == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Auth mode</b></td>
+          <td>
+            <select name="auth_mode" style="width: 220px;" required>
+              <option value="user_keys" {% if data.computing.auth_mode == 'user_keys' %}selected{% endif %}>user_keys</option>
+              <option value="platform_keys" {% if data.computing.auth_mode == 'platform_keys' %}selected{% endif %}>platform_keys</option>
+              <option value="internal" {% if data.computing.auth_mode == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>WMS</b></td>
+          <td>
+            <select name="wms" style="width: 220px;">
+              <option value="" {% if not data.computing.wms %}selected{% endif %}>None</option>
+              <option value="slurm" {% if data.computing.wms == 'slurm' %}selected{% endif %}>slurm</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Container engines</b><br/><span style="font-size:0.8em">(JSON list)</span></td>
+          <td><textarea name="container_engines" rows="2" cols="30">{{ data.computing.container_engines_json }}</textarea></td>
+        </tr>
+        <tr>
+          <td><b>Supported archs</b><br/><span style="font-size:0.8em">(JSON list)</span></td>
+          <td><textarea name="supported_archs" rows="2" cols="30">{{ data.computing.supported_archs_json }}</textarea></td>
+        </tr>
+        <tr>
+          <td><b>Emulated archs</b><br/><span style="font-size:0.8em">(JSON dict)</span></td>
+          <td><textarea name="emulated_archs" rows="2" cols="30">{{ data.computing.emulated_archs_json }}</textarea></td>
+        </tr>
+        <tr>
+          <td><b>Conf</b><br/><span style="font-size:0.8em">(JSON dict)</span></td>
+          <td><textarea name="conf" rows="2" cols="30">{{ data.computing.conf_json }}</textarea></td>
+        </tr>
+      </table>
+      <table style="width:500px; border:0; background:#ffffff; margin-top:20px">
+        <tr><td align="center">
+          <input type="submit" value="Save" class="btn btn-primary">
+        </td></tr>
+      </table>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% include "footer.html" %} 
