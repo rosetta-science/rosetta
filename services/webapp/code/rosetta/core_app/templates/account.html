@@ -79,6 +79,17 @@
        </tr>
 
 
+       <tr>
+        <td>
+        <b>Groups</b>
+        </td>
+        <td>
+        {% for group in user.groups.all %}
+        {{ group }}<br/>
+        {% endfor %}
+        </td>
+       </tr>
+
 
       </table>
       <br />
