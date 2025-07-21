@@ -1,8 +1,4 @@
-
 {% if details %}
-{% if data.created %}
-<div class="alert alert-success" style="width:500px;">Storage created successfully.</div>
-{% endif %}
 <div style="float:left; width:500px; margin:10px; margin-bottom:20px">
   <table class="dashboard" style="width:100%">
     <tr>
@@ -48,8 +44,11 @@
       <td><b>Browsable</b></td>
       <td>{% if storage.browsable %}Yes{% else %}No{% endif %}</td>
     </tr>
+    {% if storage.user == data.user or data.user.is_staff %}
     <tr>
-      <td><b>Conf</b></td><td><pre style="font-size:0.9em">{{ storage.conf_json }}</pre></td></tr>
+      <td><b>Conf</b></td><td><pre style="font-size:0.9em">{{ storage.conf_json }}</pre></td>
+    </tr>
+    {% endif %}
     {% if storage.user == data.user or data.user.is_staff %}
     <tr>
       <td><b>Actions</b></td>
@@ -84,4 +83,4 @@
     </div>
   </div>
 </div>
-{% endif %} 
+{% endif %}

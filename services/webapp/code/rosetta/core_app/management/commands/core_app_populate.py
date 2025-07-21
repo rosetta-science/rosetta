@@ -20,7 +20,6 @@ class Command(BaseCommand):
             testuser = User.objects.create_user('testuser', 'testuser@rosetta.platform', 'testpass')
             print('Making testuser admin')
             testuser.is_staff = True
-            testuser.is_admin=True
             testuser.is_superuser=True
             testuser.save()
             print('Creating testuser profile')

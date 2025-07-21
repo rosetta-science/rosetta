@@ -1,9 +1,4 @@
-
 {% if details %}
-{% if data.created %}
-<div class="alert alert-success" style="width:500px;">Computing resource created successfully.</div>
-{% endif %}
-
 <div style="float:left; width:500px; margin:10px; margin-bottom:20px">
   <table class="dashboard" style="width:100%">
     <tr>
@@ -68,10 +63,12 @@
         {% endif %}
       </td>
     </tr>
+    {% if computing.user == data.user or data.user.is_staff %}
     <tr>
       <td><b>Conf</b></td>
       <td><pre style="font-size:0.9em">{{ computing.conf_json }}</pre></td>
     </tr>
+    {% endif %}
     {% if computing.user == data.user or data.user.is_staff %}
     <tr>
       <td><b>Actions</b></td>

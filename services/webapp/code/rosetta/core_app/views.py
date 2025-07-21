@@ -1168,7 +1168,6 @@ def edit_software(request):
 #  Computing resources
 #=========================
 
-
 @private_view
 def computing(request):
 
@@ -1219,7 +1218,7 @@ def computing(request):
             group=computing.group
         )
         new_computing.save()
-        return redirect('/edit_computing/?uuid={}&created=True'.format(new_computing.uuid))
+        return redirect('/edit_computing/?uuid={}&saved=True'.format(new_computing.uuid))
 
     return render(request, 'computing.html', {'data': data})
 
@@ -1291,7 +1290,6 @@ def add_computing(request):
         return redirect('/edit_computing/?uuid={}&created=True'.format(computing.uuid))
 
     return render(request, 'add_computing.html', {'data': data})
-
 
 
 @private_view
@@ -1374,6 +1372,7 @@ def edit_computing(request):
 #=========================
 #  Storage
 #=========================
+
 @private_view
 def storage(request):
 
