@@ -24,6 +24,17 @@
           <td><input type="text" name="name" value="" size="30" required /></td>
         </tr>
         <tr>
+          <td><b>Computing</b></td>
+          <td>
+            <select name="computing_uuid" style="width: 220px;">
+              <option value="">None</option>
+              {% for computing in data.computings %}
+                <option value="{{ computing.uuid }}">{{ computing.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
           <td><b>Owner</b></td>
           <td>
             <select name="user_id" style="width: 220px;">
@@ -62,17 +73,6 @@
         <tr>
           <td><b>Bind path</b></td>
           <td><input type="text" name="bind_path" value="" size="30" /></td>
-        </tr>
-        <tr>
-          <td><b>Computing</b></td>
-          <td>
-            <select name="computing_uuid" style="width: 220px;">
-              <option value="">None</option>
-              {% for computing in data.computings %}
-                <option value="{{ computing.uuid }}">{{ computing.name }}</option>
-              {% endfor %}
-            </select>
-          </td>
         </tr>
         <tr>
           <td><b>Read only</b></td>

@@ -6,21 +6,19 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1><a href="/software">Software containers</a> <span style="font-size:18px"> /
+      <h1><a href="/software">Software</a> <span style="font-size:18px"> /
           <a href="/software/?container_family_id={{data.container.family_id}}&details=True">{{ data.container.name }}</a> /
           <a href="/software/?container_uuid={{data.container.uuid}}&details=True">{{ data.container.image_tag}}</a> / edit</span></h1>
       <hr>
-
       {% if data.error %}
-        <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
+      <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
       {% endif %}
       {% if data.saved %}
-        <div class="alert alert-success" style="width:500px;">Software container updated successfully.</div>
+      <div class="alert alert-success" style="width:500px;">Software container updated successfully.</div>
       {% endif %}
       {% if data.created %}
-        <div class="alert alert-success" style="width:500px;">Software container created successfully.</div>
+      <div class="alert alert-success" style="width:500px;">Software container created successfully.</div>
       {% endif %}
-
       <form action="#" method="POST">
       {% csrf_token %}
       <table class="dashboard" style="width:500px; margin-bottom:25px">
@@ -38,17 +36,14 @@
             <select name="group_id" style="width: 220px;">
               <option value="">None</option>
               {% for group in data.groups %}
-                <option value="{{ group.id }}" {% if data.container.group and group.id == data.container.group.id %}selected{% endif %}>{{ group.name }}</option>
+              <option value="{{ group.id }}" {% if data.container.group and group.id == data.container.group.id %}selected{% endif %}>{{ group.name }}</option>
               {% endfor %}
             </select>
           </td>
         </tr>
-
       </table>
-
       <!-- <h4>Registry & image</h4>  -->
       <table class="dashboard" style="width:500px; margin-bottom:25px">
-
         <tr>
           <td><b>Registry</b></td>
           <td><input type="text" name="container_registry" value="{{ data.container.registry }}" size="36" required /></td>
@@ -87,7 +82,6 @@
           </td>
         </tr>
       </table>
-
       <a href="javascript:void(0);" id="show_button" onclick="toggle_visibility('advanced_div')">Advanced...</a>
       <div id="advanced_div" style="display:none; width:400px;">
         <h4>Advanced <font size=-1>| <a href="javascript:void(0);" id="hide_button" onclick="toggle_visibility('advanced_div')" style="display:none">hide</a></font></h4>
@@ -159,7 +153,6 @@
     </div>
   </div>
 </div>
-
 {% include "footer.html" %}
 
 <script>
@@ -177,4 +170,4 @@ function toggle_visibility(id) {
     if (hideBtn) hideBtn.style.display = 'inline';
   }
 }
-</script> 
+</script>

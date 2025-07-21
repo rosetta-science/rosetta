@@ -6,18 +6,14 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-
       {% if data.computing %}
-      <h1><a href="/computing">Computing resources</a> <span style="font-size:18px"> / {{ data.computing.name }}</span></h1>
+      <h1><a href="/computing">Computing</a> <span style="font-size:18px"> / {{ data.computing.name }}</span></h1>
       {% else %}
-      <h1>Computing resources</h1>
+      <h1>Computing</h1>
+      <hr/>
       {% endif %}
-      <br/>
-
       {% if data.computing %}
-
-        {% include "components/computing_card.html" with computing=data.computing details=True %}
-
+      {% include "components/computing_card.html" with computing=data.computing details=True %}
       {% else %}
       <div class="form-filter" style="margin-bottom:20px">
         <form action="" method="POST">
@@ -27,9 +23,9 @@
             <option value="platform" {% if data.filter_owner == 'platform' %}selected{% endif %}>Platform</option>
             <option value="user" {% if data.filter_owner == 'user' %}selected{% endif %}>Personal</option>
             {% for group in user.groups.all %}
-              {% with "group:"|add:group.name as group_identifier %}
-              <option value="group:{{ group.name }}" {% if data.filter_owner == group_identifier %}selected{% endif %}>{{ group.name }}</option>
-              {% endwith %}
+            {% with "group:"|add:group.name as group_identifier %}
+            <option value="group:{{ group.name }}" {% if data.filter_owner == group_identifier %}selected{% endif %}>{{ group.name }}</option>
+            {% endwith %}
             {% endfor %}
           </select>
           {% csrf_token %}
@@ -37,24 +33,16 @@
           &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/add_computing">Add new...</a>
         </form>
       </div>
-
       <div class="row" style="padding:5px">
         {% for computing in data.computings %}
-          {% include "components/computing_card.html" with computing=computing %}
+        {% include "components/computing_card.html" with computing=computing %}
         {% empty %}
-          <p>No computing resources found.</p>
+        <p>No computings found.</p>
         {% endfor %}
       </div>
       {% endif %}
-
     </div>
   </div>
 </div>
 
 {% include "footer.html" %}
-
-
-
-
-
-

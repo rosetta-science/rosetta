@@ -84,32 +84,70 @@
   </table>
 </div>
 {% else %}
+{% load computing_helpers %}
+{% is_computing_configured computing request.user as computing_configured %}
+{# insert an "if false" here below to let unconfigured computing to show up with a greyed out "choose" button #}
+{% if container and not computing_configured %}
+{% else%}
 <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px;">
   <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
-    <a href="/computing/?uuid={{ computing.uuid }}">{{ computing.name }}</a>
+    <a href="/computing/?uuid={{ computing.uuid }}&details=True">{{ computing.name }}</a>
   </div>
+  {% if not computing_configured %}
+  <div style="width:298px; float:left; margin:0; margin-bottom:5px; padding:2px; background: gary; color:black; text-align:center; border-bottom: #e0e0e0 solid 1px;">
+    <i class="fa fa-info-circle"></i> Not configured <!-- style="color:#337ab7" -->
+  </div>
+  {% endif %}
   <div style="padding:10px;">
     {% if computing.description %}
-      <div class="description-box" title="{{ computing.description }}">
-        {{ computing.description }}
-      </div>
+    <div class="description-box" title="{{ computing.description }}">
+      {{ computing.description }}
+    </div>
     {% else %}
-      <br/>
+    <br/>
     {% endif %}
     <div class="image-version-box">
-      <b>Type:</b> {{ computing.type }} {% if computing.arch %}({{ computing.arch }}) {% endif %}<br/>
+      <b>Type:</b> {{ computing.type }} <font style="font-size:0.9em">({{ computing.arch }})</font>
+      <br/>
+      {% if computing.storages.all %}
       <b>Storages:</b>
-      {% if not computing.storages.all %}
-        None
+      <br/>
+      {% for storage in computing.storages.all %}
+      {% if storage.bind_path %}
+      &nbsp; {{  storage.name }} @ <code>{{  storage.bind_path }}</code><br/>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+      <!-- <b>Access:</b> {{ computing.access_mode }}<br/>
+      <b>Owner:</b> {% if computing.user %}{{ computing.user }}{% else %}Platform{% endif %}<br/>
+      <b>Engines:</b>
+      {% for engine in computing.container_engines %}
+      {{ engine | title }}
+      {% if engine == 'docker' %}
+      <img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />
+      {% elif engine == 'singularity' %}
+      <img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:2px" />
       {% else %}
-        <br/>
-        {% for storage in computing.storages.all %}
-          {% if storage.bind_path %}
-            &nbsp; {{ storage.name }} @ <code>{{ storage.bind_path }}</code><br/>
-          {% endif %}
-        {% endfor %}
+      {% endif %}
+      {% endfor %}-->
+    </div>
+    {% if container %}
+    <div style="margin:0px; margin-top:2px; text-align:center; padding:5px">
+      {% if computing_configured %}
+      <form action="/new_task/" method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="step" value="{{ data.next_step }}" />
+      <input type="hidden" name="task_container_uuid" value="{{container.uuid}}">
+      <input type="hidden" name="task_container_arch" value="{{container_arch}}">
+      <input type="hidden" name="task_computing_uuid" value="{{computing.uuid}}">
+      <input type="submit" value="Choose" class="btn btn-connect">
+      </form>
+      {% else %}
+      <input type="submit" value="Choose" class="btn btn-connect" disabled>
       {% endif %}
     </div>
+    {% endif %}
   </div>
 </div>
+{% endif %}
 {% endif %}

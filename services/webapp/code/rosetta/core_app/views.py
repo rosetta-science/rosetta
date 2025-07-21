@@ -398,7 +398,6 @@ def account(request):
         profile = Profile.objects.get(user=request.user)
     except Profile.DoesNotExist:
         profile = Profile.objects.create(user=request.user)
-    data['profile'] = profile
 
     # Set values from POST and GET
     edit = request.POST.get('edit', None)
@@ -495,7 +494,6 @@ def tasks(request):
     # Set data
     data={}
     data['user']  = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
     data['filter_text'] = filter_text
     data['filter_status'] = filter_status
     task_statuses = []
@@ -849,8 +847,6 @@ def task_log(request):
     # Init data
     data={}
     data['user']  = request.user
-    data['profile'] = Profile.objects.get(user=request.user)
-    data['title'] = 'Tasks'
 
     # Get uuid and refresh if any
     uuid    = request.GET.get('uuid', None)

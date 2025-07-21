@@ -6,6 +6,10 @@
       <td>{{ storage.name }}</td>
     </tr>
     <tr>
+      <td><b>Computing</b></td>
+      <td>{% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}</td>
+    </tr>
+    <tr>
       <td><b>Owner</b></td>
       <td>{% if data.storage.user %}{{ data.storage.user }}{% else %}Platform{% endif %}</td>
     </tr>
@@ -31,10 +35,6 @@
     <tr>
       <td><b>Bind path</b></td>
       <td><code>{{ storage.bind_path }}</code></td>
-    </tr>
-    <tr>
-      <td><b>Computing</b></td>
-      <td>{% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}</td>
     </tr>
     <tr>
       <td><b>Read only</b></td>
@@ -68,18 +68,19 @@
   <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
     {% if storage.computing %}
       <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.name }}</a>
-      <br/><font size=-1>@{{ storage.computing.name }}</font>
+      <!-- <br/><font size=-1>@{{ storage.computing.name }}</font> -->
     {% else %}
       <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.name }}</a>
     {% endif %}
   </div>
   <div style="padding:10px;">
     <div class="image-version-box">
+      <b>Computing</b>: {% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}<br/>
       <b>Type:</b> {{ storage.type }}<br/>
       <b>Base path:</b> <code>{{ storage.base_path }}</code><br/>
       <b>Bind path:</b> <code>{{ storage.bind_path }}</code><br/>
       <b>Read only:</b> {% if storage.read_only %}Yes{% else %}No{% endif %}<br/>
-      <b>Browsable:</b> {% if storage.browsable %}Yes{% else %}No{% endif %}<br/>
+      <!-- <b>Browsable:</b> {% if storage.browsable %}Yes{% else %}No{% endif %}<br/>  -->
     </div>
   </div>
 </div>

@@ -6,19 +6,17 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1><a href="/computing">Computing resources</a> <span style="font-size:18px"> / <a href="/computing/?uuid={{ data.computing.uuid }}">{{ data.computing.name }}</a> /edit</span></h1>
+      <h1><a href="/computing">Computing</a> <span style="font-size:18px"> / <a href="/computing/?uuid={{ data.computing.uuid }}">{{ data.computing.name }}</a> /edit</span></h1>
       <hr>
-
       {% if data.error %}
-        <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
+      <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
       {% endif %}
       {% if data.saved %}
-        <div class="alert alert-success" style="width:500px;">Computing updated successfully.</div>
+      <div class="alert alert-success" style="width:500px;">Computing updated successfully.</div>
       {% endif %}
       {% if data.created %}
-        <div class="alert alert-success" style="width:500px;">Computing created successfully.</div>
+      <div class="alert alert-success" style="width:500px;">Computing created successfully.</div>
       {% endif %}
-
       <form action="#" method="POST">
       {% csrf_token %}
       <table class="dashboard" style="width:500px; margin-bottom:25px">
@@ -31,10 +29,10 @@
           <td>
             <select name="user_id" style="width: 220px;">
               {% if data.computing.user %}
-                <option value="{{ data.computing.user.id }}">{{ data.computing.user.email }}</option>
-                {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
+              <option value="{{ data.computing.user.id }}">{{ data.computing.user.email }}</option>
+              {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
               {% else %}
-                <option value="">Platform</option>
+              <option value="">Platform</option>
               {% endif %}
             </select>
           </td>
@@ -49,7 +47,7 @@
             <select name="group_id" style="width: 220px;">
               <option value="">None</option>
               {% for group in data.groups %}
-                <option value="{{ group.id }}" {% if data.computing.group and group.id == data.computing.group.id %}selected{% endif %}>{{ group.name }}</option>
+              <option value="{{ group.id }}" {% if data.computing.group and group.id == data.computing.group.id %}selected{% endif %}>{{ group.name }}</option>
               {% endfor %}
             </select>
           </td>
@@ -104,7 +102,7 @@
           <td><textarea name="supported_archs" rows="2" cols="30">{{ data.computing.supported_archs_json }}</textarea></td>
         </tr>
         <tr>
-          <td><b>Emulated archs</b><br/><span style="font-size:0.8em">(JSON dict)</span></td>
+          <td><b>Emulated archs</b><br/><span style="font-size:0.8em">(JSON list)</span></td>
           <td><textarea name="emulated_archs" rows="2" cols="30">{{ data.computing.emulated_archs_json }}</textarea></td>
         </tr>
         <tr>

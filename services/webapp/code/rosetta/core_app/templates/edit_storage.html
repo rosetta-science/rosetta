@@ -6,17 +6,16 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1><a href="/storage">Storage resources</a> <span style="font-size:18px"> / <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a> /edit</span></h1>
+      <h1><a href="/storage">Storage</a> <span style="font-size:18px"> / <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a> /edit</span></h1>
       <hr>
-
       {% if data.error %}
-        <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
+      <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
       {% endif %}
       {% if data.saved %}
-        <div class="alert alert-success" style="width:500px;">Storage updated successfully.</div>
+      <div class="alert alert-success" style="width:500px;">Storage updated successfully.</div>
       {% endif %}
       {% if data.created %}
-        <div class="alert alert-success" style="width:500px;">Storage created successfully.</div>
+      <div class="alert alert-success" style="width:500px;">Storage created successfully.</div>
       {% endif %}
       <form action="#" method="POST">
       {% csrf_token %}
@@ -26,14 +25,25 @@
           <td><input type="text" name="name" value="{{ data.storage.name }}" size="30" required /></td>
         </tr>
         <tr>
+          <td><b>Computing</b></td>
+          <td>
+            <select name="computing_uuid" style="width: 220px;">
+              <option value="">None</option>
+              {% for computing in data.computings %}
+                <option value="{{ computing.uuid }}" {% if data.storage.computing and computing.uuid == data.storage.computing.uuid %}selected{% endif %}>{{ computing.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        <tr>
           <td><b>Owner</b></td>
           <td>
             <select name="user_id" style="width: 220px;">
               {% if data.storage.user %}
-                <option value="{{ data.storage.user.id }}">{{ data.storage.user.email }}</option>
-                {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
+              <option value="{{ data.storage.user.id }}">{{ data.storage.user.email }}</option>
+              {% if data.user.is_staff %}<option value="">Platform</option>{% endif %}
               {% else %}
-                <option value="">Platform</option>
+              <option value="">Platform</option>
               {% endif %}
             </select>
           </td>
@@ -44,7 +54,7 @@
             <select name="group_id" style="width: 220px;">
               <option value="">None</option>
               {% for group in data.groups %}
-                <option value="{{ group.id }}" {% if data.storage.group and group.id == data.storage.group.id %}selected{% endif %}>{{ group.name }}</option>
+              <option value="{{ group.id }}" {% if data.storage.group and group.id == data.storage.group.id %}selected{% endif %}>{{ group.name }}</option>
               {% endfor %}
             </select>
           </td>
@@ -68,17 +78,6 @@
         <tr>
           <td><b>Bind path</b></td>
           <td><input type="text" name="bind_path" value="{{ data.storage.bind_path }}" size="30" /></td>
-        </tr>
-        <tr>
-          <td><b>Computing</b></td>
-          <td>
-            <select name="computing_uuid" style="width: 220px;">
-              <option value="">None</option>
-              {% for computing in data.computings %}
-                <option value="{{ computing.uuid }}" {% if data.storage.computing and computing.uuid == data.storage.computing.uuid %}selected{% endif %}>{{ computing.name }}</option>
-              {% endfor %}
-            </select>
-          </td>
         </tr>
         <tr>
           <td><b>Read only</b></td>

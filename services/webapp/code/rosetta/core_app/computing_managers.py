@@ -603,7 +603,7 @@ class SlurmSSHClusterComputingManager(ClusterComputingManager, SSHComputingManag
 
         # Set status (only fi we get here before the agent which sets the status as running via the API)
         if task.status != TaskStatuses.running:
-            task.status = TaskStatuses.sumbitted
+            task.status = TaskStatuses.submitted
 
         # Save
         task.save()

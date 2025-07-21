@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 # Task statuses
 class TaskStatuses(object):
     created = 'created'
-    sumbitted = 'sumbitted' # TODO: fix me!
+    submitted = 'submitted'
     running = 'running'
     stopped = 'stopped'
     exited = 'exited'
