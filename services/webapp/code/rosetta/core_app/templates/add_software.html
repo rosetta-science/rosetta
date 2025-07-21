@@ -7,19 +7,20 @@
   <div class="dashboard">
     <div class="span8 offset2">
       <h1><a href="/software">Software containers</a> <span style="font-size:18px"> / add</span></h1>
-      <hr>
+      <br/>
 
       {% if not data.added %}
 
-          Here you can add a new software container on the platform. You can add containers from image registries
+          <!--  Here you can add a new software container on the platform. You can add containers from image registries
           as <a href="https://hub.docker.com/">Docker Hub </a>or by importing Git repositories, provided that they
           are compatible with <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.
           <br/>
           <br/>
+          -->
 
           {% if data.new_container_from == 'registry' %}
-          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from registry</div>
-          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">New container from Git repository</a></div>
+          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">From registry</div>
+          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=repository">From repository</a></div>
           <hr style="margin-top:0;">
 
           <form action="#" method="POST">
@@ -181,8 +182,8 @@
 
 
           {% else %}
-          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=registry">New container from registry</a></div>
-          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">New container from Git repository</div>
+          <div style="font-size:1.1em; background:white; display:inline-block; padding:2px 15px 2px 15px"><a href="?new_container_from=registry">From registry</a></div>
+          <div style="font-size:1.1em; background:whitesmoke; display:inline-block; padding:2px 15px 2px 15px">From repository</div>
           <hr style="margin-top:0;">
 
           <form action="#" method="POST">
@@ -210,7 +211,7 @@
           <table class="dashboard" style="width:500px; margin-bottom:25px">
 
            <tr>
-            <td><b>Repository URL</b></td><td>
+            <td><b>Repository URL*</b></td><td>
              <input type="text" name="repository_url" size="35" required />
             </td>
            </tr>
@@ -223,9 +224,12 @@
             </td>
            </tr>
 
-           </table>
-
-
+           <tr>
+            <td colspan=2>
+            *must comply with the <a href="https://mybinder.readthedocs.io/en/latest/introduction.html">Binder</a> specifications.
+            </td>
+           </tr>
+          </table>
 
           <table style="width:400px; border:0; background:#ffffff; margin-top:20px">
           <tr><td align="center">
@@ -233,9 +237,12 @@
           </td></tr>
           </table>
 
+
+
           <input type="hidden" name="new_container_from" value="repository">
 
           </form>
+
 
 
 

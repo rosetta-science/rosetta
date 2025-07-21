@@ -197,6 +197,11 @@ class Container(models.Model):
         color_map_index = string_int_hash % len(color_map)
         return color_map[color_map_index]
 
+    @property
+    def env_vars_json(self):
+        if not self.env_vars:
+            return''
+        return json.dumps(self.env_vars)
 
 
 
