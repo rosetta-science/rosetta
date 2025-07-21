@@ -485,114 +485,107 @@ def account(request):
 @private_view
 def tasks(request):
 
-    # Init data
+    # Get data
+    action  = request.GET.get('action', None)
+    uuid    = request.GET.get('uuid', None)
+    filter_text = request.POST.get('filter_text', '')
+    filter_status = request.POST.get('filter_status', 'all')
+    fromlist = booleanize(request.GET.get('fromlist', False))
+
+    # Set data
     data={}
     data['user']  = request.user
     data['profile'] = Profile.objects.get(user=request.user)
-    data['title'] = 'Tasks'
+    data['filter_text'] = filter_text
+    data['filter_status'] = filter_status
+    task_statuses = []
+    for var in vars(TaskStatuses):
+        if var.startswith('_'):
+            continue
+        task_statuses.append(var)
+    data['task_statuses'] = sorted(task_statuses)
 
-    # Get action if any
-    action  = request.GET.get('action', None)
-    uuid    = request.GET.get('uuid', None)
-    fromlist = request.GET.get('fromlist', False)
-    details = booleanize(request.GET.get('details', None))
-
-
-    # Do we have to operate on a specific task?
+    # Get the task if a specific uuid is given, or get them all, possibly filtering
     if uuid:
+        task = Task.objects.get(user=request.user, uuid=uuid)
+        data['task'] = task
 
-        try:
+    else:
+        tasks = Task.objects.filter(user=request.user).order_by('created')
 
-            # Get the task (raises if none available including no permission)
-            try:
-                task = Task.objects.get(user=request.user, uuid=uuid)
-            except Task.DoesNotExist:
-                raise ErrorMessage('Task does not exists or no access rights')
+        if filter_status and filter_status != 'all':
+            tasks = tasks.filter(status=filter_status)
 
-            data['task'] = task
-
-            #  Task actions
-            if action=='delete':
-                if task.status not in [TaskStatuses.stopped, TaskStatuses.exited]:
-                    try:
-                        task.computing.manager.stop_task(task)
-                    except:
-                        pass
-                try:
-                    # Get the task (raises if none available including no permission)
-                    task = Task.objects.get(user=request.user, uuid=uuid)
-
-                    # Re-remove proxy files before deleting the task itself just to be sure
-                    try:
-                        os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
-                    except:
-                        pass
-                    try:
-                        os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
-                    except:
-                        pass
-
-                    # Delete
-                    task.delete()
-
-                    # Unset task
-                    data['task'] = None
-
-                except Exception as e:
-                    data['error'] = 'Error in deleting the task'
-                    logger.error('Error in deleting task with uuid="{}": "{}"'.format(uuid, e))
-                    return render(request, 'error.html', {'data': data})
-
-
-
-            elif action=='stop': # or delete,a and if delete also remove object
-                # Remove proxy files. Do it here or will cause issues when reloading the conf re-using ports of stopped tasks.
-                try:
-                    os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
-                except:
-                    pass
-                try:
-                    os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
-                except:
-                    pass
-
-                task.computing.manager.stop_task(task)
-
-        except Exception as e:
-            data['error'] = 'Error in getting the task or performing the required action'
-            logger.error('Error in getting the task with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
-            return render(request, 'error.html', {'data': data})
-
-        # Ok, redirect if there was an action
-        if action:
-            if fromlist:
-                return redirect('/tasks')
-            else:
-                if not task.uuid:
-                    # it has just been deleted
-                    return redirect('/tasks')
-                else:
-                    return redirect('/tasks/?uuid={}'.format(task.uuid))
-
-
-    # Do we have to list all the tasks?
-    if not uuid or (uuid and not details):
-
-        # Get all tasks for list
-        try:
-            tasks = Task.objects.filter(user=request.user).order_by('created')
-        except Exception as e:
-            data['error'] = 'Error in getting Tasks info'
-            logger.error('Error in getting Virtual Devices: "{}"'.format(e))
-            return render(request, 'error.html', {'data': data})
+        if filter_text:
+            tasks = tasks.filter(name__icontains=filter_text)
 
         # Update task statuses
         for task in tasks:
             task.update_status()
 
         # Set task and tasks variables
-        data['task']  = None
         data['tasks'] = tasks
+
+    # Handle delete action
+    if action=='delete':
+        if task.status not in [TaskStatuses.stopped, TaskStatuses.exited]:
+            try:
+                task.computing.manager.stop_task(task)
+            except:
+                pass
+        try:
+            # Get the task (raises if none available including no permission)
+            task = Task.objects.get(user=request.user, uuid=uuid)
+
+            # Re-remove proxy files before deleting the task itself just to be sure
+            try:
+                os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
+            except:
+                pass
+            try:
+                os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
+            except:
+                pass
+
+            # Delete
+            task.delete()
+
+            # Unset task
+            data['task'] = None
+
+        except Exception as e:
+            data['error'] = 'Error in deleting the task'
+            logger.error('Error in deleting task with uuid="{}": "{}"'.format(uuid, e))
+            return render(request, 'error.html', {'data': data})
+        return redirect('/tasks/')
+
+
+    # Handle stop action
+    elif action=='stop':
+        try:
+            # Remove proxy files. Do it here or will cause issues when reloading the conf re-using ports of stopped tasks.
+            try:
+                os.remove('/shared/etc_apache2_sites_enabled/{}.conf'.format(task.uuid))
+            except:
+                pass
+            try:
+                os.remove('/shared/etc_apache2_sites_enabled/{}.htpasswd'.format(task.uuid))
+            except:
+                pass
+
+            task.computing.manager.stop_task(task)
+
+        except Exception as e:
+            data['error'] = 'Error in getting the task or performing the required action'
+            logger.error('Error in getting the task with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
+            return render(request, 'error.html', {'data': data})
+        return redirect('/tasks/?uuid={}'.format(task.uuid))
+
+        # Redirect
+        if fromlist:
+            return redirect('/tasks')
+        else:
+            return redirect('/tasks/?uuid={}'.format(task.uuid))
 
     return render(request, 'tasks.html', {'data': data})
 

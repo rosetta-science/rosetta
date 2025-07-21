@@ -1,0 +1,96 @@
+<div style="width:350px; display:block; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
+  {% if data.task %}
+  <div style="margin-top:5px; padding:10px; text-align:center; border-bottom: #f8f8f8 solid 1px; ">
+    <b>{{data.task.name}}</b>
+  </div>
+  <hr style="margin:0">
+  {% else %}
+  <div style="margin-top:5px; padding:10px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
+    <a href="?uuid={{ task.uuid }}"><b>{{ task.name }}</b></a>
+  </div>
+  {% endif %}
+  <div style="padding:10px; padding-left:15px; padding-right:15px; text-align:left;">
+    <b>Software:</b>
+    <a href="/software/?container_uuid={{ task.container.uuid }}" style="color:{{task.container.color}}">{{ task.container.name }}</a>
+    {% if task.container.type == 'docker' %}<img src="/static/img/docker-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
+    {% if task.container.type == 'singularity' %}<img src="/static/img/singularity-logo.svg" style="height:18px; width:18px; margin-bottom:4px" />{% endif %}
+    <br/>
+    <b>Computing:</b> <a href="/computing/?uuid={{ task.computing.uuid }}">{{ task.computing.name }}</a>
+    <div style="margin-top:2px">
+      {% if task.status == "running" %}
+      <b>Status:</b> <font color="green">running</font>
+      {% if task.container.interface_protocol == 'http' or task.container.interface_protocol == 'https' %}
+      {% else %}
+      @ port {{ task.tcp_tunnel_port }}
+      {% endif %}
+      {% else %}
+      <b>Status:</b> {{ task.status }}
+      {% endif %}
+    </div>
+  </div>
+  <div style="margin-bottom:10px; text-align:center; padding:5px">
+    <!-- Stop / Delete / Cancel -->
+    {% if task.status == "stopped" or task.status == "created" %}
+    <a href="?uuid={{task.uuid}}&action=delete" class="btn btn-action">Delete</a>
+    {% else %}
+    <a href="?uuid={{task.uuid}}&action=stop&fromlist={{fromlist}}" class="btn btn-action">Stop</a>
+    {% endif %}
+    <!-- Connect -->
+    {% if task.interface_port %}
+    {% if task.container.interface_protocol == 'http' or task.container.interface_protocol == 'https' %}
+    {% if task.status == "running" %}
+    <a href="/task_connect/?uuid={{task.uuid}}" class="btn btn-connect">Connect</a>
+    {% else %}
+    <a href="" class="btn btn-disabled">Connect</a>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    <!-- View log -->
+    {% if task.status == "running" %}
+    <a href="/task_log/?uuid={{task.uuid}}&action=viewlog" class="btn btn-action">Logs</a>
+    {% else %}
+    <a href="" class="btn btn-disabled">Logs</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if data.task %}
+<div id="details_div" style="width:370px;">
+  <div style="display:block"; max-width:450px">
+    <table class="dashboard" style="margin:10px">
+      <tr>
+        <td><b>Created at</b></td>
+        <td>{{ task.created }}</td>
+      </tr>
+      <tr>
+        <td><b>Interface IP</b></td>
+        <td>{{ task.interface_ip }}</td>
+      </tr>
+      <tr>
+        <td><b>Interface port</b></td>
+        <td>{{ task.interface_port }}</td>
+      </tr>
+      <tr>
+        <td><b>Tunnel port</b></td>
+        <td>{{ task.tcp_tunnel_port }}</td>
+      </tr>
+      {% if task.auth_token %}
+      <tr>
+        <td><b>Auth token</b></td>
+        <td>{{ task.auth_token }}</td>
+      </tr>
+      {% endif %}
+      {% if task.computing_options %}
+      <tr>
+        <td><b>Computing options</b></td>
+        <td>{{ task.computing_options }}</td>
+      </tr>
+      {% endif %}
+      <!-- <tr>
+        <td style="padding-right:0"><b>Direct link</b></td>
+        <td>{% if task.status == "running" %}<a href="{{ task.sharable_link }}">{{ task.sharable_link }}</a>{% else %}N.A. (task not running) {% endif %}</td>
+      </tr> -->
+    </table>
+  </div>
+</div>
+{% endif  %}

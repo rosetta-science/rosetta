@@ -6,43 +6,44 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-
       {% if data.task %}
       <h1><a href="/tasks">Tasks</a> <span style="font-size:18px"> / {{ data.task.name }}</span></h1>
       {% else %}
       <h1>Tasks</h1>
       {% endif %}
-
       <hr>
       <div class="row" style="padding:5px">
       {% if data.task %}
-      {% include "components/task.html" with task=data.task details=True %}
+      {% include "components/task_card.html" with task=data.task details=True%}
       {% else %}
-      {% for task in data.tasks %}
-      {% include "components/task.html" with task=task %}
-      {% endfor %}
+      <div class="form-filter" style="margin-bottom:20px">
+        <form action="" method="POST">
+          <input type="text" class="form-control" id="filter_text" name="filter_text" placeholder="Search..." style="width:200px; margin:0; display:inline" value="{{data.filter_text}}" autofocus>
+          <select class="form-control" id="filter_status" name="filter_status" style="width:120px; margin:0; display:inline">
+            <option value="all" {% if data.filter_status == 'all' %}selected{% endif %}>All</option>
+            {% for status in data.task_statuses %}
+            <option value="{{status}}" {% if data.filter_status == status %}selected{% endif %}>{{ status | title }}</option>
+            {% endfor %}
+          </select>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary">Go</button>
+          &nbsp; &nbsp; <font size=4.0em>|</font> &nbsp; <a href="/new_task">Run new...</a>
+        </form>
+      </div>
+      <div class="row" style="padding:5px">
+        {% for task in data.tasks %}
+        {% include "components/task_card.html" with task=task fromlist=True %}
+        {% empty %}
+        <p>No tasks found.</p>
+        {% endfor %}
+      </div>
       {% endif %}
       </div>
-
-      {% if not data.task %}
-      <div class="row" style="padding:10px; padding-left:15px">
-      <a href="/new_task">New task...</a>
-      </div>
-      {% endif %}
-
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-      <br/>
-
     </div>
   </div>
 </div>
 
 {% include "footer.html" %}
-
 
 <script>
 function toggle_visibility(id) {
@@ -61,6 +62,3 @@ function toggle_visibility(id) {
       }
     }
 </script>
-
-
-

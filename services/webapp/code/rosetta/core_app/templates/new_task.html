@@ -6,7 +6,7 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1>New Task</h1>
+      <h1><a href="/tasks">Tasks</a> <span style="font-size:18px"> / new</span></h1>
       <hr>
 
 
@@ -20,7 +20,7 @@
 
       {% if data.step != 'created' %}
       <div style="float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:20px">
-          <h4>Software container</h4>
+          <h4>Software <i class="fa fa-check-square" style="color:#23BE23"></i></h4>
           <div class="row" style="padding:5px">
           {% include "components/container_card.html" with container=data.task_container container_arch=data.task_container_arch disable_play_button=True  %}
           </div>
@@ -31,7 +31,7 @@
       {% if data.step == 'two' %}
 
       <div style="width:300px; float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:0px">
-          <h4>Computing resource</h4>
+          <h4>Choose Computing</h4>
           <div class="row" style="padding:5px">
           {% for computing in data.computings %}
           {% include "components/computing_card.html" with container=data.task_container container_arch=data.task_container_arch %}
@@ -44,7 +44,7 @@
 
 
       <div style="width:300px; float:left; background:#ffffff; margin-left:10px; margin-right:10px; margin-top:0px; margin-bottom:0px">
-          <h4>Computing resource</h4>
+          <h4>Computing <i class="fa fa-check-square" style="color:#23BE23"></i></h4>
           <div class="row" style="padding:5px">
           {% include "components/computing_card.html" with computing=data.task_computing %}
           </div>
