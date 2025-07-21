@@ -555,8 +555,8 @@ def tasks(request):
             data['error'] = 'Error in deleting the task'
             logger.error('Error in deleting task with uuid="{}": "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
-        return redirect('/tasks/')
 
+        return redirect('/tasks/')
 
     # Handle stop action
     elif action=='stop':
@@ -577,9 +577,7 @@ def tasks(request):
             data['error'] = 'Error in getting the task or performing the required action'
             logger.error('Error in getting the task with uuid="{}" or performing the required action: "{}"'.format(uuid, e))
             return render(request, 'error.html', {'data': data})
-        return redirect('/tasks/?uuid={}'.format(task.uuid))
 
-        # Redirect
         if fromlist:
             return redirect('/tasks')
         else:

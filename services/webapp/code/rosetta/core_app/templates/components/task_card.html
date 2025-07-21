@@ -1,4 +1,4 @@
-<div style="width:350px; display:block; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
+<div style="width:350px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:20px">
   {% if data.task %}
   <div style="margin-top:5px; padding:10px; text-align:center; border-bottom: #f8f8f8 solid 1px; ">
     <b>{{data.task.name}}</b>
@@ -33,7 +33,11 @@
     {% if task.status == "stopped" or task.status == "created" %}
     <a href="?uuid={{task.uuid}}&action=delete" class="btn btn-action">Delete</a>
     {% else %}
-    <a href="?uuid={{task.uuid}}&action=stop&fromlist={{fromlist}}" class="btn btn-action">Stop</a>
+    {% if data.task %}
+    <a href="?uuid={{task.uuid}}&action=stop" class="btn btn-action">Stop</a>
+    {% else  %}
+    <a href="?uuid={{task.uuid}}&action=stop&fromlist=True" class="btn btn-action">Stop</a>
+    {% endif %}
     {% endif %}
     <!-- Connect -->
     {% if task.interface_port %}
@@ -46,10 +50,10 @@
     {% endif %}
     {% endif %}
     <!-- View log -->
-    {% if task.status == "running" %}
-    <a href="/task_log/?uuid={{task.uuid}}&action=viewlog" class="btn btn-action">Logs</a>
-    {% else %}
+    {% if task.status == "created" or task.status == "submitted" %}
     <a href="" class="btn btn-disabled">Logs</a>
+    {% else %}
+    <a href="/task_log/?uuid={{task.uuid}}&action=viewlog" class="btn btn-action">Logs</a>
     {% endif %}
   </div>
 </div>
