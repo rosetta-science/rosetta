@@ -61,15 +61,35 @@
         </tr>
         <tr>
           <td><b>Type</b></td>
-          <td><input type="text" name="type" value="{{ data.storage.type }}" size="30" required /></td>
+          <td>
+            <select name="type" style="width: 220px;" required>
+              <option value="generic_posix" {% if data.storage.type == 'generic_posix' %}selected{% endif %}>generic_posix</option>
+              <option value="internal" {% if data.storage.type == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Access via computing</b></td>
+          <td><input type="checkbox" name="access_through_computing" value="True" {% if data.storage.access_through_computing %}checked{% endif %} /></td>
         </tr>
         <tr>
           <td><b>Access mode</b></td>
-          <td><input type="text" name="access_mode" value="{{ data.storage.access_mode }}" size="30" required /></td>
+          <td>
+            <select name="access_mode" style="width: 220px;" required>
+              <option value="ssh+cli" {% if data.storage.access_mode == 'ssh+cli' %}selected{% endif %}>ssh+cli</option>
+              <option value="internal" {% if data.storage.access_mode == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Auth mode</b></td>
-          <td><input type="text" name="auth_mode" value="{{ data.storage.auth_mode }}" size="30" required /></td>
+          <td>
+            <select name="auth_mode" style="width: 220px;" required>
+              <option value="user_keys" {% if data.storage.auth_mode == 'user_keys' %}selected{% endif %}>user_keys</option>
+              <option value="platform_keys" {% if data.storage.auth_mode == 'platform_keys' %}selected{% endif %}>platform_keys</option>
+              <option value="internal" {% if data.storage.auth_mode == 'internal' %}selected{% endif %}>internal</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Base path</b></td>

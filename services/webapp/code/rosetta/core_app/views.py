@@ -1444,6 +1444,7 @@ def add_storage(request):
         storage.bind_path = request.POST.get('bind_path', None)
         storage.read_only = bool(request.POST.get('read_only', False))
         storage.browsable = bool(request.POST.get('browsable', False))
+        storage.access_through_computing = bool(request.POST.get('access_through_computing', False))
 
         # Set the computing resource
         computing_uuid = request.POST.get('computing_uuid', None)
@@ -1514,6 +1515,7 @@ def edit_storage(request):
         storage.bind_path = request.POST.get('bind_path', storage.bind_path)
         storage.read_only = bool(request.POST.get('read_only', False))
         storage.browsable = bool(request.POST.get('browsable', False))
+        storage.access_through_computing = bool(request.POST.get('access_through_computing', False))
 
         # Update the computing resource
         computing_uuid = request.POST.get('computing_uuid', None)

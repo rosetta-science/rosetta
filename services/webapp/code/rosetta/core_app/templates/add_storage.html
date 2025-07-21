@@ -56,15 +56,42 @@
         </tr>
         <tr>
           <td><b>Type</b></td>
-          <td><input type="text" name="type" value="" size="30" required /></td>
+          <td>
+            <select name="type" style="width: 220px;" required>
+              <option value="bind">bind</option>
+              <option value="volume">volume</option>
+              <option value="nfs">nfs</option>
+              <option value="object">object</option>
+              <option value="posix">posix</option>
+              <option value="s3">s3</option>
+              <option value="lustre">lustre</option>
+              <option value="cephfs">cephfs</option>
+              <option value="other">other</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Access via computing</b></td>
+          <td><input type="checkbox" name="access_through_computing" value="True" /></td>
         </tr>
         <tr>
           <td><b>Access mode</b></td>
-          <td><input type="text" name="access_mode" value="" size="30" required /></td>
+          <td>
+            <select name="access_mode" style="width: 220px;" required>
+              <option value="ssh+cli">ssh+cli</option>
+              <option value="internal">internal</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Auth mode</b></td>
-          <td><input type="text" name="auth_mode" value="" size="30" required /></td>
+          <td>
+            <select name="auth_mode" style="width: 220px;" required>
+              <option value="user_keys">user_keys</option>
+              <option value="platform_keys">platform_keys</option>
+              <option value="internal">internal</option>
+            </select>
+          </td>
         </tr>
         <tr>
           <td><b>Base path</b></td>
