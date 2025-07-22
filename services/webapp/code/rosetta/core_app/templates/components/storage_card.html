@@ -11,7 +11,7 @@
     </tr>
     <tr>
       <td><b>Owner</b></td>
-      <td>{% if data.storage.user %}{{ data.storage.user }}{% else %}Platform{% endif %}</td>
+      <td>{% if data.storage.user %}{{ data.storage.user.email }}{% else %}Platform{% endif %}</td>
     </tr>
     <tr>
       <td><b>Group</b></td>

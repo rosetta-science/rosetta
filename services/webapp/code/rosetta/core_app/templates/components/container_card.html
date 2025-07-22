@@ -17,7 +17,7 @@
       <td colspan=2><hr style="margin:5px"></td></tr>
     <tr>
       <td><b>Owner</b></td>
-      <td>{% if container.user %}{{ container.user }}{% else %}platform{% endif %}</td>
+      <td>{% if container.user %}{{ container.user.email }}{% else %}platform{% endif %}</td>
     </tr>
     <tr>
       <td><b>Group</b></td>
