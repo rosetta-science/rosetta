@@ -7,7 +7,8 @@
   <div class="dashboard" style="height:100%;">
     <div class="span8 offset2" style="height:100%;">
       {% if data.storage %}
-      <h1><a href="/storage/?manage=True">Storage</a> <span style="font-size:18px"> / <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a></span></h1>
+      <h1><a href="/storage/?manage=True">Storage</a> <span style="font-size:18px"> / 
+          <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{% if data.storage.computing %}{{ data.storage.computing.name }}:{% endif %}{{ data.storage.name }}</a></span></h1>
       {% else %}
       <h1>Storage</h1>
       {% endif %}

@@ -6,7 +6,7 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1><a href="/storage/?manage=True">Storage resources</a> <span style="font-size:18px">/ add</span></h1>
+      <h1><a href="/storage/?manage=True">Storage</a> <span style="font-size:18px">/ add</span></h1>
       <hr>
 
       {% if data.error %}
@@ -20,10 +20,6 @@
       {% csrf_token %}
       <table class="dashboard" style="width:500px; margin-bottom:25px">
         <tr>
-          <td><b>Name</b></td>
-          <td><input type="text" name="name" value="" size="30" required /></td>
-        </tr>
-        <tr>
           <td><b>Computing</b></td>
           <td>
             <select name="computing_uuid" style="width: 220px;">
@@ -33,6 +29,10 @@
               {% endfor %}
             </select>
           </td>
+        </tr>
+        <tr>
+          <td><b>Name</b></td>
+          <td><input type="text" name="name" value="" size="30" required /></td>
         </tr>
         <tr>
           <td><b>Owner</b></td>
@@ -71,10 +71,6 @@
           </td>
         </tr>
         <tr>
-          <td><b>Access via computing</b></td>
-          <td><input type="checkbox" name="access_through_computing" value="True" /></td>
-        </tr>
-        <tr>
           <td><b>Access mode</b></td>
           <td>
             <select name="access_mode" style="width: 220px;" required>
@@ -82,6 +78,10 @@
               <option value="internal">internal</option>
             </select>
           </td>
+        </tr>
+        <tr>
+          <td><b>Access via computing</b></td>
+          <td><input type="checkbox" name="access_through_computing" value="True" /></td>
         </tr>
         <tr>
           <td><b>Auth mode</b></td>

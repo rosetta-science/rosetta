@@ -2,12 +2,12 @@
 <div style="float:left; width:500px; margin:10px; margin-bottom:20px">
   <table class="dashboard" style="width:100%">
     <tr>
-      <td><b>Name</b></td>
-      <td>{{ storage.name }}</td>
-    </tr>
-    <tr>
       <td><b>Computing</b></td>
       <td>{% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}</td>
+    </tr>
+    <tr>
+      <td><b>Name</b></td>
+      <td>{{ storage.name }}</td>
     </tr>
     <tr>
       <td><b>Owner</b></td>
@@ -25,7 +25,12 @@
       <td><b>Access mode</b></td>
       <td>{{ storage.access_mode }}</td>
     </tr>
-      <tr><td><b>Auth mode</b></td>
+    <tr>
+      <td><b>Access via computing</b></td>
+      <td>{{ storage.access_through_computing }}</td>
+    </tr>
+    <tr>
+      <td><b>Auth mode</b></td>
       <td>{{ storage.auth_mode }}</td>
     </tr>
     <tr>
@@ -67,7 +72,7 @@
 <div style="width:300px; float:left; border: #e0e0e0 solid 1px; margin:10px; background:#f8f8f8; margin-bottom:15px;">
   <div style="padding:10px; margin-top:5px; text-align:center; border-bottom: #e0e0e0 solid 1px; ">
     {% if storage.computing %}
-      <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.name }}</a>
+      <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.computing.name }}:{{ storage.name }}</a>
       <!-- <br/><font size=-1>@{{ storage.computing.name }}</font> -->
     {% else %}
       <a href="/storage/?manage=True&uuid={{ storage.uuid }}">{{ storage.name }}</a>
@@ -75,7 +80,6 @@
   </div>
   <div style="padding:10px;">
     <div class="image-version-box">
-      <b>Computing</b>: {% if storage.computing %}{{ storage.computing.name }}{% else %}None{% endif %}<br/>
       <b>Type:</b> {{ storage.type }}<br/>
       <b>Base path:</b> <code>{{ storage.base_path }}</code><br/>
       <b>Bind path:</b> <code>{{ storage.bind_path }}</code><br/>

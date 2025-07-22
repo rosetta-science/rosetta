@@ -6,7 +6,8 @@
 <div class="container">
   <div class="dashboard">
     <div class="span8 offset2">
-      <h1><a href="/storage">Storage</a> <span style="font-size:18px"> / <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{{ data.storage.name }}</a> /edit</span></h1>
+      <h1><a href="/storage">Storage</a> <span style="font-size:18px"> / 
+           <a href="/storage/?manage=True&uuid={{ data.storage.uuid }}">{% if data.storage.computing %}{{ data.storage.computing.name }}:{% endif %}{{ data.storage.name }}</a> /edit</span></h1>
       <hr>
       {% if data.error %}
       <div class="alert alert-danger" style="width:500px;">{{ data.error }}</div>
@@ -21,10 +22,6 @@
       {% csrf_token %}
       <table class="dashboard" style="width:500px; margin-bottom:25px">
         <tr>
-          <td><b>Name</b></td>
-          <td><input type="text" name="name" value="{{ data.storage.name }}" size="30" required /></td>
-        </tr>
-        <tr>
           <td><b>Computing</b></td>
           <td>
             <select name="computing_uuid" style="width: 220px;">
@@ -34,6 +31,10 @@
               {% endfor %}
             </select>
           </td>
+        </tr>
+        <tr>
+          <td><b>Name</b></td>
+          <td><input type="text" name="name" value="{{ data.storage.name }}" size="30" required /></td>
         </tr>
         <tr>
           <td><b>Owner</b></td>
@@ -69,10 +70,6 @@
           </td>
         </tr>
         <tr>
-          <td><b>Access via computing</b></td>
-          <td><input type="checkbox" name="access_through_computing" value="True" {% if data.storage.access_through_computing %}checked{% endif %} /></td>
-        </tr>
-        <tr>
           <td><b>Access mode</b></td>
           <td>
             <select name="access_mode" style="width: 220px;" required>
@@ -80,6 +77,10 @@
               <option value="internal" {% if data.storage.access_mode == 'internal' %}selected{% endif %}>internal</option>
             </select>
           </td>
+        </tr>
+        <tr>
+          <td><b>Access via computing</b></td>
+          <td><input type="checkbox" name="access_through_computing" value="True" {% if data.storage.access_through_computing %}checked{% endif %} /></td>
         </tr>
         <tr>
           <td><b>Auth mode</b></td>
