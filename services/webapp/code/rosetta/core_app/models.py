@@ -256,6 +256,8 @@ class Computing(models.Model):
 
     def save(self, *args, **kwargs):
 
+        if not self.wms:
+            self.wms = None
         if not self.container_engines:
             self.container_engines = None
         if not self.supported_archs:
@@ -269,7 +271,7 @@ class Computing(models.Model):
             get_computing_manager(self)
         except:
             raise
-            raise ValueError('Unsupported combination of type, access_mode, auth_mode, and wms')
+            #raise ValueError('Unsupported combination of type, access_mode, auth_mode, and wms')
         super(Computing, self).save(*args, **kwargs)
 
     @property
