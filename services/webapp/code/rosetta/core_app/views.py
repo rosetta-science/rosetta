@@ -215,11 +215,11 @@ def login_view(request):
                         return render(request, 'success.html', {'data': data})
 
             if password:
-                if user.profile.auth != 'local':
-                    # This actually hides that the user cannot be authenticated using the local auth.
-                    raise ErrorMessage('Check email and password')
                 user = authenticate(username=username, password=password)
                 if user:
+                    if user.profile.auth != 'local':
+                        # This actually hides that the user cannot be authenticated using the local auth.
+                        raise ErrorMessage('Check email and password')
                     login(request, user)
                     response = HttpResponseRedirect(post_login_page)
                     response.delete_cookie('post_login_redirect')
