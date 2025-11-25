@@ -108,9 +108,9 @@ First of all remove the default snakeoil certificates:
 
 Then:
 
-    $ nano /etc/apache2/sites-available/proxy-global.conf
+    $ sudo nano /etc/apache2/sites-available/proxy-global.conf
     
-...and change the certificates for the domain that you want to enable with Letsencrypt to use the snakeoils located in `/root/certificates/` as per the first lines of the `proxy-global.conf` file (otherwise next command will fail).
+...and change the certificates for the "Catch-all", "Rosetta platform",  "Rosetta tasks", and "Docker registry" virtual hosts to use the snakeoils located in `/root/certificates/` as per the first lines of the `proxy-global.conf` file (otherwise next command will fail).
 
 Now restart apache to pick up the new snakeoils:
 
